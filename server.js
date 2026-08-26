@@ -5,6 +5,7 @@
  * Reads .env for config, uses cookie-parser for sessions.
  * 
  * Security: CORS restricted, rate limiting, body size limits.
+ * Auto-deploy test: This comment verifies the watcher is working.
  */
 
 require('dotenv').config({ path: require('path').join(__dirname, '.env') });
