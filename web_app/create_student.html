@@ -163,8 +163,8 @@
 
   <div class="page">
     <div class="header">
-      <a href="feed.html" class="back-link">← Back to feed</a>
-      <a href="feed.html" class="logo">LARPABLE.</a>
+      <a href="/feed" class="back-link">← Back to feed</a>
+      <a href="/feed" class="logo">LARPABLE.</a>
     </div>
 
     <h1 style="font-size:1.3rem; font-weight:700; margin-bottom:4px;">Create an opportunity</h1>
@@ -298,7 +298,7 @@
       </div>
 
       <div class="btn-row">
-        <a href="feed.html" class="btn btn--ghost">Cancel</a>
+        <a href="/feed" class="btn btn--ghost">Cancel</a>
         <button class="btn btn--filled" type="submit" id="submit-btn">Post opportunity</button>
       </div>
 
@@ -597,7 +597,7 @@
           credentials: 'same-origin',
           body: JSON.stringify(body)
         });
-        if (res.ok) { window.location.href = 'feed.html'; }
+        if (res.ok) { window.location.href = '/feed'; }
         else { const d = await res.json(); alert(d.error || 'Failed'); btn.disabled = false; btn.textContent = editId ? 'Save changes' : 'Post opportunity'; }
       } catch (err) { alert('Connection error'); btn.disabled = false; btn.textContent = editId ? 'Save changes' : 'Post opportunity'; }
     });
@@ -606,11 +606,11 @@
     (async () => {
       try {
         const res = await fetch('/api/auth/me', { credentials: 'same-origin' });
-        if (!res.ok) { window.location.href = 'login.html'; return; }
+        if (!res.ok) { window.location.href = '/login'; return; }
 
         const editId = new URLSearchParams(window.location.search).get('edit');
         if (editId) await loadForEdit(editId);
-      } catch (e) { window.location.href = 'login.html'; }
+      } catch (e) { window.location.href = '/login'; }
     })();
 
     async function loadForEdit(id) {

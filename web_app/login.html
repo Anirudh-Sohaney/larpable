@@ -151,7 +151,7 @@
     </form>
 
     <div class="signup">
-      Don't have an account? <a href="signup.html">Sign up</a>
+      Don't have an account? <a href="/signup">Sign up</a>
     </div>
   </div>
 
@@ -160,7 +160,7 @@
     (async () => {
       try {
         const res = await fetch('/api/auth/me', { credentials: 'same-origin' });
-        if (res.ok) window.location.href = 'feed.html';
+        if (res.ok) window.location.href = '/feed';
       } catch (e) {}
     })();
 
@@ -195,7 +195,7 @@
         }
         
         // Login successful — cookie is set by server
-        window.location.href = 'feed.html';
+        window.location.href = '/feed';
       } catch (err) {
         errorEl.textContent = 'Connection error. Please try again.';
         errorEl.classList.add('show');

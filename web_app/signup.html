@@ -260,7 +260,7 @@
             <button class="btn btn--filled" type="button" onclick="nextStep()">Next</button>
           </div>
         </form>
-        <p class="login-link">Already have an account? <a href="login.html">Log in</a></p>
+        <p class="login-link">Already have an account? <a href="/login">Log in</a></p>
       </div>
 
       <!-- STEP 1: INTERESTS & SKILLS -->
@@ -293,7 +293,7 @@
     (async () => {
       try {
         const res = await fetch('/api/auth/me', { credentials: 'same-origin' });
-        if (res.ok) window.location.href = 'feed.html';
+        if (res.ok) window.location.href = '/feed';
       } catch (e) {}
     })();
 
@@ -628,7 +628,7 @@
     }
 
     function goBack() {
-      window.location.href = 'loading_page.html';
+      window.location.href = '/loading_page';
     }
 
     function showPanel(step) {
@@ -718,7 +718,7 @@
           return;
         }
 
-        window.location.href = 'feed.html';
+        window.location.href = '/feed';
       } catch (err) {
         errEl.textContent = 'Connection error. Please try again.';
         errEl.classList.add('show');

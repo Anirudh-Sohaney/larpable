@@ -103,7 +103,7 @@
       <span id="typed"></span><span class="cursor" id="cursor"></span>
     </div>
     <div class="btn-wrap" id="btnWrap">
-      <a href="login.html" class="btn">Log in</a>
+      <a href="/login" class="btn">Log in</a>
     </div>
   </div>
 
@@ -133,7 +133,7 @@
     (async () => {
       try {
         const res = await fetch('/api/auth/me', { credentials: 'same-origin' });
-        if (res.ok) window.location.href = 'feed.html';
+        if (res.ok) window.location.href = '/feed';
       } catch (e) {}
     })();
 

@@ -190,7 +190,7 @@
 
   <div class="page">
     <div class="header">
-      <a href="feed.html" class="logo">LARPABLE.</a>
+      <a href="/feed" class="logo">LARPABLE.</a>
       <div class="header-actions">
         <div class="user-badge"><span id="username-display"></span></div>
         <button class="btn-ghost" onclick="logout()">Log out</button>
@@ -204,7 +204,7 @@
         <button class="tab" data-tab="companies">Companies</button>
         <button class="tab" data-tab="yours">Your Projects</button>
       </div>
-      <button class="btn-create" onclick="window.location.href='create_student.html'">+ Create</button>
+      <button class="btn-create" onclick="window.location.href='/create_student'">+ Create</button>
     </div>
 
     <div class="filters-bar visible" id="filters-bar">
@@ -252,10 +252,10 @@
           document.getElementById('username-display').textContent = currentUser.displayName || currentUser.username || 'User';
           await loadUserProfile();
         } else {
-          window.location.href = 'login.html';
+          window.location.href = '/login';
         }
       } catch {
-        window.location.href = 'login.html';
+        window.location.href = '/login';
       }
     }
 
@@ -507,7 +507,7 @@
 
         const editDelete = isOwner && isYours ? `
           <div class="your-card-actions">
-            <button class="edit-btn" onclick="event.stopPropagation(); window.location.href='create_student.html?edit=${o.id}'">Edit</button>
+            <button class="edit-btn" onclick="event.stopPropagation(); window.location.href='/create_student?edit=${o.id}'">Edit</button>
             <button class="delete-btn" onclick="event.stopPropagation(); deleteOpportunity('${o.id}')">Delete</button>
           </div>` : '';
 
@@ -518,7 +518,7 @@
         const scoreHtml = (hasForYou && score !== undefined) ? `<span class="skill-tag" style="border-color:var(--accent);color:var(--accent);">${score.toFixed(2)}</span>` : '';
 
         return `
-          <div class="card ${isOwner ? 'your-card' : ''}" onclick="window.location.href='opportunity.html?id=${o.id}'">
+          <div class="card ${isOwner ? 'your-card' : ''}" onclick="window.location.href='/opportunity?id=${o.id}'">
             ${editDelete}
             <div class="card-header">
               <div class="card-title">${esc(o.title || 'Untitled')}</div>
@@ -533,7 +533,7 @@
             ${skillsHtml ? `<div class="card-skills">${skillsHtml}${scoreHtml}</div>` : (scoreHtml ? `<div class="card-skills">${scoreHtml}</div>` : '')}
             <div class="card-footer">
               <span class="card-posted">${esc(o.posted || '')}</span>
-              <a class="card-action" href="opportunity.html?id=${o.id}">${actionLabel} →</a>
+              <a class="card-action" href="/opportunity?id=${o.id}">${actionLabel} →</a>
             </div>
           </div>`;
       }).join('');
@@ -552,7 +552,7 @@
 
     async function logout() {
       await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
-      window.location.href = 'loading_page.html';
+      window.location.href = '/loading_page';
     }
 
     function init() { render(); }
