@@ -224,7 +224,10 @@
           <label>Sort by</label>
           <select class="sort-select" id="sort-select">
             <option value="">None</option>
-            <option value="name">Name</option>
+            <option value="name-az">Name A-Z</option>
+            <option value="name-za">Name Z-A</option>
+            <option value="oldest">Oldest</option>
+            <option value="recent">Most Recent</option>
           </select>
         </div>
       </div>
@@ -489,8 +492,14 @@
       if (hasForYou && !sortVal) {
         // Default: sort by match score (highest first)
         filtered.sort((a, b) => (matchScores[b.id] || 0) - (matchScores[a.id] || 0));
-      } else if (sortVal === 'name') {
+      } else if (sortVal === 'name-az') {
         filtered.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+      } else if (sortVal === 'name-za') {
+        filtered.sort((a, b) => (b.title || '').localeCompare(a.title || ''));
+      } else if (sortVal === 'oldest') {
+        filtered.sort((a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0));
+      } else if (sortVal === 'recent') {
+        filtered.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
       }
 
       // Render
