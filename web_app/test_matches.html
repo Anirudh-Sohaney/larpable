@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LARPABLE. — Match Test</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg: #F5F0E8;
+      --font: #2D2A26;
+      --accent: #E8734A;
+      --card: #FFFDF8;
+      --border: #D6D1C9;
+      --shadow: #C4BEB5;
+      --muted: #8A8580;
+      --green: #4CAF50;
+      --indigo: #5C6BC0;
+      --green-bg: rgba(76,175,80,0.08);
+      --indigo-bg: rgba(92,107,192,0.08);
+      --coral-bg: rgba(232,115,74,0.08);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Space Grotesk', sans-serif; background: var(--bg); color: var(--font); min-height: 100vh; }
+
+    .page { max-width: 600px; margin: 0 auto; padding: 0 20px 60px; }
+
+    .header { display: flex; justify-content: space-between; align-items: center; padding: 16px 0 12px; }
+    .logo { font-size: 1.2rem; font-weight: 700; color: var(--accent); letter-spacing: 1px; text-decoration: none; }
+    .back-link { font-size: 0.82rem; font-weight: 600; color: var(--muted); text-decoration: none; transition: color 0.15s; }
+    .back-link:hover { color: var(--accent); }
+
+    h1 { font-size: 1.3rem; font-weight: 700; margin-bottom: 4px; }
+    .subtitle { font-size: 0.85rem; color: var(--muted); margin-bottom: 24px; }
+
+    .selector-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px; }
+
+    .selector-group label {
+      display: block; font-size: 0.72rem; font-weight: 600; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;
+    }
+    .selector-group select {
+      width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: 6px;
+      font-family: inherit; font-size: 0.85rem; background: var(--card);
+      color: var(--font); cursor: pointer; outline: none; appearance: auto;
+    }
+    .selector-group select:focus { border-color: var(--accent); }
+
+    .search-input {
+      width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px;
+      font-family: inherit; font-size: 0.82rem; background: var(--card);
+      color: var(--font); outline: none; margin-bottom: 8px;
+    }
+    .search-input:focus { border-color: var(--accent); }
+    .search-input::placeholder { color: var(--muted); }
+
+    /* Score display */
+    .score-card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+      padding: 24px; text-align: center; margin-bottom: 20px;
+      transition: all 0.3s;
+    }
+    .score-card.active { border-color: var(--accent); box-shadow: 0 4px 16px var(--shadow); }
+
+    .score-label { font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); margin-bottom: 8px; }
+    .score-value { font-size: 3rem; font-weight: 700; color: var(--accent); line-height: 1; margin-bottom: 4px; }
+    .score-bar-wrap { width: 100%; height: 8px; background: var(--bg); border-radius: 4px; overflow: hidden; margin-bottom: 8px; }
+    .score-bar { height: 100%; background: var(--accent); border-radius: 4px; transition: width 0.4s ease; width: 0; }
+    .score-desc { font-size: 0.82rem; color: var(--muted); }
+
+    /* Breakdown */
+    .breakdown { margin-bottom: 20px; }
+    .breakdown-title { font-size: 0.82rem; font-weight: 600; margin-bottom: 10px; }
+    .breakdown-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .breakdown-item {
+      background: var(--card); border: 1px solid var(--border); border-radius: 8px;
+      padding: 10px 14px;
+    }
+    .breakdown-item .label { font-size: 0.68rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); margin-bottom: 2px; }
+    .breakdown-item .value { font-size: 0.95rem; font-weight: 600; color: var(--font); }
+
+    /* Path display */
+    .path-card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 8px;
+      padding: 14px 16px; margin-bottom: 10px;
+    }
+    .path-card .path-label { font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); margin-bottom: 6px; }
+    .path-card .path-entities { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .path-card .entity-pill {
+      font-size: 0.78rem; font-weight: 600; padding: 4px 10px; border-radius: 16px;
+      background: var(--coral-bg); color: var(--accent);
+    }
+    .path-card .entity-pill.interest { background: var(--green-bg); color: var(--green); }
+    .path-card .entity-pill.industry { background: var(--indigo-bg); color: var(--indigo); }
+    .path-card .arrow { color: var(--muted); font-size: 0.75rem; }
+    .path-card .path-score { font-size: 0.75rem; color: var(--muted); margin-top: 4px; }
+
+    /* History */
+    .history-title { font-size: 0.82rem; font-weight: 600; margin-bottom: 10px; margin-top: 24px; }
+    .history-item {
+      display: flex; justify-content: space-between; align-items: center;
+      background: var(--card); border: 1px solid var(--border); border-radius: 8px;
+      padding: 10px 14px; margin-bottom: 6px; font-size: 0.82rem;
+    }
+    .history-item .pair { color: var(--font); }
+    .history-item .score { font-weight: 700; color: var(--accent); }
+
+    .empty-msg { text-align: center; color: var(--muted); padding: 40px 20px; font-size: 0.88rem; }
+  </style>
+</head>
+<body>
+
+  <div class="page">
+    <div class="header">
+      <a href="feed.html" class="back-link">← Back to feed</a>
+      <a href="feed.html" class="logo">LARPABLE.</a>
+    </div>
+
+    <h1>Match Test</h1>
+    <p class="subtitle">Compare any two entities — skill, interest, or industry</p>
+
+    <div class="selector-row">
+      <div class="selector-group">
+        <label>Entity A (Skill or Industry)</label>
+        <input class="search-input" type="text" placeholder="Search..." id="search-a">
+        <select id="select-a" size="8"></select>
+      </div>
+      <div class="selector-group">
+        <label>Entity B (Skill or Interest)</label>
+        <input class="search-input" type="text" placeholder="Search..." id="search-b">
+        <select id="select-b" size="8"></select>
+      </div>
+    </div>
+
+    <!-- Score Display -->
+    <div class="score-card" id="score-card">
+      <div class="score-label">Match Score</div>
+      <div class="score-value" id="score-value">—</div>
+      <div class="score-bar-wrap"><div class="score-bar" id="score-bar"></div></div>
+      <div class="score-desc" id="score-desc">Select two entities to compare</div>
+    </div>
+
+    <!-- Path Visualization -->
+    <div id="path-section" style="display:none;">
+      <div class="path-card" id="path-direct"></div>
+      <div class="path-card" id="path-category"></div>
+    </div>
+
+    <!-- Breakdown -->
+    <div class="breakdown" id="breakdown-section" style="display:none;">
+      <div class="breakdown-title">Score Breakdown</div>
+      <div class="breakdown-grid" id="breakdown-grid"></div>
+    </div>
+
+    <!-- History -->
+    <div class="history-title" id="history-title" style="display:none;">Recent Comparisons</div>
+    <div id="history-list"></div>
+  </div>
+
+  <script>
+    let allEntities = [];
+    let history = [];
+
+    // ─── Load entities ───
+    (async () => {
+      try {
+        const res = await fetch('/api/match/entities');
+        const data = await res.json();
+        allEntities = data.entities;
+        renderDropdown('select-a', allEntities.filter(e => e.type === 'skill' || e.type === 'industry'));
+        renderDropdown('select-b', allEntities.filter(e => e.type === 'skill' || e.type === 'interest'));
+      } catch (e) {
+        console.error('Failed to load entities:', e);
+      }
+    })();
+
+    function renderDropdown(id, entities) {
+      const sel = document.getElementById(id);
+      // Group by category
+      const groups = {};
+      for (const e of entities) {
+        const cat = e.category || 'Other';
+        if (!groups[cat]) groups[cat] = [];
+        groups[cat].push(e);
+      }
+      let html = '';
+      for (const [cat, items] of Object.entries(groups)) {
+        html += `<optgroup label="${cat}">`;
+        for (const item of items) {
+          const typeTag = item.type === 'industry' ? ' [Industry]' : '';
+          html += `<option value="${item.name}" data-type="${item.type}">${item.name}${typeTag}</option>`;
+        }
+        html += '</optgroup>';
+      }
+      sel.innerHTML = html;
+    }
+
+    // ─── Search filtering ───
+    document.getElementById('search-a').addEventListener('input', (e) => {
+      filterDropdown('select-a', e.target.value, allEntities.filter(en => en.type === 'skill' || en.type === 'industry'));
+    });
+    document.getElementById('search-b').addEventListener('input', (e) => {
+      filterDropdown('select-b', e.target.value, allEntities.filter(en => en.type === 'skill' || en.type === 'interest'));
+    });
+
+    function filterDropdown(id, query, entities) {
+      const q = query.toLowerCase();
+      const filtered = entities.filter(e => e.name.toLowerCase().includes(q) || e.category.toLowerCase().includes(q));
+      renderDropdown(id, filtered);
+    }
+
+    // ─── Compute match on selection ───
+    document.getElementById('select-a').addEventListener('change', computeMatch);
+    document.getElementById('select-b').addEventListener('change', computeMatch);
+
+    async function computeMatch() {
+      const a = document.getElementById('select-a').value;
+      const b = document.getElementById('select-b').value;
+      if (!a || !b) return;
+
+      try {
+        const res = await fetch(`/api/match/similarity?a=${encodeURIComponent(a)}&b=${encodeURIComponent(b)}`);
+        const data = await res.json();
+        displayScore(a, b, data.score);
+        addToHistory(a, b, data.score);
+      } catch (e) {
+        console.error('Match failed:', e);
+      }
+    }
+
+    function displayScore(a, b, score) {
+      const card = document.getElementById('score-card');
+      const value = document.getElementById('score-value');
+      const bar = document.getElementById('score-bar');
+      const desc = document.getElementById('score-desc');
+
+      card.classList.add('active');
+      value.textContent = score.toFixed(3);
+      bar.style.width = (score * 100) + '%';
+
+      // Color the bar based on score
+      if (score >= 0.8) bar.style.background = 'var(--green)';
+      else if (score >= 0.5) bar.style.background = 'var(--accent)';
+      else bar.style.background = 'var(--muted)';
+
+      // Description
+      let label = '';
+      if (score === 1.0) label = 'Exact match';
+      else if (score >= 0.9) label = 'Very closely related';
+      else if (score >= 0.8) label = 'Closely related';
+      else if (score >= 0.7) label = 'Related';
+      else if (score >= 0.6) label = 'Moderately related';
+      else if (score >= 0.5) label = 'Somewhat related';
+      else if (score >= 0.3) label = 'Loosely related';
+      else label = 'Unrelated';
+      desc.textContent = `${a} ↔ ${b} — ${label}`;
+
+      // Show path info
+      const aInfo = allEntities.find(e => e.name === a);
+      const bInfo = allEntities.find(e => e.name === b);
+      showPath(a, b, aInfo, bInfo, score);
+    }
+
+    function showPath(a, b, aInfo, bInfo, score) {
+      const pathSection = document.getElementById('path-section');
+      const directCard = document.getElementById('path-direct');
+      const catCard = document.getElementById('path-category');
+
+      pathSection.style.display = 'block';
+
+      const typeA = aInfo ? aInfo.type : 'unknown';
+      const typeB = bInfo ? bInfo.type : 'unknown';
+      const pillClass = (t) => t === 'interest' ? 'interest' : t === 'industry' ? 'industry' : '';
+
+      directCard.innerHTML = `
+        <div class="path-label">Direct Comparison</div>
+        <div class="path-entities">
+          <span class="entity-pill ${pillClass(typeA)}">${a}</span>
+          <span class="arrow">↔</span>
+          <span class="entity-pill ${pillClass(typeB)}">${b}</span>
+        </div>
+        <div class="path-score">Score: ${score.toFixed(3)} · ${aInfo ? aInfo.category : '?'} ↔ ${bInfo ? bInfo.category : '?'}</div>
+      `;
+
+      // Category proximity
+      const catA = aInfo ? aInfo.category : '?';
+      const catB = bInfo ? bInfo.category : '?';
+      const sameCat = catA === catB;
+      catCard.innerHTML = `
+        <div class="path-label">Category Proximity</div>
+        <div class="path-entities">
+          <span class="entity-pill ${pillClass(typeA)}">${catA}</span>
+          <span class="arrow">${sameCat ? '=' : '≠'}</span>
+          <span class="entity-pill ${pillClass(typeB)}">${catB}</span>
+        </div>
+        <div class="path-score">${sameCat ? 'Same category' : 'Different categories'} · Type A: ${typeA} · Type B: ${typeB}</div>
+      `;
+    }
+
+    function addToHistory(a, b, score) {
+      history.unshift({ a, b, score, time: new Date() });
+      if (history.length > 20) history.pop();
+      renderHistory();
+    }
+
+    function renderHistory() {
+      if (history.length === 0) return;
+      document.getElementById('history-title').style.display = 'block';
+      const list = document.getElementById('history-list');
+      list.innerHTML = history.map(h => `
+        <div class="history-item">
+          <span class="pair">${h.a} ↔ ${h.b}</span>
+          <span class="score">${h.score.toFixed(3)}</span>
+        </div>
+      `).join('');
+    }
+  </script>
+
+</body>
+</html>

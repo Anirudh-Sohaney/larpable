@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LARPABLE. — Create Opportunity</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg: #F5F0E8;
+      --font: #2D2A26;
+      --accent: #E8734A;
+      --card: #FFFDF8;
+      --border: #D6D1C9;
+      --shadow: #C4BEB5;
+      --muted: #8A8580;
+      --green: #4CAF50;
+      --indigo: #5C6BC0;
+      --green-bg: rgba(76,175,80,0.08);
+      --indigo-bg: rgba(92,107,192,0.08);
+      --coral-bg: rgba(232,115,74,0.08);
+      --danger: #dc3545;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Space Grotesk', sans-serif; background: var(--bg); color: var(--font); min-height: 100vh; }
+
+    .page { max-width: 600px; margin: 0 auto; padding: 0 20px 60px; }
+
+    /* Header */
+    .header { display: flex; justify-content: space-between; align-items: center; padding: 16px 0 12px; }
+    .logo { font-size: 1.2rem; font-weight: 700; color: var(--accent); letter-spacing: 1px; text-decoration: none; }
+    .back-link { font-size: 0.82rem; font-weight: 600; color: var(--muted); text-decoration: none; transition: color 0.15s; }
+    .back-link:hover { color: var(--accent); }
+
+    /* Type selector */
+    .type-selector { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 24px; }
+    .type-btn {
+      display: flex; flex-direction: column; align-items: center; gap: 4px;
+      padding: 12px 8px; background: var(--card); border: 1.5px solid var(--border); border-radius: 8px;
+      cursor: pointer; transition: all 0.15s; font-family: inherit;
+    }
+    .type-btn:hover { border-color: var(--muted); }
+    .type-btn.is-active { border-color: var(--accent); background: var(--coral-bg); }
+    .type-btn .icon { font-size: 1.3rem; }
+    .type-btn .label { font-size: 0.78rem; font-weight: 600; color: var(--muted); }
+    .type-btn.is-active .label { color: var(--accent); }
+
+    /* Form */
+    .form { display: flex; flex-direction: column; gap: 18px; }
+
+    .field { display: flex; flex-direction: column; gap: 4px; }
+    .field label { font-size: 0.82rem; font-weight: 600; color: var(--muted); }
+    .field .hint { font-size: 0.72rem; color: var(--muted); }
+    .field .word-count { font-size: 0.72rem; color: var(--muted); font-weight: 500; }
+    .field .word-count.at-limit { color: var(--accent); }
+    .field .word-count.over-limit { color: var(--danger); }
+    .field .error-msg { font-size: 0.72rem; color: var(--danger); display: none; }
+
+    .field input[type="text"],
+    .field textarea,
+    .field select {
+      width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: 6px;
+      font-family: inherit; font-size: 0.88rem; background: var(--card);
+      color: var(--font); outline: none; transition: border 0.15s;
+    }
+    .field input:focus, .field textarea:focus, .field select:focus { border-color: var(--accent); }
+    .field input::placeholder, .field textarea::placeholder { color: var(--muted); }
+    .field textarea { resize: vertical; min-height: 80px; }
+    .field select { appearance: auto; cursor: pointer; }
+
+    .field input:disabled, .field textarea:disabled { opacity: 0.5; background: var(--bg); cursor: not-allowed; }
+
+    /* Remote checkbox */
+    .checkbox-row {
+      display: flex; align-items: center; gap: 8px; padding: 8px 0;
+    }
+    .checkbox-row input[type="checkbox"] {
+      width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer;
+    }
+    .checkbox-row label { font-size: 0.85rem; font-weight: 500; cursor: pointer; }
+
+    /* Location autocomplete */
+    .location-wrap { position: relative; }
+    .location-wrap input { width: 100%; }
+    .location-dropdown {
+      display: none; position: absolute; top: 100%; left: 0; right: 0; z-index: 100;
+      background: var(--card); border: 1px solid var(--border); border-radius: 6px;
+      margin-top: 4px; max-height: 200px; overflow-y: auto;
+      box-shadow: 0 4px 12px var(--shadow);
+    }
+    .location-dropdown.open { display: block; }
+    .location-option {
+      display: block; width: 100%; padding: 8px 14px; border: none; background: none;
+      font-family: inherit; font-size: 0.82rem; color: var(--font);
+      cursor: pointer; text-align: left;
+    }
+    .location-option:hover { background: rgba(232,115,74,0.06); }
+    .location-selected {
+      display: flex; align-items: center; gap: 6px; margin-top: 6px;
+      font-size: 0.78rem; color: var(--accent); font-weight: 500;
+    }
+    .location-selected .clear-loc {
+      cursor: pointer; font-size: 0.85rem; color: var(--muted);
+    }
+    .location-selected .clear-loc:hover { color: var(--danger); }
+
+    /* Chip grid */
+    .chip-count { font-size: 0.72rem; color: var(--muted); font-weight: 500; }
+    .chip-count.at-limit { color: var(--accent); }
+    .chip-count.over-limit { color: var(--danger); }
+    .chip-grid {
+      display: flex; flex-wrap: wrap; gap: 6px; max-height: 160px; overflow-y: auto;
+      padding: 4px 0;
+    }
+    .chip-grid::-webkit-scrollbar { width: 4px; }
+    .chip-grid::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+    .chip-option { display: none; }
+    .chip-label {
+      display: inline-block; font-size: 0.75rem; font-weight: 500;
+      padding: 5px 12px; border-radius: 20px; border: 1.5px solid var(--border);
+      background: var(--card); color: var(--muted); cursor: pointer;
+      transition: all 0.15s; user-select: none;
+    }
+    .chip-label:hover { border-color: var(--muted); }
+    .chip-option:checked + .chip-label { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .chip-option:disabled + .chip-label { opacity: 0.4; cursor: not-allowed; }
+
+    /* Skill search */
+    .skill-search {
+      width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px;
+      font-family: inherit; font-size: 0.82rem; background: var(--card);
+      color: var(--font); outline: none; margin-bottom: 6px;
+    }
+    .skill-search:focus { border-color: var(--accent); }
+    .skill-search::placeholder { color: var(--muted); }
+
+    /* Buttons */
+    .btn-row { display: flex; gap: 10px; margin-top: 10px; }
+    .btn-row .btn { flex: 1; }
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      font-family: inherit; font-weight: 600; font-size: 0.88rem;
+      border-radius: 6px; border: none; cursor: pointer; transition: all 0.15s;
+      padding: 10px 16px; text-decoration: none;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn--filled { background: var(--accent); color: #fff; }
+    .btn--filled:hover { opacity: 0.9; }
+    .btn--filled:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn--ghost { background: none; border: 1px solid var(--border); color: var(--muted); }
+    .btn--ghost:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* Type-specific sections */
+    .type-section { display: none; }
+    .type-section.active { display: flex; flex-direction: column; gap: 18px; }
+  </style>
+</head>
+<body>
+
+  <div class="page">
+    <div class="header">
+      <a href="feed.html" class="back-link">← Back to feed</a>
+      <a href="feed.html" class="logo">LARPABLE.</a>
+    </div>
+
+    <h1 style="font-size:1.3rem; font-weight:700; margin-bottom:4px;">Create an opportunity</h1>
+    <p style="font-size:0.85rem; color:var(--muted); margin-bottom:20px;">What are you posting?</p>
+
+    <!-- TYPE SELECTOR -->
+    <div class="type-selector">
+      <button class="type-btn is-active" type="button" onclick="selectType('project', this)">
+        <span class="icon">🎓</span>
+        <span class="label">Project</span>
+      </button>
+      <button class="type-btn" type="button" onclick="selectType('nonprofit', this)">
+        <span class="icon">🌍</span>
+        <span class="label">Non-profit</span>
+      </button>
+      <button class="type-btn" type="button" onclick="selectType('company', this)">
+        <span class="icon">🏢</span>
+        <span class="label">Company</span>
+      </button>
+    </div>
+
+    <form class="form" onsubmit="return false;">
+
+      <!-- PROJECT: Title -->
+      <div class="type-section active" id="section-project">
+        <div class="field">
+          <label for="project-title">Project title <span class="word-count" id="project-title-count">0 / 12</span></label>
+          <input id="project-title" type="text" placeholder="e.g. Mental health tracker app" maxlength="100">
+          <div class="error-msg" id="project-title-error">Required</div>
+        </div>
+      </div>
+
+      <!-- NONPROFIT: Name + Field -->
+      <div class="type-section" id="section-nonprofit">
+        <div class="field">
+          <label for="np-name">Non-profit name <span class="word-count" id="np-name-count">0 / 12</span></label>
+          <input id="np-name" type="text" placeholder="e.g. Code.org" maxlength="100">
+          <div class="error-msg" id="np-name-error">Required</div>
+        </div>
+        <div class="field">
+          <label for="np-field">Field</label>
+          <select id="np-field">
+            <option value="" disabled selected>Select a field</option>
+            <option>Education</option><option>Health / Medical</option><option>Environment / Climate</option>
+            <option>Human Rights</option><option>Poverty / Economic Development</option><option>Disaster Relief</option>
+            <option>Animal Welfare</option><option>Arts / Culture</option><option>Community Development</option>
+            <option>Mental Health</option><option>Hunger / Food Security</option><option>Housing / Homelessness</option>
+            <option>Technology Access</option><option>Youth Development</option><option>Immigration / Refugees</option>
+            <option>Legal Aid</option><option>STEM Education</option><option>Other</option>
+          </select>
+          <div class="error-msg" id="np-field-error">Required</div>
+        </div>
+      </div>
+
+      <!-- COMPANY: Name + Industry -->
+      <div class="type-section" id="section-company">
+        <div class="field">
+          <label for="co-name">Company name <span class="word-count" id="co-name-count">0 / 12</span></label>
+          <input id="co-name" type="text" placeholder="e.g. Stripe" maxlength="100">
+          <div class="error-msg" id="co-name-error">Required</div>
+        </div>
+        <div class="field">
+          <label for="co-industry">Industry</label>
+          <select id="co-industry">
+            <option value="" disabled selected>Select an industry</option>
+            <option>Technology / SaaS</option><option>Finance / Fintech</option><option>Healthcare / Biotech</option>
+            <option>E-commerce / Retail</option><option>Education / EdTech</option><option>Media / Entertainment</option>
+            <option>Manufacturing</option><option>Real Estate</option><option>Energy / CleanTech</option>
+            <option>Transportation / Logistics</option><option>Food & Beverage</option><option>Legal / Compliance</option>
+            <option>Marketing / Advertising</option><option>Consulting</option><option>Non-profit / Social Enterprise</option>
+            <option>Other</option>
+          </select>
+          <div class="error-msg" id="co-industry-error">Required</div>
+        </div>
+      </div>
+
+      <!-- LOOKING FOR (all types) -->
+      <div class="field">
+        <label for="looking-for">Looking for <span class="word-count" id="looking-for-count">0 / 6</span></label>
+        <input id="looking-for" type="text" placeholder="e.g. 2 frontend devs" maxlength="60">
+        <div class="error-msg" id="looking-for-error">Required</div>
+      </div>
+
+      <!-- REQUIRED SKILLS (all types) -->
+      <div class="field">
+        <label>Required skills <span class="chip-count" id="sk-count">0 / 8 (min 3)</span></label>
+        <input class="skill-search" type="text" placeholder="Search skills..." id="skill-search">
+        <div class="chip-grid" id="skills-grid"></div>
+        <div class="error-msg" id="skills-error">Select at least 3 skills</div>
+      </div>
+
+      <!-- BRIEF DESCRIPTION (all types) -->
+      <div class="field">
+        <label for="description">Brief description <span class="word-count" id="desc-count">0 / 9</span></label>
+        <input id="description" type="text" placeholder="One sentence summary" maxlength="120">
+        <div class="error-msg" id="desc-error">Required (max 9 words)</div>
+      </div>
+
+      <!-- ADDITIONAL DETAILS (all types) -->
+      <div class="field">
+        <label for="details">Additional details <span class="word-count" id="details-count">0 / 50</span></label>
+        <textarea id="details" placeholder="Anything else people should know..." maxlength="400"></textarea>
+      </div>
+
+      <!-- REMOTE CHECKBOX (all types) -->
+      <div class="checkbox-row">
+        <input type="checkbox" id="remote-check" checked>
+        <label for="remote-check">Remote</label>
+      </div>
+
+      <!-- LOCATION (hidden when remote is checked) -->
+      <div class="field" id="location-field" style="display:none;">
+        <label>Location</label>
+        <div class="location-wrap">
+          <input type="text" id="location-input" placeholder="Start typing a city...">
+          <div class="location-dropdown" id="location-dropdown"></div>
+        </div>
+        <div class="location-selected" id="location-selected" style="display:none;">
+          <span id="location-display"></span>
+          <span class="clear-loc" onclick="clearLocation()">&times;</span>
+        </div>
+        <div class="error-msg" id="location-error">Select a location from the list</div>
+        <input type="hidden" id="location-data" value="">
+      </div>
+
+      <!-- CONTACT (all types) -->
+      <div class="field">
+        <label for="contact">Contact</label>
+        <input id="contact" type="text" placeholder="Email or social handle">
+        <div class="error-msg" id="contact-error">Required</div>
+      </div>
+
+      <div class="btn-row">
+        <a href="feed.html" class="btn btn--ghost">Cancel</a>
+        <button class="btn btn--filled" type="submit" id="submit-btn">Post opportunity</button>
+      </div>
+
+    </form>
+  </div>
+
+  <script>
+    // ─── SKILLS DATA (same as signup) ───
+    const SKILL_CATEGORIES = {
+      "Programming Languages": ["Python", "JavaScript", "TypeScript", "Java", "C / C++", "C#", "Go", "Rust", "Swift", "Kotlin", "Ruby", "PHP", "Scala", "R", "MATLAB", "Lua", "Perl", "Dart", "Assembly", "Haskell", "Clojure", "Elixir"],
+      "Web & Frontend": ["HTML / CSS", "React", "Vue.js", "Angular", "Svelte", "Next.js", "Tailwind CSS", "Bootstrap", "jQuery", "WebGL", "Three.js", "SASS / SCSS"],
+      "Backend & Infrastructure": ["Node.js", "Express.js", "Django", "Flask", "Spring Boot", "Ruby on Rails", "ASP.NET", "FastAPI", "GraphQL", "REST APIs", "gRPC", "Nginx", "Apache"],
+      "DevOps & Cloud": ["AWS", "Google Cloud", "Azure", "Docker", "Kubernetes", "CI/CD", "Terraform", "Linux Admin", "Shell / Bash", "Ansible", "Jenkins", "GitHub Actions"],
+      "Data & AI": ["SQL", "MongoDB", "PostgreSQL", "Redis", "Elasticsearch", "Data Science", "Machine Learning", "Deep Learning", "NLP", "Computer Vision", "TensorFlow", "PyTorch", "Pandas", "NumPy", "Tableau", "Power BI"],
+      "Mobile Development": ["React Native", "Flutter", "SwiftUI", "Jetpack Compose", "iOS Dev", "Android Dev", "Xamarin"],
+      "Design & Creative": ["UI/UX Design", "Figma", "Adobe Photoshop", "Adobe Illustrator", "Sketch", "InVision", "Motion Graphics", "3D Modeling", "Blender", "AutoCAD"],
+      "Writing & Communication": ["Technical Writing", "Copywriting", "Content Strategy", "SEO", "Social Media", "Public Speaking", "Grant Writing", "Documentation"],
+      "Business & Leadership": ["Project Management", "Agile / Scrum", "Product Management", "Marketing Strategy", "Financial Modeling", "Pitch Deck", "Sales", "Negotiation", "Team Leadership", "Strategic Planning"],
+      "Science & Math": ["Physics", "Chemistry", "Biology", "Statistics", "Calculus", "Linear Algebra", "Research Methods", "Lab Techniques"],
+      "Culinary & Food": ["Cooking", "Baking", "Food Safety", "Menu Planning", "Meal Prep", "Catering", "Nutrition Knowledge", "Food Photography"],
+      "Mechanical & Trades": ["CAD / SolidWorks", "3D Printing", "Welding", "Woodworking", "Electrical Wiring", "Plumbing", "CNC Machining", "Robotics"],
+      "Aviation & Marine": ["Pilot Knowledge", "Drone Operation", "Aviation Safety", "Marine Navigation", "Sailing", "Aircraft Maintenance"],
+      "Languages & Culture": ["Spanish", "Mandarin", "French", "German", "Japanese", "Arabic", "Portuguese", "ASL", "Translation", "Cultural Competency"],
+      "Fitness & Outdoors": ["Personal Training", "Yoga", "First Aid / CPR", "Wilderness Survival", "Rock Climbing", "Swimming", "Coaching"]
+    };
+
+    const allSkills = [];
+    for (const [cat, skills] of Object.entries(SKILL_CATEGORIES)) {
+      skills.forEach(s => allSkills.push(s));
+    }
+    allSkills.sort();
+
+    // Build skill chips
+    const skillsGrid = document.getElementById('skills-grid');
+    let selectedSkills = [];
+    const MAX_SKILLS = 8;
+    const MIN_SKILLS = 3;
+
+    function renderSkills(filter = '') {
+      const fl = filter.toLowerCase();
+      skillsGrid.innerHTML = allSkills
+        .filter(s => !fl || s.toLowerCase().includes(fl))
+        .map(s => {
+          const id = 'sk-' + s.replace(/[^a-zA-Z0-9]/g, '-');
+          const checked = selectedSkills.includes(s);
+          const atMax = selectedSkills.length >= MAX_SKILLS;
+          return `<input type="checkbox" class="chip-option" id="${id}" value="${s}" ${checked ? 'checked' : ''} ${!checked && atMax ? 'disabled' : ''}>
+                  <label class="chip-label" for="${id}">${s}</label>`;
+        }).join('');
+
+      // Re-attach listeners
+      skillsGrid.querySelectorAll('.chip-option').forEach(chip => {
+        chip.addEventListener('change', () => {
+          if (chip.checked) {
+            if (selectedSkills.length < MAX_SKILLS) {
+              selectedSkills.push(chip.value);
+            } else {
+              chip.checked = false;
+              return;
+            }
+          } else {
+            selectedSkills = selectedSkills.filter(s => s !== chip.value);
+          }
+          updateSkillCount();
+          renderSkills(document.getElementById('skill-search').value);
+        });
+      });
+      updateSkillCount();
+    }
+
+    function updateSkillCount() {
+      const cnt = document.getElementById('sk-count');
+      cnt.textContent = `${selectedSkills.length} / ${MAX_SKILLS} (min ${MIN_SKILLS})`;
+      cnt.className = 'chip-count' + (selectedSkills.length === MAX_SKILLS ? ' at-limit' : '');
+    }
+
+    renderSkills();
+    document.getElementById('skill-search').addEventListener('input', (e) => renderSkills(e.target.value));
+
+    // ─── WORD COUNT HELPERS ───
+    function countWords(val) { return val.trim() ? val.trim().split(/\s+/).length : 0; }
+
+    function setupWordCount(inputId, countId, maxWords) {
+      const input = document.getElementById(inputId);
+      const counter = document.getElementById(countId);
+      input.addEventListener('input', () => {
+        const words = countWords(input.value);
+        counter.textContent = `${words} / ${maxWords}`;
+        counter.className = 'word-count' + (words >= maxWords ? ' at-limit' : '');
+        clearError(inputId);
+      });
+    }
+
+    setupWordCount('project-title', 'project-title-count', 12);
+    setupWordCount('np-name', 'np-name-count', 12);
+    setupWordCount('co-name', 'co-name-count', 12);
+    setupWordCount('looking-for', 'looking-for-count', 6);
+    setupWordCount('description', 'desc-count', 9);
+
+    // Details: 50 words, auto-trim
+    const detailsInput = document.getElementById('details');
+    const detailsCount = document.getElementById('details-count');
+    detailsInput.addEventListener('input', () => {
+      const words = detailsInput.value.trim().split(/\s+/).filter(Boolean);
+      if (words.length > 50) {
+        detailsInput.value = words.slice(0, 50).join(' ');
+        detailsCount.textContent = `50 / 50`;
+        detailsCount.className = 'word-count at-limit';
+      } else {
+        detailsCount.textContent = `${words.length} / 50`;
+        detailsCount.className = 'word-count' + (words.length >= 50 ? ' at-limit' : '');
+      }
+    });
+
+    // ─── TYPE SELECTOR ───
+    let selectedType = 'project';
+    function selectType(type, btn) {
+      selectedType = type;
+      document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('is-active'));
+      btn.classList.add('is-active');
+      document.querySelectorAll('.type-section').forEach(s => s.classList.remove('active'));
+      document.getElementById('section-' + type).classList.add('active');
+    }
+
+    // ─── REMOTE / LOCATION ───
+    const remoteCheck = document.getElementById('remote-check');
+    const locationField = document.getElementById('location-field');
+    remoteCheck.addEventListener('change', () => {
+      locationField.style.display = remoteCheck.checked ? 'none' : 'block';
+      if (remoteCheck.checked) clearLocation();
+    });
+
+    // Location autocomplete via Photon API
+    let locationTimer = null;
+    let selectedLocation = null;
+    const locInput = document.getElementById('location-input');
+    const locDropdown = document.getElementById('location-dropdown');
+    const locSelected = document.getElementById('location-selected');
+    const locDisplay = document.getElementById('location-display');
+    const locData = document.getElementById('location-data');
+
+    locInput.addEventListener('input', () => {
+      clearTimeout(locationTimer);
+      const q = locInput.value.trim();
+      if (q.length < 2) { locDropdown.classList.remove('open'); locDropdown.innerHTML = ''; return; }
+      locationTimer = setTimeout(() => fetchLocations(q), 300);
+    });
+
+    locInput.addEventListener('focus', () => {
+      if (locDropdown.children.length > 0) locDropdown.classList.add('open');
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.location-wrap')) locDropdown.classList.remove('open');
+    });
+
+    async function fetchLocations(query) {
+      try {
+        const res = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(query)}&limit=8&lang=en`);
+        const data = await res.json();
+        const features = (data.features || []).filter(f => {
+          const t = f.properties.osm_key;
+          return t === 'place' || t === 'city' || t === 'town' || t === 'village';
+        });
+        if (features.length === 0) { locDropdown.classList.remove('open'); return; }
+        locDropdown.innerHTML = features.map((f, i) => {
+          const p = f.properties;
+          const city = p.name || '';
+          const state = p.state || '';
+          const country = p.country || '';
+          const display = [city, state, country].filter(Boolean).join(', ');
+          return `<button type="button" class="location-option" data-idx="${i}">${display}</button>`;
+        }).join('');
+        locDropdown.classList.add('open');
+
+        // Store features for selection
+        locDropdown.querySelectorAll('.location-option').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const idx = parseInt(btn.dataset.idx);
+            const f = features[idx];
+            const p = f.properties;
+            const city = p.name || '';
+            const state = p.state || '';
+            const country = p.country || '';
+            const display = [city, state, country].filter(Boolean).join(', ');
+
+            selectedLocation = { city, state, country, display, lat: f.geometry.coordinates[1], lon: f.geometry.coordinates[0] };
+            locInput.value = display;
+            locData.value = JSON.stringify(selectedLocation);
+            locDisplay.textContent = display;
+            locSelected.style.display = 'flex';
+            locDropdown.classList.remove('open');
+            clearError('location');
+          });
+        });
+      } catch (err) {
+        console.error('Location fetch failed:', err);
+      }
+    }
+
+    function clearLocation() {
+      selectedLocation = null;
+      locInput.value = '';
+      locData.value = '';
+      locSelected.style.display = 'none';
+    }
+
+    // ─── ERROR HANDLING ───
+    function showError(fieldId, msg) {
+      const el = document.getElementById(fieldId + '-error');
+      if (el) { el.textContent = msg; el.style.display = 'block'; }
+    }
+    function clearError(fieldId) {
+      const el = document.getElementById(fieldId + '-error');
+      if (el) el.style.display = 'none';
+    }
+
+    // Clear errors on input
+    document.querySelectorAll('.field input, .field textarea, .field select').forEach(el => {
+      el.addEventListener('input', () => clearError(el.id));
+      el.addEventListener('change', () => clearError(el.id));
+    });
+
+    // ─── SUBMIT ───
+    document.querySelector('form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      let valid = true;
+
+      // Type-specific validation
+      if (selectedType === 'project') {
+        const title = document.getElementById('project-title');
+        if (!title.value.trim() || countWords(title.value) > 12) { showError('project-title', 'Required (max 12 words)'); valid = false; }
+      } else if (selectedType === 'nonprofit') {
+        const name = document.getElementById('np-name');
+        const field = document.getElementById('np-field');
+        if (!name.value.trim() || countWords(name.value) > 12) { showError('np-name', 'Required (max 12 words)'); valid = false; }
+        if (!field.value) { showError('np-field', 'Required'); valid = false; }
+      } else if (selectedType === 'company') {
+        const name = document.getElementById('co-name');
+        const ind = document.getElementById('co-industry');
+        if (!name.value.trim() || countWords(name.value) > 12) { showError('co-name', 'Required (max 12 words)'); valid = false; }
+        if (!ind.value) { showError('co-industry', 'Required'); valid = false; }
+      }
+
+      // Common validation
+      const lookingFor = document.getElementById('looking-for');
+      if (!lookingFor.value.trim() || countWords(lookingFor.value) > 6) { showError('looking-for', 'Required (max 6 words)'); valid = false; }
+
+      if (selectedSkills.length < MIN_SKILLS) { showError('skills', `Select at least ${MIN_SKILLS} skills`); valid = false; }
+
+      const desc = document.getElementById('description');
+      if (!desc.value.trim() || countWords(desc.value) > 9) { showError('desc', 'Required (max 9 words)'); valid = false; }
+
+      if (!remoteCheck.checked && !selectedLocation) { showError('location', 'Select a location from the list'); valid = false; }
+
+      const contact = document.getElementById('contact');
+      if (!contact.value.trim()) { showError('contact', 'Required'); valid = false; }
+
+      if (!valid) return;
+
+      const btn = document.getElementById('submit-btn');
+      btn.disabled = true;
+      btn.textContent = 'Posting...';
+
+      // Build body
+      const body = {
+        type: selectedType,
+        looking_for: lookingFor.value.trim(),
+        skills: selectedSkills,
+        description: desc.value.trim(),
+        details: document.getElementById('details').value.trim(),
+        remote: remoteCheck.checked,
+        location: remoteCheck.checked ? 'Remote' : (selectedLocation ? selectedLocation.display : ''),
+        contact: contact.value.trim()
+      };
+
+      if (selectedType === 'project') {
+        body.title = document.getElementById('project-title').value.trim();
+      } else if (selectedType === 'nonprofit') {
+        body.title = document.getElementById('np-name').value.trim();
+        body.nonprofit_field = document.getElementById('np-field').value;
+      } else if (selectedType === 'company') {
+        body.title = document.getElementById('co-name').value.trim();
+        body.industry = document.getElementById('co-industry').value;
+      }
+
+      const editId = new URLSearchParams(window.location.search).get('edit');
+      const url = editId ? `/api/opportunities/${editId}` : '/api/opportunities';
+      const method = editId ? 'PATCH' : 'POST';
+
+      try {
+        const res = await fetch(url, {
+          method,
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify(body)
+        });
+        if (res.ok) { window.location.href = 'feed.html'; }
+        else { const d = await res.json(); alert(d.error || 'Failed'); btn.disabled = false; btn.textContent = editId ? 'Save changes' : 'Post opportunity'; }
+      } catch (err) { alert('Connection error'); btn.disabled = false; btn.textContent = editId ? 'Save changes' : 'Post opportunity'; }
+    });
+
+    // ─── AUTH CHECK + EDIT MODE ───
+    (async () => {
+      try {
+        const res = await fetch('/api/auth/me', { credentials: 'same-origin' });
+        if (!res.ok) { window.location.href = 'login.html'; return; }
+
+        const editId = new URLSearchParams(window.location.search).get('edit');
+        if (editId) await loadForEdit(editId);
+      } catch (e) { window.location.href = 'login.html'; }
+    })();
+
+    async function loadForEdit(id) {
+      try {
+        const res = await fetch(`/api/opportunities/${id}`, { credentials: 'same-origin' });
+        if (!res.ok) return;
+        const data = await res.json();
+        const f = data.fields || {};
+        const type = data.type || 'project';
+
+        // Update page title
+        document.querySelector('h1').textContent = 'Edit opportunity';
+        document.getElementById('submit-btn').textContent = 'Save changes';
+
+        // Select type
+        const typeBtn = document.querySelector(`.type-btn[onclick*="'${type}'"]`);
+        if (typeBtn) selectType(type, typeBtn);
+
+        // Fill type-specific fields
+        if (type === 'project') {
+          document.getElementById('project-title').value = f.title || '';
+          document.getElementById('project-title').dispatchEvent(new Event('input'));
+        } else if (type === 'nonprofit') {
+          document.getElementById('np-name').value = f.title || '';
+          document.getElementById('np-name').dispatchEvent(new Event('input'));
+          if (f.nonprofit_field) document.getElementById('np-field').value = f.nonprofit_field;
+        } else if (type === 'company') {
+          document.getElementById('co-name').value = f.title || '';
+          document.getElementById('co-name').dispatchEvent(new Event('input'));
+          if (f.industry) document.getElementById('co-industry').value = f.industry;
+        }
+
+        // Fill common fields
+        document.getElementById('looking-for').value = f.looking_for || '';
+        document.getElementById('looking-for').dispatchEvent(new Event('input'));
+
+        // Skills
+        const skills = f.skills || [];
+        selectedSkills = [...skills];
+        renderSkills();
+
+        // Description
+        document.getElementById('description').value = f.description || '';
+        document.getElementById('description').dispatchEvent(new Event('input'));
+
+        // Details
+        document.getElementById('details').value = f.details || '';
+        document.getElementById('details').dispatchEvent(new Event('input'));
+
+        // Remote / Location
+        if (f.remote === false || f.remote === 'false') {
+          document.getElementById('remote-check').checked = false;
+          document.getElementById('location-field').style.display = 'block';
+          if (f.location) {
+            document.getElementById('location-input').value = f.location;
+            document.getElementById('location-display').textContent = f.location;
+            document.getElementById('location-selected').style.display = 'flex';
+            selectedLocation = { display: f.location };
+            document.getElementById('location-data').value = JSON.stringify(selectedLocation);
+          }
+        }
+
+        // Contact
+        document.getElementById('contact').value = f.contact || '';
+      } catch (e) {
+        console.error('Failed to load for edit:', e);
+      }
+    }
+  </script>
+</body>
+</html>

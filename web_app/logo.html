@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LARPABLE.</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg-primary:    #f8f3ed;
+      --accent:        #ff6b6b;
+      --font-family:   'Space Grotesk', system-ui, sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding-bottom: 1vh;
+      height: 100vh;
+      font-family: var(--font-family);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .logo {
+      font-size: clamp(3rem, 8vw, 7rem);
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: -0.04em;
+    }
+
+    .cursor {
+      display: inline-block;
+      width: 3px;
+      height: 1em;
+      background: var(--accent);
+      vertical-align: text-bottom;
+      margin-left: 2px;
+      animation: blink 0.6s step-end infinite;
+    }
+
+    @keyframes blink {
+      50% { opacity: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="logo"><span id="typed"></span><span class="cursor"></span></div>
+
+  <script>
+    const text = 'LARPABLE.';
+    const el = document.getElementById('typed');
+    const cursor = document.querySelector('.cursor');
+    let i = 0;
+
+    function type() {
+      if (i < text.length) {
+        el.textContent += text[i];
+        i++;
+        setTimeout(type, 60);
+      } else {
+        cursor.style.display = 'none';
+      }
+    }
+
+    setTimeout(type, 400);
+  </script>
+</body>
+</html>

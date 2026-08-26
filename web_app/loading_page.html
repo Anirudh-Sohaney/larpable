@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LARPABLE.</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg-primary:    #f8f3ed;
+      --fg-primary:    #1e1b18;
+      --accent:        #ff6b6b;
+      --border:        #e4ded6;
+      --bg-secondary:  #ffffff;
+      --font-family:   'Space Grotesk', system-ui, sans-serif;
+      --radius-md:     10px;
+      --transition:    0.18s ease;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      font-family: var(--font-family);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .center {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .logo {
+      font-size: clamp(3rem, 8vw, 7rem);
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: -0.04em;
+      transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .logo.slide-up {
+      transform: translateY(-4vh);
+    }
+
+    .cursor {
+      display: inline-block;
+      width: 3px;
+      height: 1em;
+      background: var(--accent);
+      vertical-align: text-bottom;
+      margin-left: 2px;
+      animation: blink 0.6s step-end infinite;
+    }
+
+    .btn-wrap {
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.5s ease 0.2s,
+                  transform 0.5s ease 0.2s;
+    }
+
+    .btn-wrap.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      font-family: var(--font-family);
+      font-weight: 600;
+      font-size: 0.88rem;
+      letter-spacing: -0.01em;
+      border-radius: var(--radius-md);
+      border: 2px solid var(--border);
+      cursor: pointer;
+      transition: all var(--transition);
+      padding: 0.6rem 1.6rem;
+      text-decoration: none;
+      background: transparent;
+      color: var(--fg-primary);
+    }
+    .btn:hover { border-color: var(--fg-primary); background: var(--bg-secondary); }
+    .btn:active { transform: scale(0.97); }
+
+
+    @keyframes blink { 50% { opacity: 0; } }
+  </style>
+</head>
+<body>
+  <div class="center">
+    <div class="logo">
+      <span id="typed"></span><span class="cursor" id="cursor"></span>
+    </div>
+    <div class="btn-wrap" id="btnWrap">
+      <a href="login.html" class="btn">Log in</a>
+    </div>
+  </div>
+
+  <script>
+    const text = 'LARPABLE.';
+    const el = document.getElementById('typed');
+    const cursor = document.getElementById('cursor');
+    const logo = document.querySelector('.logo');
+    const btnWrap = document.getElementById('btnWrap');
+    let i = 0;
+
+    function type() {
+      if (i < text.length) {
+        el.textContent += text[i];
+        i++;
+        setTimeout(type, 60);
+      } else {
+        cursor.style.display = 'none';
+        setTimeout(() => {
+          logo.classList.add('slide-up');
+          btnWrap.classList.add('show');
+        }, 300);
+      }
+    }
+
+    // If already logged in, skip to feed
+    (async () => {
+      try {
+        const res = await fetch('/api/auth/me', { credentials: 'same-origin' });
+        if (res.ok) window.location.href = 'feed.html';
+      } catch (e) {}
+    })();
+
+    setTimeout(type, 400);
+  </script>
+</body>
+</html>

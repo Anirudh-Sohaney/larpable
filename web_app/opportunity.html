@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LARPABLE. — Opportunity</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg: #F5F0E8;
+      --font: #2D2A26;
+      --accent: #E8734A;
+      --card: #FFFDF8;
+      --border: #D6D1C9;
+      --shadow: #C4BEB5;
+      --muted: #8A8580;
+      --green: #4CAF50;
+      --indigo: #5C6BC0;
+      --green-bg: rgba(76,175,80,0.08);
+      --indigo-bg: rgba(92,107,192,0.08);
+      --coral-bg: rgba(232,115,74,0.08);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Space Grotesk', sans-serif; background: var(--bg); color: var(--font); min-height: 100vh; }
+
+    .page { max-width: 600px; margin: 0 auto; padding: 0 20px 60px; }
+
+    /* Header */
+    .header { display: flex; justify-content: space-between; align-items: center; padding: 16px 0 12px; }
+    .logo { font-size: 1.2rem; font-weight: 700; color: var(--accent); letter-spacing: 1px; text-decoration: none; }
+    .back-link { font-size: 0.82rem; font-weight: 600; color: var(--muted); text-decoration: none; transition: color 0.15s; }
+    .back-link:hover { color: var(--accent); }
+
+    /* Opp header */
+    .opp-header { margin-bottom: 20px; }
+    .badge {
+      display: inline-block; font-size: 0.62rem; font-weight: 600; padding: 2px 7px; border-radius: 12px;
+      text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;
+    }
+    .badge-project { background: var(--coral-bg); color: var(--accent); }
+    .badge-nonprofit { background: var(--green-bg); color: var(--green); }
+    .badge-company { background: var(--indigo-bg); color: var(--indigo); }
+    .opp-title { font-size: 1.5rem; font-weight: 700; line-height: 1.25; margin-bottom: 6px; }
+    .opp-issuer { font-size: 0.88rem; color: var(--muted); }
+    .opp-issuer strong { color: var(--font); font-weight: 600; }
+
+    /* Meta grid */
+    .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+    .meta-card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 8px;
+      padding: 12px 14px;
+    }
+    .meta-card .label {
+      font-size: 0.68rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
+      color: var(--muted); margin-bottom: 2px;
+    }
+    .meta-card .value { font-size: 0.88rem; font-weight: 600; color: var(--font); }
+
+    /* Divider */
+    .divider { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+
+    /* Sections */
+    .section { margin-bottom: 20px; }
+    .section h2 { font-size: 0.95rem; font-weight: 700; margin-bottom: 8px; }
+    .section p { font-size: 0.88rem; color: var(--muted); line-height: 1.6; }
+
+    /* Skill tags */
+    .skill-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+    .skill-tag {
+      font-size: 0.75rem; font-weight: 500; padding: 4px 12px; border-radius: 20px;
+      background: var(--bg); color: var(--muted); border: 1px solid var(--border);
+    }
+
+    /* Issuer card */
+    .issuer-card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+      padding: 14px 16px; display: flex; align-items: center; gap: 12px;
+    }
+    .issuer-avatar {
+      width: 44px; height: 44px; border-radius: 50%; background: var(--bg);
+      border: 2px solid var(--border); display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 0.85rem; color: var(--muted); flex-shrink: 0;
+    }
+    .issuer-info h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 2px; }
+    .issuer-info p { font-size: 0.78rem; color: var(--muted); }
+
+    /* Posted */
+    .posted { font-size: 0.75rem; color: var(--muted); margin-top: 20px; text-align: center; }
+  </style>
+</head>
+<body>
+
+  <div class="page">
+    <div class="header">
+      <a href="feed.html" class="back-link">← Back to feed</a>
+      <a href="feed.html" class="logo">LARPABLE.</a>
+    </div>
+
+    <div class="opp-header">
+      <div class="badge" id="opp-badge"></div>
+      <h1 class="opp-title" id="opp-title">Loading...</h1>
+      <div class="opp-issuer" id="opp-issuer"></div>
+    </div>
+
+    <div class="meta-grid" id="meta-grid"></div>
+
+    <hr class="divider">
+
+    <div class="section" id="desc-section">
+      <h2>Description</h2>
+      <p id="opp-description"></p>
+    </div>
+
+    <hr class="divider">
+
+    <div class="section" id="looking-for-section" style="display:none;">
+      <h2>Looking for</h2>
+      <p id="opp-looking-for"></p>
+    </div>
+
+    <div class="section" id="skills-section">
+      <h2>Skills</h2>
+      <div class="skill-tags" id="opp-skills"></div>
+    </div>
+
+    <hr class="divider" id="details-divider" style="display:none;">
+
+    <div class="section" id="details-section" style="display:none;">
+      <h2>Additional details</h2>
+      <p id="opp-details"></p>
+    </div>
+
+    <hr class="divider">
+
+    <div class="section">
+      <h2>Contact</h2>
+      <div class="issuer-card">
+        <div class="issuer-avatar" id="opp-initials"></div>
+        <div class="issuer-info">
+          <h3 id="opp-contact-name"></h3>
+          <p id="opp-contact"></p>
+        </div>
+      </div>
+    </div>
+
+    <div class="posted" id="opp-posted"></div>
+  </div>
+
+  <script>
+    function esc(str) { if (!str) return ''; const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
+
+    (async () => {
+      const params = new URLSearchParams(window.location.search);
+      const id = params.get('id');
+      if (!id) return;
+
+      try {
+        const res = await fetch('/api/opportunities/' + id, { credentials: 'same-origin' });
+        if (!res.ok) return;
+        const data = await res.json();
+        const f = data.fields || {};
+        const issuer = data.issuer || {};
+        const type = data.type || 'project';
+
+        // Badge
+        const badge = document.getElementById('opp-badge');
+        if (type === 'project') { badge.textContent = 'Project'; badge.className = 'badge badge-project'; }
+        else if (type === 'nonprofit') { badge.textContent = 'Non-profit'; badge.className = 'badge badge-nonprofit'; }
+        else if (type === 'company') { badge.textContent = 'Company'; badge.className = 'badge badge-company'; }
+
+        // Title
+        document.getElementById('opp-title').textContent = f.title || 'Untitled';
+
+        // Issuer
+        const issuerName = issuer.name || f.issuer_name || 'Unknown';
+        const issuerCtx = f.issuer_context || '';
+        document.getElementById('opp-issuer').innerHTML = `Posted by <strong>${esc(issuerName)}</strong>${issuerCtx ? ' · ' + esc(issuerCtx) : ''}`;
+
+        // Meta grid — build dynamically
+        const metaHtml = [];
+        metaHtml.push(`<div class="meta-card"><div class="label">Location</div><div class="value">${esc(f.location || '—')}</div></div>`);
+
+        if (type === 'nonprofit' && f.nonprofit_field) {
+          metaHtml.push(`<div class="meta-card"><div class="label">Field</div><div class="value">${esc(f.nonprofit_field)}</div></div>`);
+        }
+        if (type === 'company' && f.industry) {
+          metaHtml.push(`<div class="meta-card"><div class="label">Industry</div><div class="value">${esc(f.industry)}</div></div>`);
+        }
+
+        document.getElementById('meta-grid').innerHTML = metaHtml.join('');
+
+        // Description
+        document.getElementById('opp-description').textContent = f.description || '';
+
+        // Looking for (project type)
+        if (type === 'project' && f.looking_for) {
+          document.getElementById('looking-for-section').style.display = 'block';
+          document.getElementById('opp-looking-for').textContent = f.looking_for;
+        }
+
+        // Skills
+        const skills = f.skills || [];
+        if (skills.length > 0) {
+          document.getElementById('opp-skills').innerHTML = skills.map(s => `<span class="skill-tag">${esc(s)}</span>`).join('');
+        } else {
+          document.getElementById('skills-section').style.display = 'none';
+        }
+
+        // Details
+        if (f.details) {
+          document.getElementById('details-divider').style.display = 'block';
+          document.getElementById('details-section').style.display = 'block';
+          document.getElementById('opp-details').textContent = f.details;
+        }
+
+        // Contact
+        const contactName = issuer.name || issuerName;
+        const contactInfo = issuer.email || f.contact || '';
+        const initials = contactName.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
+        document.getElementById('opp-initials').textContent = initials;
+        document.getElementById('opp-contact-name').textContent = contactName;
+        document.getElementById('opp-contact').textContent = contactInfo;
+
+        // Posted
+        if (data.created_at) {
+          const diff = Date.now() - new Date(data.created_at).getTime();
+          const mins = Math.floor(diff / 60000);
+          let posted = 'Just now';
+          if (mins >= 1 && mins < 60) posted = mins + 'm ago';
+          else if (mins >= 60 && mins < 1440) posted = Math.floor(mins / 60) + 'h ago';
+          else if (mins >= 1440) posted = Math.floor(mins / 1440) + ' days ago';
+          document.getElementById('opp-posted').textContent = 'Posted ' + posted;
+        }
+
+        // Update page title
+        document.title = 'LARPABLE. — ' + (f.title || 'Opportunity');
+      } catch (e) {
+        console.error('Failed to load opportunity:', e);
+      }
+    })();
+  </script>
+
+</body>
+</html>

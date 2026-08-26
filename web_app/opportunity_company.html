@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LARPABLE. — Internship</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg-primary:    #f8f3ed;
+      --bg-secondary:  #ffffff;
+      --bg-tertiary:   #f0ebe3;
+      --fg-primary:    #1e1b18;
+      --fg-secondary:  #6b635d;
+      --fg-tertiary:   #a09992;
+      --accent:        #ff6b6b;
+      --accent-hover:  #e55a5a;
+      --accent-light:  #fff0ef;
+      --border:        #e4ded6;
+      --shadow:        rgba(30, 27, 24, 0.06);
+      --shadow-md:     rgba(30, 27, 24, 0.10);
+      --font-family:   'Space Grotesk', system-ui, sans-serif;
+      --radius-sm:     6px;
+      --radius-md:     10px;
+      --radius-lg:     16px;
+      --radius-full:   999px;
+      --transition:    0.18s ease;
+      --info:          #6366f1;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg-primary);
+      color: var(--fg-primary);
+      font-family: var(--font-family);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .header {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: var(--bg-primary);
+      border-bottom: 1px solid var(--border);
+    }
+    .header-inner {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 1rem 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .back-link {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--fg-secondary);
+      text-decoration: none;
+      transition: color var(--transition);
+    }
+    .back-link:hover { color: var(--accent); }
+    .logo {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: -0.04em;
+      text-decoration: none;
+    }
+
+    .main {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem 4rem;
+    }
+
+    .opp-header { margin-bottom: 2rem; }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      border-radius: var(--radius-full);
+      padding: 0.25rem 0.7rem;
+      background: #eef2ff;
+      color: var(--info);
+      margin-bottom: 0.75rem;
+    }
+    .opp-title {
+      font-size: 1.6rem;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      line-height: 1.25;
+      margin-bottom: 0.5rem;
+    }
+    .opp-issuer {
+      font-size: 0.9rem;
+      color: var(--fg-secondary);
+    }
+    .opp-issuer strong {
+      color: var(--fg-primary);
+      font-weight: 600;
+    }
+
+    .meta-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.85rem;
+      margin-bottom: 2rem;
+    }
+    .meta-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 0.85rem 1rem;
+    }
+    .meta-card .label {
+      font-size: 0.68rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--fg-tertiary);
+      margin-bottom: 0.2rem;
+    }
+    .meta-card .value {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--fg-primary);
+    }
+
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 1.75rem 0;
+    }
+
+    .section { margin-bottom: 1.75rem; }
+    .section h2 {
+      font-size: 0.95rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 0.6rem;
+    }
+    .section p {
+      font-size: 0.9rem;
+      color: var(--fg-secondary);
+      line-height: 1.65;
+    }
+
+    .skill-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+    }
+    .skill-tag {
+      font-size: 0.78rem;
+      font-weight: 600;
+      padding: 0.3rem 0.75rem;
+      border-radius: var(--radius-full);
+      background: var(--bg-tertiary);
+      color: var(--fg-secondary);
+      border: 1px solid var(--border);
+    }
+
+    .issuer-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 1.2rem 1.3rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    .issuer-avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: #eef2ff;
+      border: 2px solid #c7d2fe;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.9rem;
+      color: var(--info);
+      flex-shrink: 0;
+    }
+    .issuer-info h3 {
+      font-size: 0.92rem;
+      font-weight: 600;
+      margin-bottom: 0.1rem;
+    }
+    .issuer-info p {
+      font-size: 0.78rem;
+      color: var(--fg-secondary);
+    }
+
+    .posted {
+      font-size: 0.75rem;
+      color: var(--fg-tertiary);
+      margin-top: 1.5rem;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div class="header-inner">
+      <a href="feed.html" class="back-link">← Back to feed</a>
+      <a href="loading_page.html" class="logo">LARPABLE.</a>
+    </div>
+  </div>
+
+  <div class="main">
+
+    <div class="opp-header">
+      <div class="badge" data-field="type-badge">Company</div>
+      <h1 class="opp-title" data-field="title">Position Title</h1>
+      <div class="opp-issuer">
+        Posted by <strong data-field="company-name">Company</strong>
+        <span data-field="company-context"> · Industry</span>
+      </div>
+    </div>
+
+    <div class="meta-grid">
+      <div class="meta-card">
+        <div class="label">Industry</div>
+        <div class="value" data-field="industry">—</div>
+      </div>
+      <div class="meta-card">
+        <div class="label">Location</div>
+        <div class="value" data-field="location">—</div>
+      </div>
+      <div class="meta-card">
+        <div class="label">Time commitment</div>
+        <div class="value" data-field="time">—</div>
+      </div>
+      <div class="meta-card">
+        <div class="label">Duration</div>
+        <div class="value" data-field="duration">—</div>
+      </div>
+      <div class="meta-card">
+        <div class="label">Compensation</div>
+        <div class="value" data-field="compensation">—</div>
+      </div>
+      <div class="meta-card">
+        <div class="label">Company size</div>
+        <div class="value" data-field="company-size">—</div>
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <div class="section">
+      <h2>About this role</h2>
+      <p data-field="description">Description goes here.</p>
+    </div>
+
+    <hr class="divider">
+
+    <div class="section">
+      <h2>Skills needed</h2>
+      <div class="skill-tags" data-field="skills"></div>
+    </div>
+
+    <hr class="divider">
+
+    <div class="section">
+      <h2>Contact</h2>
+      <div class="issuer-card">
+        <div class="issuer-avatar" data-field="company-initials">CO</div>
+        <div class="issuer-info">
+          <h3 data-field="company-full-name">Company</h3>
+          <p data-field="contact">Contact info</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="posted" data-field="posted">Posted X days ago</div>
+
+  </div>
+
+  <!--
+    DATA FIELDS — for backend / JS population
+
+    Field                Type        Example
+    ───────────────────────────────────────────
+    type-badge           string      "Company"
+    title                string      "Software engineering intern"
+    company-name         string      "Luminary AI"
+    company-context      string      "AI / SaaS · San Francisco, CA"
+    industry             string      "Technology / SaaS"
+    location             string      "Hybrid (SF + remote)"
+    time                 string      "20 hrs/week max"
+    duration             string      "Jan – Apr 2027"
+    compensation         string      "$25/hr"
+    company-size         string      "11–50"
+    description          string      Role summary
+    skills               string[]    ["Python", "TypeScript", "LLMs"]
+    company-initials     string      "LA"
+    company-full-name    string      "Luminary AI"
+    contact              string      "careers@luminary.ai"
+    posted               string      "Posted 1 day ago"
+  -->
+
+  <script>
+    function escapeHtml(str) {
+      if (!str) return '';
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    (async () => {
+      const params = new URLSearchParams(window.location.search);
+      const id = params.get('id');
+      if (!id) return;
+
+      try {
+        const res = await fetch('/api/opportunities/' + id, { credentials: 'same-origin' });
+        if (!res.ok) return;
+        const data = await res.json();
+        const f = data.fields || {};
+        const issuer = data.issuer || {};
+
+        const set = (field, val) => {
+          const el = document.querySelector('[data-field="' + field + '"]');
+          if (el) {
+            if (field === 'skills' && Array.isArray(val)) {
+              el.innerHTML = val.map(s => '<span class="skill-tag">' + escapeHtml(s) + '</span>').join('');
+            } else {
+              el.textContent = val || '—';
+            }
+          }
+        };
+
+        set('title', f.title);
+        set('company-name', issuer.name || f.issuer_name);
+        set('company-context', f.issuer_context);
+        set('industry', f.industry);
+        set('location', f.location);
+        set('time', f.time_commitment);
+        set('duration', f.duration);
+        set('compensation', f.compensation);
+        set('company-size', f.company_size);
+        set('description', f.description);
+        set('skills', f.skills);
+        set('contact', issuer.email || f.contact);
+        set('company-full-name', issuer.name);
+
+        const initials = (issuer.name || '').split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
+        set('company-initials', initials);
+        set('posted', data.created_at ? 'Posted ' + formatPosted(data.created_at) : '');
+      } catch (e) {
+        console.error('Failed to load opportunity:', e);
+      }
+    })();
+
+    function formatPosted(iso) {
+      const diff = Date.now() - new Date(iso).getTime();
+      const mins = Math.floor(diff / 60000);
+      if (mins < 1) return 'just now';
+      if (mins < 60) return mins + 'm ago';
+      const hrs = Math.floor(mins / 60);
+      if (hrs < 24) return hrs + 'h ago';
+      const days = Math.floor(hrs / 24);
+      return days + ' days ago';
+    }
+  </script>
+
+</body>
+</html>

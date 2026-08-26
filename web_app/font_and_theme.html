@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Template — Font &amp; Theme</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    /* ═══════════════════════════════════════════
+       CANONICAL CSS VARIABLE BLOCK
+       Copy this block into any new template HTML file.
+       Update colors here — all pages using these vars
+       will pick up the changes.
+       ═══════════════════════════════════════════ */
+    :root {
+      /* ── Warm Paper & Coral ── */
+      --bg-primary:    #f8f3ed;
+      --bg-secondary:  #ffffff;
+      --bg-tertiary:   #f0ebe3;
+      --fg-primary:    #1e1b18;
+      --fg-secondary:  #6b635d;
+      --fg-tertiary:   #a09992;
+      --accent:        #ff6b6b;
+      --accent-hover:  #e55a5a;
+      --accent-light:  #fff0ef;
+      --border:        #e4ded6;
+      --shadow:        rgba(30, 27, 24, 0.06);
+      --shadow-md:     rgba(30, 27, 24, 0.10);
+      --shadow-lg:     rgba(30, 27, 24, 0.14);
+      --font-family:   'Space Grotesk', system-ui, sans-serif;
+      --radius-sm:     6px;
+      --radius-md:     10px;
+      --radius-lg:     16px;
+      --radius-full:   999px;
+      --transition:    0.18s ease;
+
+      /* semantic */
+      --success:       #10b981;
+      --success-bg:    #ecfdf5;
+      --warning:       #f59e0b;
+      --warning-bg:    #fffbeb;
+      --error:         #ef4444;
+      --error-bg:      #fef2f2;
+      --info:          #6366f1;
+      --info-bg:       #eef2ff;
+    }
+
+    /* ── Base styles (driven by variables above) ── */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg-primary);
+      color: var(--fg-primary);
+      font-family: var(--font-family);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .container { max-width: 960px; margin: 0 auto; padding: 0 1.5rem 4rem; }
+
+    /* ── Header ── */
+    header {
+      text-align: center;
+      padding: 3rem 1.5rem 2rem;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 2.5rem;
+    }
+    header h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+    }
+    header .sub {
+      color: var(--fg-secondary);
+      margin-top: 0.3rem;
+      font-size: 1rem;
+    }
+
+    /* ── Section titles ── */
+    section { margin-top: 2.5rem; }
+    section h2 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    /* ── Live Preview Card ── */
+    .live-preview {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.25rem;
+    }
+    @media (max-width: 640px) { .live-preview { grid-template-columns: 1fr; } }
+
+    .preview-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1.5rem;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .preview-card h3 {
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--fg-tertiary);
+      margin-bottom: 1rem;
+    }
+
+    /* ── Font preview ── */
+    .font-preview .big {
+      font-size: 2.4rem;
+      font-weight: 700;
+      letter-spacing: -0.04em;
+      margin-bottom: 0.3rem;
+    }
+    .font-preview .weights {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+      font-size: 0.95rem;
+      color: var(--fg-secondary);
+    }
+    .font-preview .weights span { font-weight: 400; }
+    .font-preview .weights strong { font-weight: 700; }
+
+    /* ── Palette preview ── */
+    .swatch-row {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .swatch-dot {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      position: relative;
+    }
+    .swatch-dot::after {
+      content: attr(data-label);
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 0.62rem;
+      font-weight: 600;
+      color: var(--fg-tertiary);
+      white-space: nowrap;
+      letter-spacing: 0.03em;
+    }
+    .swatch-labels {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 1.5rem;
+      flex-wrap: wrap;
+    }
+    .swatch-label {
+      width: 36px;
+      text-align: center;
+      font-size: 0.62rem;
+      color: var(--fg-tertiary);
+      font-weight: 600;
+    }
+
+    /* ── CSS variables code display ── */
+    .vars-block {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .vars-block .vars-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.7rem 1.2rem;
+      background: var(--bg-tertiary);
+      border-bottom: 1px solid var(--border);
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--fg-secondary);
+    }
+    .vars-block pre {
+      padding: 1.2rem 1.5rem;
+      margin: 0;
+      overflow-x: auto;
+      font-size: 0.85rem;
+      line-height: 1.7;
+      font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', monospace;
+      color: var(--fg-primary);
+      background: var(--bg-secondary);
+    }
+    .vars-block pre .key   { color: #8b5cf6; }
+    .vars-block pre .value { color: #10b981; }
+    .vars-block pre .comment { color: var(--fg-tertiary); font-style: italic; }
+
+    /* ── Tags ── */
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      border-radius: 999px;
+      padding: 0.3rem 0.8rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+    .tag-locked {
+      background: var(--fg-primary);
+      color: var(--bg-primary);
+    }
+    .tag-done { color: var(--accent); }
+
+    /* ── Other palettes (reference) ── */
+    .other-palettes {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 1rem;
+    }
+    .palette-ref {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+      opacity: 0.45;
+      transition: opacity 0.2s, box-shadow 0.2s;
+    }
+    .palette-ref:hover { opacity: 0.75; }
+    .palette-ref .swatches { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; padding: 2px; }
+    .palette-ref .swatch-mini {
+      height: 48px;
+      border-radius: 4px;
+      display: flex;
+      align-items: flex-end;
+      padding: 4px 6px;
+      font-size: 0.62rem;
+      font-weight: 600;
+    }
+    .palette-ref .name {
+      padding: 0.6rem 0.8rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--fg-secondary);
+    }
+
+    hr {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 2.5rem 0;
+    }
+
+    .footnote {
+      margin-top: 2.5rem;
+      text-align: center;
+      font-size: 0.82rem;
+      color: var(--fg-tertiary);
+      padding: 1.5rem;
+      background: var(--bg-secondary);
+      border-radius: 14px;
+      border: 1px solid var(--border);
+    }
+    .footnote code {
+      background: var(--bg-tertiary);
+      padding: 0.15rem 0.4rem;
+      border-radius: 4px;
+      font-size: 0.8rem;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Font &amp; Theme</h1>
+  <p class="sub">Template locked. Live preview below.</p>
+</header>
+
+<div class="container">
+
+  <!-- ═══════════════ LIVE PREVIEW ═══════════════ -->
+  <section>
+    <h2>
+      🎯 Current Template
+      <span class="tag tag-locked">Locked in</span>
+    </h2>
+    <div class="live-preview">
+
+      <!-- Font card -->
+      <div class="preview-card font-preview">
+        <h3>Font</h3>
+        <div class="big">Space Grotesk</div>
+        <div class="weights">
+          <span>Regular — The quick brown fox jumps over the lazy dog.</span>
+          <strong>Bold — The quick brown fox jumps over the lazy dog.</strong>
+          <span style="font-size:0.82rem; color:var(--fg-tertiary);">Geometric sans-serif · weights: 400, 500, 600, 700</span>
+        </div>
+      </div>
+
+      <!-- Palette card -->
+      <div class="preview-card">
+        <h3>Palette · Warm Paper &amp; Coral</h3>
+        <div class="swatch-row">
+          <div class="swatch-dot" style="background:var(--bg-primary);" data-label="bg"></div>
+          <div class="swatch-dot" style="background:var(--bg-secondary);" data-label="card"></div>
+          <div class="swatch-dot" style="background:var(--bg-tertiary);" data-label="hover"></div>
+          <div class="swatch-dot" style="background:var(--fg-primary);" data-label="text"></div>
+          <div class="swatch-dot" style="background:var(--fg-secondary);" data-label="muted"></div>
+          <div class="swatch-dot" style="background:var(--accent);" data-label="accent"></div>
+        </div>
+        <p style="margin-top:1.5rem; font-size:0.85rem; color:var(--fg-secondary); line-height:1.5;">
+          Soft cream background. Coral accent for warmth and energy.<br>
+          <span style="color:var(--fg-tertiary);">More colors will be added as components need them.</span>
+        </p>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ═══════════════ CSS VARIABLES ═══════════════ -->
+  <section>
+    <h2>📋 Canonical CSS Variables</h2>
+    <p style="color:var(--fg-secondary); font-size:0.9rem; margin-bottom:1rem;">
+      These are in the <code style="background:var(--bg-tertiary);padding:0.1rem 0.4rem;border-radius:4px;">:root</code> block of every template file.
+      Update values here in <code style="background:var(--bg-tertiary);padding:0.1rem 0.4rem;border-radius:4px;">font_and_theme.html</code> — copy the block into new pages.
+    </p>
+    <div class="vars-block">
+      <div class="vars-header">
+        <span>:root { … }</span>
+        <span style="font-weight:400;font-size:0.72rem;">26 variables · source of truth</span>
+      </div>
+      <pre><span class="comment">/* ── Warm Paper &amp; Coral ── */</span>
+<span class="key">--bg-primary</span>:    <span class="value">#f8f3ed</span>;  <span class="comment">/* page background */</span>
+<span class="key">--bg-secondary</span>:  <span class="value">#ffffff</span>;  <span class="comment">/* cards, surfaces */</span>
+<span class="key">--bg-tertiary</span>:   <span class="value">#f0ebe3</span>;  <span class="comment">/* hover states */</span>
+
+<span class="key">--fg-primary</span>:    <span class="value">#1e1b18</span>;  <span class="comment">/* main text */</span>
+<span class="key">--fg-secondary</span>:  <span class="value">#6b635d</span>;  <span class="comment">/* muted, labels */</span>
+<span class="key">--fg-tertiary</span>:   <span class="value">#a09992</span>;  <span class="comment">/* placeholder */</span>
+
+<span class="key">--accent</span>:        <span class="value">#ff6b6b</span>;  <span class="comment">/* coral */</span>
+<span class="key">--accent-hover</span>:  <span class="value">#e55a5a</span>;  <span class="comment">/* darker coral */</span>
+<span class="key">--accent-light</span>: <span class="value">#fff0ef</span>;  <span class="comment">/* coral glow */</span>
+
+<span class="key">--border</span>:        <span class="value">#e4ded6</span>;  <span class="comment">/* subtle borders */</span>
+<span class="key">--shadow</span>:        <span class="value">rgba(30, 27, 24, 0.06)</span>;
+<span class="key">--shadow-md</span>:     <span class="value">rgba(30, 27, 24, 0.10)</span>;
+<span class="key">--shadow-lg</span>:     <span class="value">rgba(30, 27, 24, 0.14)</span>;
+
+<span class="key">--font-family</span>:   <span class="value">'Space Grotesk', system-ui, sans-serif</span>;
+<span class="key">--radius-sm</span>:     <span class="value">6px</span>;
+<span class="key">--radius-md</span>:     <span class="value">10px</span>;
+<span class="key">--radius-lg</span>:     <span class="value">16px</span>;
+<span class="key">--radius-full</span>:   <span class="value">999px</span>;
+
+<span class="comment">/* semantic */</span>
+<span class="key">--success</span>:       <span class="value">#10b981</span>;  <span class="key">--success-bg</span>: <span class="value">#ecfdf5</span>;
+<span class="key">--warning</span>:       <span class="value">#f59e0b</span>;  <span class="key">--warning-bg</span>: <span class="value">#fffbeb</span>;
+<span class="key">--error</span>:         <span class="value">#ef4444</span>;  <span class="key">--error-bg</span>:   <span class="value">#fef2f2</span>;
+<span class="key">--info</span>:          <span class="value">#6366f1</span>;  <span class="key">--info-bg</span>:    <span class="value">#eef2ff</span>;</pre>
+    </div>
+  </section>
+
+  <hr>
+
+  <!-- ═══════════════ OTHER PALETTES (REFERENCE) ═══════════════ -->
+  <section>
+    <h2 style="color:var(--fg-tertiary);">🗂 Reference — Other Palettes Considered</h2>
+    <div class="other-palettes">
+
+      <div class="palette-ref">
+        <div class="swatches">
+          <div class="swatch-mini" style="background:#eef1f5; color:#111827;">BG</div>
+          <div class="swatch-mini" style="background:#111827; color:#eef1f5;">Font</div>
+          <div class="swatch-mini" style="background:#ffffff; color:#111827; border:1px solid #ddd;">Obj</div>
+          <div class="swatch-mini" style="background:#6366f1; color:#fff;">Accent</div>
+        </div>
+        <div class="name">Concrete &amp; Indigo</div>
+      </div>
+
+      <div class="palette-ref">
+        <div class="swatches">
+          <div class="swatch-mini" style="background:#e8e4de; color:#181716;">BG</div>
+          <div class="swatch-mini" style="background:#181716; color:#e8e4de;">Font</div>
+          <div class="swatch-mini" style="background:#fafaf8; color:#181716; border:1px solid #ddd;">Obj</div>
+          <div class="swatch-mini" style="background:#10b981; color:#fff;">Accent</div>
+        </div>
+        <div class="name">Stone &amp; Emerald</div>
+      </div>
+
+      <div class="palette-ref">
+        <div class="swatches">
+          <div class="swatch-mini" style="background:#26262a; color:#ebe9e5;">BG</div>
+          <div class="swatch-mini" style="background:#ebe9e5; color:#26262a;">Font</div>
+          <div class="swatch-mini" style="background:#323236; color:#ebe9e5;">Object</div>
+          <div class="swatch-mini" style="background:#f59e0b; color:#26262a;">Accent</div>
+        </div>
+        <div class="name">Dark Graphite &amp; Amber</div>
+      </div>
+
+      <div class="palette-ref">
+        <div class="swatches">
+          <div class="swatch-mini" style="background:#e4e8ec; color:#1a1d24;">BG</div>
+          <div class="swatch-mini" style="background:#1a1d24; color:#e4e8ec;">Font</div>
+          <div class="swatch-mini" style="background:#ffffff; color:#1a1d24; border:1px solid #ddd;">Obj</div>
+          <div class="swatch-mini" style="background:#06b6d4; color:#fff;">Accent</div>
+        </div>
+        <div class="name">Pewter &amp; Cyan</div>
+      </div>
+
+      <div class="palette-ref">
+        <div class="swatches">
+          <div class="swatch-mini" style="background:#eeede9; color:#171715;">BG</div>
+          <div class="swatch-mini" style="background:#171715; color:#eeede9;">Font</div>
+          <div class="swatch-mini" style="background:#ffffff; color:#171715; border:1px solid #ddd;">Obj</div>
+          <div class="swatch-mini" style="background:#8b5cf6; color:#fff;">Accent</div>
+        </div>
+        <div class="name">Silver Fog &amp; Violet</div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ═══════════════ FOOTNOTE ═══════════════ -->
+  <div class="footnote">
+    <strong>Font:</strong> Space Grotesk &nbsp;·&nbsp;
+    <strong>Palette:</strong> Warm Paper &amp; Coral &nbsp;·&nbsp;
+    <strong>Source of truth:</strong> <code>:root</code> block in <code>font_and_theme.html</code><br>
+    <span style="display:inline-block;margin-top:0.5rem;color:var(--fg-tertiary);">
+      To add a color: add a new <code>--foo</code> variable to <code>:root</code>, update this page, and update <code>guide.md</code>.
+    </span>
+  </div>
+
+</div>
+
+</body>
+</html>
