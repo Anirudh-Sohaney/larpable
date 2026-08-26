@@ -23,10 +23,10 @@
     }
 
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Space Grotesk', sans-serif; background: var(--bg); color: var(--font); min-height: 100vh; }
+    body { font-family: 'Space Grotesk', sans-serif; background: var(--bg); color: var(--font); min-height: 100vh; overflow-x: hidden; }
 
     .page {
-      max-width: 600px;
+      width: 600px;
       margin: 0 auto;
       padding: 0 20px 60px;
     }
@@ -184,11 +184,14 @@
     }
     .your-card-actions .edit-btn:hover { border-color: var(--accent); color: var(--accent); }
     .your-card-actions .delete-btn:hover { border-color: #dc3545; color: #dc3545; }
+
+
+
   </style>
 </head>
 <body>
 
-  <div class="page">
+  <div class="page" data-scale-target="600">
     <div class="header">
       <a href="/feed" class="logo">LARPABLE.</a>
       <div class="header-actions">
@@ -567,5 +570,6 @@
     function init() { render(); }
     checkAuth().then(() => loadOpportunities());
   </script>
+  <script src="/scaling.js"></script>
 </body>
 </html>

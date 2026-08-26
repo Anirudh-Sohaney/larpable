@@ -33,11 +33,11 @@
       align-items: center;
       justify-content: center;
       min-height: 100vh;
+      overflow-x: hidden;
     }
 
     .login {
-      width: 100%;
-      max-width: 340px;
+      width: 340px;
       padding: 0 1.5rem;
     }
 
@@ -133,7 +133,7 @@
   </style>
 </head>
 <body>
-  <div class="login">
+  <div class="login" data-scale-target="340">
     <div class="logo">LARPABLE.</div>
 
     <div class="error" id="error"></div>
@@ -204,5 +204,6 @@
       }
     });
   </script>
+  <script src="/scaling.js"></script>
 </body>
 </html>

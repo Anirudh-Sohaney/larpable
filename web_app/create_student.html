@@ -26,9 +26,9 @@
     }
 
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Space Grotesk', sans-serif; background: var(--bg); color: var(--font); min-height: 100vh; }
+    body { font-family: 'Space Grotesk', sans-serif; background: var(--bg); color: var(--font); min-height: 100vh; overflow-x: hidden; }
 
-    .page { max-width: 600px; margin: 0 auto; padding: 0 20px 60px; }
+    .page { width: 600px; margin: 0 auto; padding: 0 20px 60px; }
 
     /* Header */
     .header { display: flex; justify-content: space-between; align-items: center; padding: 16px 0 12px; }
@@ -161,7 +161,7 @@
 </head>
 <body>
 
-  <div class="page">
+  <div class="page" data-scale-target="600">
     <div class="header">
       <a href="/feed" class="back-link">← Back to feed</a>
       <a href="/feed" class="logo">LARPABLE.</a>
@@ -680,5 +680,6 @@
       }
     }
   </script>
+  <script src="/scaling.js"></script>
 </body>
 </html>

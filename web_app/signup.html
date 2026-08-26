@@ -32,6 +32,7 @@
       -webkit-font-smoothing: antialiased;
       color: var(--fg-primary);
       min-height: 100vh;
+      overflow-x: hidden;
     }
 
     .page {
@@ -73,7 +74,7 @@
     .step-dot.active { background: var(--accent); }
     .step-dot.done   { background: var(--fg-secondary); }
 
-    .container { width: 100%; max-width: 420px; }
+    .container { width: 420px; }
 
     .form-panel { display: none; animation: fadeSlideIn 0.25s ease; }
     .form-panel.active { display: block; }
@@ -206,6 +207,8 @@
     .login-link { text-align: center; margin-top: 1.5rem; font-size: 0.82rem; color: var(--fg-secondary); }
     .login-link a { color: var(--accent); text-decoration: none; font-weight: 600; transition: color var(--transition); }
     .login-link a:hover { color: var(--accent-hover); }
+
+
   </style>
 </head>
 <body>
@@ -218,7 +221,7 @@
       <div class="step-dot" data-step="1"></div>
     </div>
 
-    <div class="container">
+    <div class="container" data-scale-target="420">
       <div class="error" id="globalError"></div>
 
       <!-- STEP 0: TEXT INPUTS -->
@@ -726,5 +729,6 @@
       }
     }
   </script>
+  <script src="/scaling.js"></script>
 </body>
 </html>

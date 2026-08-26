@@ -39,11 +39,10 @@
       font-family: var(--font-family);
       line-height: 1.6;
       -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
     }
 
     .header {
-      position: sticky;
-      top: 0;
       z-index: 50;
       background: var(--bg-primary);
       border-bottom: 1px solid var(--border);
@@ -204,13 +203,16 @@
     .posted {
       font-size: 0.75rem;
       color: var(--fg-tertiary);
-      margin-top: 1.5rem;
-      text-align: center;
+      margin-top: 1.5rem;      text-align: center;
     }
   </style>
 </head>
 <body>
 
+
+
+
+  <div class="page" data-scale-target="720">
   <div class="header">
     <div class="header-inner">
       <a href="/feed" class="back-link">← Back to feed</a>
@@ -374,6 +376,8 @@
       return days + ' days ago';
     }
   </script>
+  </div>
+  <script src="/scaling.js"></script>
 
 </body>
 </html>
