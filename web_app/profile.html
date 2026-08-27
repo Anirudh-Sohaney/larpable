@@ -296,7 +296,6 @@
             if (!legalData.all_agreed) { window.location.href = '/agreement'; return; }
           }
         } catch {}
-        const data = await res.json();
         profileData = data;
 
         document.getElementById('p-username').value = data.username || '';

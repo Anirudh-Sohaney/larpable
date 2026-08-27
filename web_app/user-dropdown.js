@@ -62,16 +62,19 @@
 
     injectStyles();
 
-    // Fetch username — try auth/me first (handles admin), then users/me
+    // Fetch username — try users/me (has actual username), fall back to auth/me for admin
     let displayName = 'User';
     try {
-      const res = await fetch('/api/auth/me', { credentials: 'include' });
+      const res = await fetch('/api/users/me', { credentials: 'include' });
       if (res.ok) {
         const data = await res.json();
-        if (data.user?.role === 'admin') {
-          displayName = 'Admin';
-        } else {
-          displayName = data.user?.displayName || 'User';
+        displayName = data.username || [data.first_name, data.last_name].filter(Boolean).join(' ') || 'User';
+      } else {
+        // Likely admin (no user record) — try auth/me
+        const res2 = await fetch('/api/auth/me', { credentials: 'include' });
+        if (res2.ok) {
+          const data2 = await res2.json();
+          if (data2.user?.role === 'admin') displayName = 'Admin';
         }
       }
     } catch {}
