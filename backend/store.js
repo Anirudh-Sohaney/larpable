@@ -213,6 +213,14 @@ async function getUser(userId) {
 }
 
 /**
+ * Get raw (encrypted) user record — for PATCH operations
+ * @returns {Promise<Object|null>} raw encrypted user
+ */
+async function getRawUser(userId) {
+  return await getById('users.json', userId);
+}
+
+/**
  * Find user by username hash (async)
  * @returns {Promise<{ id: string, record: Object }|null>}
  */
@@ -299,6 +307,7 @@ module.exports = {
   findBy,
   saveUser,
   getUser,
+  getRawUser,
   findUserByUsernameHash,
   saveOpportunity,
   getOpportunity,

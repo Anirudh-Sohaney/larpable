@@ -65,6 +65,9 @@ async function signup({ username, password, type, profile }) {
   // Sanitize all profile fields (prevent XSS)
   const cleanProfile = sanitizeObject(profile);
 
+  // Include username in encrypted_fields so it can be displayed on profile
+  cleanProfile.username = username;
+
   // Encrypt profile fields
   const encryptedProfile = encryptObject(cleanProfile);
   

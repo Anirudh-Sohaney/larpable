@@ -194,10 +194,7 @@
   <div class="page" data-scale-target="600">
     <div class="header">
       <a href="/feed" class="logo">LARPABLE.</a>
-      <div class="header-actions">
-        <div class="user-badge"><span id="username-display"></span></div>
-        <button class="btn-ghost" onclick="logout()">Log out</button>
-      </div>
+      <div id="header-actions"></div>
     </div>
 
     <div class="tabs-row">
@@ -255,7 +252,6 @@
         if (res.ok) {
           const data = await res.json();
           currentUser = data.user;
-          document.getElementById('username-display').textContent = currentUser.displayName || currentUser.username || 'User';
           await loadUserProfile();
         } else {
           window.location.href = '/login';
@@ -562,14 +558,12 @@
 
     function esc(str) { const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
 
-    async function logout() {
-      await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
-      window.location.href = '/loading_page';
-    }
+
 
     function init() { render(); }
     checkAuth().then(() => loadOpportunities());
   </script>
+  <script src="/user-dropdown.js"></script>
   <script src="/scaling.js"></script>
 </body>
 </html>

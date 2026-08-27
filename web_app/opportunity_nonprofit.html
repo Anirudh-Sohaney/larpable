@@ -46,11 +46,15 @@
       z-index: 50;
       background: var(--bg-primary);
       border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 1.5rem;
     }
     .header-inner {
       max-width: 720px;
       margin: 0 auto;
-      padding: 1rem 1.5rem;
+      padding: 1rem 0;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -228,6 +232,7 @@
       <a href="/feed" class="back-link">← Back to feed</a>
       <a href="/loading_page" class="logo">LARPABLE.</a>
     </div>
+    <div id="header-actions"></div>
   </div>
 
   <div class="main">
@@ -382,6 +387,7 @@
     }
   </script>
   </div>
+  <script src="/user-dropdown.js"></script>
   <script src="/scaling.js"></script>
 
 </body>

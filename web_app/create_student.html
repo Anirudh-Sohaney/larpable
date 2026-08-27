@@ -181,6 +181,7 @@
     <div class="header">
       <a href="/feed" class="back-link">← Back to feed</a>
       <a href="/feed" class="logo">LARPABLE.</a>
+      <div id="header-actions"></div>
     </div>
 
     <h1 style="font-size:1.3rem; font-weight:700; margin-bottom:4px;">Create an opportunity</h1>
@@ -259,8 +260,8 @@
 
       <!-- LOOKING FOR (all types) -->
       <div class="field">
-        <label for="looking-for">Looking for <span class="word-count" id="looking-for-count">0 / 6</span></label>
-        <input id="looking-for" type="text" placeholder="e.g. 2 frontend devs" maxlength="60">
+        <label for="looking-for">Looking for <span class="word-count" id="looking-for-count">0 / 15</span></label>
+        <input id="looking-for" type="text" placeholder="e.g. 2 frontend devs" maxlength="150">
         <div class="error-msg" id="looking-for-error">Required</div>
       </div>
 
@@ -274,9 +275,9 @@
 
       <!-- BRIEF DESCRIPTION (all types) -->
       <div class="field">
-        <label for="description">Brief description <span class="word-count" id="desc-count">0 / 9</span></label>
-        <input id="description" type="text" placeholder="One sentence summary" maxlength="120">
-        <div class="error-msg" id="desc-error">Required (max 9 words)</div>
+        <label for="description">Brief description <span class="word-count" id="desc-count">0 / 15</span></label>
+        <input id="description" type="text" placeholder="One sentence summary" maxlength="150">
+        <div class="error-msg" id="desc-error">Required (max 15 words)</div>
       </div>
 
       <!-- ADDITIONAL DETAILS (all types) -->
@@ -357,7 +358,7 @@
     const skillsGrid = document.getElementById('skills-grid');
     let selectedSkills = [];
     const MAX_SKILLS = 8;
-    const MIN_SKILLS = 3;
+    const MIN_SKILLS = 0;
 
     function renderSkills(filter = '') {
       const fl = filter.toLowerCase();
@@ -393,7 +394,7 @@
 
     function updateSkillCount() {
       const cnt = document.getElementById('sk-count');
-      cnt.textContent = `${selectedSkills.length} / ${MAX_SKILLS} (min ${MIN_SKILLS})`;
+      cnt.textContent = MIN_SKILLS > 0 ? `${selectedSkills.length} / ${MAX_SKILLS} (min ${MIN_SKILLS})` : `${selectedSkills.length} / ${MAX_SKILLS}`;
       cnt.className = 'chip-count' + (selectedSkills.length === MAX_SKILLS ? ' at-limit' : '');
     }
 
@@ -417,8 +418,8 @@
     setupWordCount('project-title', 'project-title-count', 12);
     setupWordCount('np-name', 'np-name-count', 12);
     setupWordCount('co-name', 'co-name-count', 12);
-    setupWordCount('looking-for', 'looking-for-count', 6);
-    setupWordCount('description', 'desc-count', 9);
+    setupWordCount('looking-for', 'looking-for-count', 15);
+    setupWordCount('description', 'desc-count', 15);
 
     // Details: 50 words, auto-trim
     const detailsInput = document.getElementById('details');
@@ -590,12 +591,12 @@
 
       // Common validation
       const lookingFor = document.getElementById('looking-for');
-      if (!lookingFor.value.trim() || countWords(lookingFor.value) > 6) { showError('looking-for', 'Required (max 6 words)'); valid = false; }
+      if (!lookingFor.value.trim() || countWords(lookingFor.value) > 15) { showError('looking-for', 'Required (max 15 words)'); valid = false; }
 
-      if (selectedSkills.length < MIN_SKILLS) { showError('skills', `Select at least ${MIN_SKILLS} skills`); valid = false; }
+      if (MIN_SKILLS > 0 && selectedSkills.length < MIN_SKILLS) { showError('skills', `Select at least ${MIN_SKILLS} skills`); valid = false; }
 
       const desc = document.getElementById('description');
-      if (!desc.value.trim() || countWords(desc.value) > 9) { showError('desc', 'Required (max 9 words)'); valid = false; }
+      if (!desc.value.trim() || countWords(desc.value) > 15) { showError('desc', 'Required (max 15 words)'); valid = false; }
 
       if (!remoteCheck.checked && !selectedLocation) { showError('location', 'Select a location from the list'); valid = false; }
 
@@ -734,6 +735,7 @@
       }
     }
   </script>
+  <script src="/user-dropdown.js"></script>
   <script src="/scaling.js"></script>
 </body>
 </html>

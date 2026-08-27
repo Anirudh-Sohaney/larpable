@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LARPABLE. — Profile</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #F5F0E8;
+      --font: #2D2A26;
+      --accent: #E8734A;
+      --card: #FFFDF8;
+      --border: #D6D1C9;
+      --shadow: #C4BEB5;
+      --muted: #8A8580;
+      --green: #4CAF50;
+      --danger: #dc3545;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Space Grotesk', sans-serif; background: var(--bg); color: var(--font); min-height: 100vh; overflow-x: hidden; }
+
+    .page { width: 600px; margin: 0 auto; padding: 0 20px 60px; }
+    .header { display: flex; justify-content: space-between; align-items: center; padding: 16px 0 12px; }
+    .logo { font-size: 1.2rem; font-weight: 700; color: var(--accent); letter-spacing: 1px; text-decoration: none; }
+    .back-link { font-size: 0.82rem; font-weight: 600; color: var(--muted); text-decoration: none; transition: color 0.15s; }
+    .back-link:hover { color: var(--accent); }
+    .header-actions { display: flex; align-items: center; gap: 10px; }
+
+    h1 { font-size: 1.3rem; font-weight: 700; margin-bottom: 4px; }
+    .subtitle { font-size: 0.85rem; color: var(--muted); margin-bottom: 24px; }
+
+    /* Sections */
+    .section { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin-bottom: 16px; }
+    .section h2 { font-size: 0.9rem; font-weight: 700; margin-bottom: 14px; color: var(--accent); }
+
+    /* Fields */
+    .field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 14px; }
+    .field:last-child { margin-bottom: 0; }
+    .field label { font-size: 0.78rem; font-weight: 600; color: var(--muted); }
+    .field input, .field select, .field textarea {
+      width: 100%; padding: 9px 12px; border: 1px solid var(--border); border-radius: 6px;
+      font-family: inherit; font-size: 0.88rem; background: var(--bg);
+      color: var(--font); outline: none; transition: border 0.15s;
+    }
+    .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--accent); }
+    .field input:read-only { opacity: 0.6; cursor: not-allowed; }
+    .field textarea { resize: vertical; min-height: 60px; }
+
+    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+    /* Chips */
+    .chip-list { display: flex; flex-wrap: wrap; gap: 6px; }
+    .chip {
+      display: inline-block; font-size: 0.75rem; font-weight: 500;
+      padding: 5px 12px; border-radius: 20px; border: 1.5px solid var(--border);
+      background: var(--card); color: var(--font); transition: all 0.15s;
+    }
+    .chip.is-accent { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      font-family: inherit; font-weight: 600; font-size: 0.88rem;
+      border-radius: 6px; border: none; cursor: pointer; transition: all 0.15s;
+      padding: 10px 16px; text-decoration: none;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn--filled { background: var(--accent); color: #fff; }
+    .btn--filled:hover { opacity: 0.9; }
+    .btn--filled:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn--ghost { background: none; border: 1px solid var(--border); color: var(--muted); }
+    .btn--ghost:hover { border-color: var(--accent); color: var(--accent); }
+    .btn--danger { background: none; border: 1.5px solid var(--danger); color: var(--danger); }
+    .btn--danger:hover { background: var(--danger); color: #fff; }
+    .btn-row { display: flex; gap: 10px; margin-top: 16px; }
+
+    /* Status */
+    .save-msg {
+      display: none; font-size: 0.82rem; font-weight: 600; color: var(--green);
+      margin-top: 8px; transition: opacity 0.3s;
+    }
+    .save-msg.show { display: block; }
+
+    /* Danger zone */
+    .danger-zone {
+      border: 1.5px solid var(--danger); border-radius: 10px; padding: 20px;
+      margin-top: 24px;
+    }
+    .danger-zone h2 { color: var(--danger); }
+    .danger-zone p { font-size: 0.82rem; color: var(--muted); margin-bottom: 12px; }
+
+    /* Confirm modal */
+    .modal-overlay {
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4);
+      z-index: 500; align-items: center; justify-content: center;
+    }
+    .modal-overlay.show { display: flex; }
+    .modal {
+      background: var(--card); border-radius: 12px; padding: 24px;
+      max-width: 380px; width: 90%; box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+    }
+    .modal h3 { font-size: 1rem; margin-bottom: 8px; }
+    .modal p { font-size: 0.85rem; color: var(--muted); margin-bottom: 16px; }
+    .modal .btn-row { justify-content: flex-end; }
+    .modal .btn { padding: 8px 16px; font-size: 0.82rem; }
+
+    /* Responsive */
+    @media (max-width: 640px) {
+      .page { padding: 0 12px 40px; }
+      .field-row { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 480px) {
+      h1 { font-size: 1.1rem; }
+      .section { padding: 14px; }
+      .field input, .field select { font-size: 0.82rem; padding: 8px 10px; }
+      .btn { font-size: 0.82rem; padding: 8px 14px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="page" data-scale-target="600">
+    <div class="header">
+      <a href="/feed" class="back-link">← Back to feed</a>
+      <a href="/feed" class="logo">LARPABLE.</a>
+      <div id="header-actions" class="header-actions"></div>
+    </div>
+
+    <h1>Your Profile</h1>
+    <p class="subtitle">View and edit your profile information.</p>
+
+    <form id="profile-form" onsubmit="return false;">
+      <!-- PERSONAL INFO -->
+      <div class="section">
+        <h2>Personal Information</h2>
+        <div class="field">
+          <label>Username</label>
+          <input type="text" id="p-username" readonly>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label for="p-first">First name</label>
+            <input id="p-first" type="text" placeholder="First name">
+          </div>
+          <div class="field">
+            <label for="p-last">Last name</label>
+            <input id="p-last" type="text" placeholder="Last name">
+          </div>
+        </div>
+        <div class="field">
+          <label for="p-email">Email</label>
+          <input id="p-email" type="email" placeholder="you@school.edu">
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label for="p-age">Age</label>
+            <select id="p-age">
+              <option value="">Select</option>
+              <option>13</option><option>14</option><option>15</option>
+              <option>16</option><option>17</option><option>18</option>
+              <option>19</option><option>20</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="p-grade">Grade</label>
+            <select id="p-grade">
+              <option value="">Select</option>
+              <option>9th — Freshman</option><option>10th — Sophomore</option>
+              <option>11th — Junior</option><option>12th — Senior</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- LOCATION -->
+      <div class="section">
+        <h2>Location</h2>
+        <div class="field" style="position:relative;">
+          <label for="p-location">Location</label>
+          <input id="p-location" type="text" placeholder="Start typing a city..." autocomplete="off">
+          <div id="p-location-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--card);border:1px solid var(--border);border-radius:6px;margin-top:4px;max-height:180px;overflow-y:auto;z-index:10;box-shadow:0 4px 12px var(--shadow);"></div>
+          <input type="hidden" id="p-location-data" value="">
+          <div id="p-location-selected" style="display:none;margin-top:6px;font-size:0.78rem;color:var(--accent);font-weight:500;">
+            <span id="p-location-display"></span>
+            <span style="cursor:pointer;margin-left:4px;color:var(--muted);" onclick="clearLocation()">&times;</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- INTERESTS -->
+      <div class="section">
+        <h2>Interests</h2>
+        <div class="chip-list" id="p-interests-display"></div>
+      </div>
+
+      <!-- SKILLS -->
+      <div class="section">
+        <h2>Skills</h2>
+        <div class="chip-list" id="p-skills-display"></div>
+      </div>
+
+      <div class="btn-row">
+        <a href="/feed" class="btn btn--ghost">Cancel</a>
+        <button class="btn btn--filled" type="submit" id="save-btn">Save changes</button>
+      </div>
+      <div class="save-msg" id="save-msg">✓ Profile saved</div>
+    </form>
+
+    <!-- DANGER ZONE -->
+    <div class="danger-zone">
+      <h2>Danger Zone</h2>
+      <p>Permanently delete your account and all associated data. This cannot be undone.</p>
+      <button class="btn btn--danger" onclick="showDeleteModal()">Delete account</button>
+    </div>
+  </div>
+
+  <!-- CONFIRM DELETE MODAL -->
+  <div class="modal-overlay" id="delete-modal">
+    <div class="modal">
+      <h3>Delete your account?</h3>
+      <p>This will permanently delete your profile, all your posted opportunities, and your account. This action cannot be undone.</p>
+      <div class="btn-row">
+        <button class="btn btn--ghost" onclick="hideDeleteModal()">Cancel</button>
+        <button class="btn btn--danger" id="confirm-delete-btn" onclick="deleteAccount()">Yes, delete</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/user-dropdown.js"></script>
+  <script>
+    // ── Load profile ──
+    let profileData = {};
+
+    async function loadProfile() {
+      try {
+        const res = await fetch('/api/users/me', { credentials: 'include' });
+        if (!res.ok) { window.location.href = '/login'; return; }
+        const data = await res.json();
+        profileData = data;
+
+        document.getElementById('p-username').value = data.username || '';
+        document.getElementById('p-first').value = data.first_name || '';
+        document.getElementById('p-last').value = data.last_name || '';
+        document.getElementById('p-email').value = data.email || '';
+        document.getElementById('p-age').value = data.age || '';
+        document.getElementById('p-grade').value = data.grade || '';
+
+        // Location
+        if (data.location) {
+          document.getElementById('p-location').value = data.location;
+          document.getElementById('p-location-display').textContent = data.location;
+          document.getElementById('p-location-selected').style.display = 'flex';
+          document.getElementById('p-location-data').value = JSON.stringify({
+            display: data.location, city: data.city, state: data.state, country: data.country
+          });
+        }
+
+        // Interests
+        renderChips('p-interests-display', data.interests || [], 'var(--accent)');
+
+        // Skills
+        renderChips('p-skills-display', data.skills || [], 'var(--accent)');
+      } catch (e) {
+        console.error('Failed to load profile:', e);
+      }
+    }
+
+    function renderChips(containerId, items) {
+      const el = document.getElementById(containerId);
+      el.innerHTML = items.map(i => '<span class="chip is-accent">' + esc(i) + '</span>').join('');
+    }
+
+    function esc(str) { const d = document.createElement('div'); d.textContent = str || ''; return d.innerHTML; }
+
+    // ── Save profile ──
+    document.getElementById('save-btn').addEventListener('click', async () => {
+      const btn = document.getElementById('save-btn');
+      btn.disabled = true;
+      btn.textContent = 'Saving...';
+
+      const locData = JSON.parse(document.getElementById('p-location-data').value || '{}');
+
+      const body = {
+        first_name: document.getElementById('p-first').value.trim(),
+        last_name: document.getElementById('p-last').value.trim(),
+        email: document.getElementById('p-email').value.trim(),
+        age: document.getElementById('p-age').value,
+        grade: document.getElementById('p-grade').value,
+        location: locData.display || document.getElementById('p-location').value.trim(),
+        city: locData.city || '',
+        state: locData.state || '',
+        country: locData.country || ''
+      };
+
+      try {
+        const res = await fetch('/api/users/me', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify(body)
+        });
+        if (res.ok) {
+          const msg = document.getElementById('save-msg');
+          msg.classList.add('show');
+          setTimeout(() => msg.classList.remove('show'), 2500);
+        } else {
+          const d = await res.json();
+          alert(d.error || 'Failed to save');
+        }
+      } catch (e) {
+        alert('Connection error');
+      }
+
+      btn.disabled = false;
+      btn.textContent = 'Save changes';
+    });
+
+    // ── Location autocomplete ──
+    let locTimer = null;
+    const locInput = document.getElementById('p-location');
+    const locDropdown = document.getElementById('p-location-dropdown');
+    const locDataInput = document.getElementById('p-location-data');
+    const locSelected = document.getElementById('p-location-selected');
+    const locDisplay = document.getElementById('p-location-display');
+
+    locInput.addEventListener('input', () => {
+      const q = locInput.value.trim();
+      if (q.length < 2) { locDropdown.style.display = 'none'; return; }
+      clearTimeout(locTimer);
+      locTimer = setTimeout(async () => {
+        try {
+          const res = await fetch('https://photon.komoot.io/api/?q=' + encodeURIComponent(q) + '&limit=8&lang=en');
+          const data = await res.json();
+          if (!data.features || !data.features.length) { locDropdown.style.display = 'none'; return; }
+          locDropdown.innerHTML = data.features.map(f => {
+            const p = f.properties;
+            const city = p.city || p.name || '';
+            const state = p.state || '';
+            const country = p.country || '';
+            const display = [city, state, country].filter(Boolean).join(', ');
+            return '<div class="loc-option" data-display="' + esc(display) + '" data-city="' + esc(city) + '" data-state="' + esc(state) + '" data-country="' + esc(country) + '" style="padding:8px 12px;cursor:pointer;font-size:0.82rem;border-bottom:1px solid var(--border);">' + esc(display) + '</div>';
+          }).join('');
+          locDropdown.style.display = 'block';
+        } catch {}
+      }, 300);
+    });
+
+    locDropdown.addEventListener('click', (e) => {
+      const opt = e.target.closest('.loc-option');
+      if (!opt) return;
+      const display = opt.dataset.display;
+      const city = opt.dataset.city;
+      const state = opt.dataset.state;
+      const country = opt.dataset.country;
+      locInput.value = display;
+      locDisplay.textContent = display;
+      locSelected.style.display = 'flex';
+      locDataInput.value = JSON.stringify({ display, city, state, country });
+      locDropdown.style.display = 'none';
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('#p-location')) locDropdown.style.display = 'none';
+    });
+
+    function clearLocation() {
+      locInput.value = '';
+      locSelected.style.display = 'none';
+      locDataInput.value = '';
+    }
+
+    // ── Delete account ──
+    function showDeleteModal() {
+      document.getElementById('delete-modal').classList.add('show');
+    }
+    function hideDeleteModal() {
+      document.getElementById('delete-modal').classList.remove('show');
+    }
+    async function deleteAccount() {
+      const btn = document.getElementById('confirm-delete-btn');
+      btn.disabled = true;
+      btn.textContent = 'Deleting...';
+      try {
+        const res = await fetch('/api/users/me', { method: 'DELETE', credentials: 'include' });
+        if (res.ok) {
+          window.location.href = '/loading_page';
+        } else {
+          const d = await res.json();
+          alert(d.error || 'Failed to delete');
+          btn.disabled = false;
+          btn.textContent = 'Yes, delete';
+        }
+      } catch (e) {
+        alert('Connection error');
+        btn.disabled = false;
+        btn.textContent = 'Yes, delete';
+      }
+    }
+
+    // ── Init ──
+    loadProfile();
+  </script>
+  <script src="/scaling.js"></script>
+</body>
+</html>
