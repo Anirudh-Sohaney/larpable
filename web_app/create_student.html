@@ -138,6 +138,22 @@
     .skill-search:focus { border-color: var(--accent); }
     .skill-search::placeholder { color: var(--muted); }
 
+    /* Contact link rows */
+    .contact-link-row { display: flex; gap: 6px; align-items: center; margin-bottom: 6px; }
+    .contact-link-row input { flex: 1; }
+    .contact-remove-btn {
+      width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--border);
+      background: var(--card); color: var(--muted); font-size: 1rem; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; transition: all 0.15s;
+      flex-shrink: 0;
+    }
+    .contact-remove-btn:hover { border-color: var(--danger); color: var(--danger); }
+    .add-link-btn {
+      font-family: inherit; font-size: 0.78rem; font-weight: 600; color: var(--accent);
+      background: none; border: none; cursor: pointer; padding: 4px 0; transition: opacity 0.15s;
+    }
+    .add-link-btn:hover { opacity: 0.7; }
+
     /* Buttons */
     .btn-row { display: flex; gap: 10px; margin-top: 10px; }
     .btn-row .btn { flex: 1; }
@@ -290,11 +306,17 @@
         <input type="hidden" id="location-data" value="">
       </div>
 
-      <!-- CONTACT (all types) -->
+      <!-- CONTACT / SIGN-UP LINK (all types) -->
       <div class="field">
-        <label for="contact">Contact</label>
-        <input id="contact" type="text" placeholder="Email or social handle">
-        <div class="error-msg" id="contact-error">Required</div>
+        <label>Contact / Sign-up Link</label>
+        <div id="contact-links">
+          <div class="contact-link-row">
+            <input type="text" class="contact-link-input" placeholder="https://... or email">
+            <button type="button" class="contact-remove-btn" onclick="removeContactLink(this)" style="display:none;">&times;</button>
+          </div>
+        </div>
+        <button type="button" class="add-link-btn" onclick="addContactLink()">+ Add another link</button>
+        <div class="error-msg" id="contact-error">Add at least one link</div>
       </div>
 
       <div class="btn-row">
@@ -412,6 +434,28 @@
         detailsCount.className = 'word-count' + (words.length >= 50 ? ' at-limit' : '');
       }
     });
+
+    // ─── CONTACT LINKS ───
+    function addContactLink() {
+      const container = document.getElementById('contact-links');
+      const row = document.createElement('div');
+      row.className = 'contact-link-row';
+      row.innerHTML = '<input type="text" class="contact-link-input" placeholder="https://... or email"><button type="button" class="contact-remove-btn" onclick="removeContactLink(this)">&times;</button>';
+      container.appendChild(row);
+      updateRemoveButtons();
+      row.querySelector('input').focus();
+    }
+    function removeContactLink(btn) {
+      btn.closest('.contact-link-row').remove();
+      updateRemoveButtons();
+    }
+    function updateRemoveButtons() {
+      const rows = document.querySelectorAll('.contact-link-row');
+      rows.forEach((row, i) => {
+        const btn = row.querySelector('.contact-remove-btn');
+        btn.style.display = rows.length <= 1 ? 'none' : 'flex';
+      });
+    }
 
     // ─── TYPE SELECTOR ───
     let selectedType = 'project';
@@ -555,8 +599,10 @@
 
       if (!remoteCheck.checked && !selectedLocation) { showError('location', 'Select a location from the list'); valid = false; }
 
-      const contact = document.getElementById('contact');
-      if (!contact.value.trim()) { showError('contact', 'Required'); valid = false; }
+      const contactInputs = document.querySelectorAll('.contact-link-input');
+      const contactLinks = [];
+      contactInputs.forEach(inp => { const v = inp.value.trim(); if (v) contactLinks.push(v); });
+      if (contactLinks.length === 0) { showError('contact', 'Add at least one link'); valid = false; }
 
       if (!valid) return;
 
@@ -573,7 +619,7 @@
         details: document.getElementById('details').value.trim(),
         remote: remoteCheck.checked,
         location: remoteCheck.checked ? 'Remote' : (selectedLocation ? selectedLocation.display : ''),
-        contact: contact.value.trim()
+        contact_links: contactLinks
       };
 
       if (selectedType === 'project') {
@@ -673,8 +719,16 @@
           }
         }
 
-        // Contact
-        document.getElementById('contact').value = f.contact || '';
+        // Contact links
+        const links = Array.isArray(f.contact_links) ? f.contact_links : (f.contact ? [f.contact] : []);
+        const container = document.getElementById('contact-links');
+        container.innerHTML = '';
+        links.forEach((link, i) => {
+          const row = document.createElement('div');
+          row.className = 'contact-link-row';
+          row.innerHTML = '<input type="text" class="contact-link-input" placeholder="https://... or email" value="' + link.replace(/"/g, '&quot;') + '"><button type="button" class="contact-remove-btn" onclick="removeContactLink(this)"' + (links.length <= 1 ? ' style="display:none;"' : '') + '>&times;</button>';
+          container.appendChild(row);
+        });
       } catch (e) {
         console.error('Failed to load for edit:', e);
       }

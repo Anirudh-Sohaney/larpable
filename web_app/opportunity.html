@@ -90,6 +90,16 @@
 
     /* Posted */
     .posted { font-size: 0.75rem; color: var(--muted); margin-top: 20px; text-align: center; }
+
+    .contact-links-list { display: flex; flex-direction: column; gap: 4px; }
+    .contact-link {
+      font-size: 0.85rem; color: var(--accent); text-decoration: none;
+      word-break: break-all; transition: opacity 0.15s;
+    }
+    .contact-link:hover { opacity: 0.7; text-decoration: underline; }
+    .contact-link-text {
+      font-size: 0.85rem; color: var(--font); word-break: break-all;
+    }
   </style>
 </head>
 <body>
@@ -137,12 +147,12 @@
     <hr class="divider">
 
     <div class="section">
-      <h2>Contact</h2>
+      <h2>Contact / Sign-up Link</h2>
       <div class="issuer-card">
         <div class="issuer-avatar" id="opp-initials"></div>
         <div class="issuer-info">
           <h3 id="opp-contact-name"></h3>
-          <p id="opp-contact"></p>
+          <div id="opp-contact-links" class="contact-links-list"></div>
         </div>
       </div>
     </div>
@@ -217,13 +227,18 @@
           document.getElementById('opp-details').textContent = f.details;
         }
 
-        // Contact
+        // Contact links
         const contactName = issuer.name || issuerName;
-        const contactInfo = issuer.email || f.contact || '';
         const initials = contactName.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
         document.getElementById('opp-initials').textContent = initials;
         document.getElementById('opp-contact-name').textContent = contactName;
-        document.getElementById('opp-contact').textContent = contactInfo;
+        const linksContainer = document.getElementById('opp-contact-links');
+        const links = Array.isArray(f.contact_links) ? f.contact_links : (f.contact ? [f.contact] : []);
+        if (links.length === 0) { linksContainer.textContent = ''; }
+        else { linksContainer.innerHTML = links.map(l => {
+          const isUrl = /^https?:\/\//.test(l);
+          return isUrl ? '<a href="' + esc(l) + '" target="_blank" rel="noopener" class="contact-link">' + esc(l) + '</a>' : '<span class="contact-link-text">' + esc(l) + '</span>';
+        }).join(''); }
 
         // Posted
         if (data.created_at) {

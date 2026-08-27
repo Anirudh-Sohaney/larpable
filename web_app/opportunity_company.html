@@ -205,6 +205,16 @@
       color: var(--fg-tertiary);
       margin-top: 1.5rem;      text-align: center;
     }
+
+    .contact-links-list { display: flex; flex-direction: column; gap: 4px; }
+    .contact-link {
+      font-size: 0.85rem; color: var(--accent); text-decoration: none;
+      word-break: break-all; transition: opacity 0.15s;
+    }
+    .contact-link:hover { opacity: 0.7; text-decoration: underline; }
+    .contact-link-text {
+      font-size: 0.85rem; color: var(--fg-primary); word-break: break-all;
+    }
   </style>
 </head>
 <body>
@@ -275,12 +285,12 @@
     <hr class="divider">
 
     <div class="section">
-      <h2>Contact</h2>
+      <h2>Contact / Sign-up Link</h2>
       <div class="issuer-card">
         <div class="issuer-avatar" data-field="company-initials">CO</div>
         <div class="issuer-info">
           <h3 data-field="company-full-name">Company</h3>
-          <p data-field="contact">Contact info</p>
+          <div data-field="contact-links" class="contact-links-list"></div>
         </div>
       </div>
     </div>
@@ -354,12 +364,22 @@
         set('company-size', f.company_size);
         set('description', f.description);
         set('skills', f.skills);
-        set('contact', issuer.email || f.contact);
         set('company-full-name', issuer.name);
 
         const initials = (issuer.name || '').split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
         set('company-initials', initials);
         set('posted', data.created_at ? 'Posted ' + formatPosted(data.created_at) : '');
+
+        // Render contact links
+        const linksContainer = document.querySelector('[data-field="contact-links"]');
+        if (linksContainer) {
+          const links = Array.isArray(f.contact_links) ? f.contact_links : (f.contact ? [f.contact] : []);
+          if (links.length === 0) { linksContainer.textContent = '—'; }
+          else { linksContainer.innerHTML = links.map(l => {
+            const isUrl = /^https?:\/\//.test(l);
+            return isUrl ? '<a href="' + escapeHtml(l) + '" target="_blank" rel="noopener" class="contact-link">' + escapeHtml(l) + '</a>' : '<span class="contact-link-text">' + escapeHtml(l) + '</span>';
+          }).join(''); }
+        }
       } catch (e) {
         console.error('Failed to load opportunity:', e);
       }

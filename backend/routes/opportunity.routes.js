@@ -136,7 +136,7 @@ router.post('/', requireAuth, async (req, res) => {
         looking_for: cleanFields.looking_for || '',
         location: cleanFields.location || '',
         remote: cleanFields.remote !== undefined ? cleanFields.remote : true,
-        contact: cleanFields.contact || '',
+        contact_links: Array.isArray(cleanFields.contact_links) ? cleanFields.contact_links.filter(l => l && l.trim()) : (cleanFields.contact ? [cleanFields.contact] : []),
         skills: cleanFields.skills || [],
         details: cleanFields.details || '',
         // Nonprofit-specific
@@ -180,7 +180,7 @@ router.patch('/:id', requireAuth, async (req, res) => {
     // Merge updates — whitelist of safe fields only (Issue #8 fix)
     // 'created_by', 'id', 'created_at' are NEVER overwritable.
     // 'type' is handled separately below.
-    const allowedFields = ['title', 'description', 'looking_for', 'location', 'remote', 'contact', 'skills', 'details', 'nonprofit_field', 'industry'];
+    const allowedFields = ['title', 'description', 'looking_for', 'location', 'remote', 'contact_links', 'skills', 'details', 'nonprofit_field', 'industry'];
     const updates = {};
     for (const key of allowedFields) {
       if (req.body[key] !== undefined) {
@@ -258,7 +258,7 @@ function enrichOpp(opp) {
     looking_for: f.looking_for || '',
     location: f.location || '',
     remote: f.remote !== undefined ? f.remote : true,
-    contact: f.contact || '',
+    contact_links: Array.isArray(f.contact_links) ? f.contact_links : (f.contact ? [f.contact] : []),
     skills: f.skills || [],
     details: f.details || '',
     nonprofit_field: f.nonprofit_field || '',
