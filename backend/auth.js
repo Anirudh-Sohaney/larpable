@@ -113,6 +113,21 @@ async function login(username, password) {
   if (!valid) {
     throw new Error('Invalid username or password');
   }
+
+  // Backfill username into encrypted_fields for pre-update users
+  try {
+    const rawUser = await store.getRawUser(found.id);
+    if (rawUser) {
+      const decrypted = decryptObject(rawUser.encrypted_fields || {});
+      if (!decrypted.username) {
+        decrypted.username = username;
+        rawUser.encrypted_fields = encryptObject(decrypted);
+        await store.saveUser(found.id, rawUser);
+      }
+    }
+  } catch (e) {
+    console.error('Username backfill error:', e);
+  }
   
   // Create session
   const token = await createSession(found.id);

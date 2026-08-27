@@ -32,13 +32,14 @@ async function requireAuth(req, res, next) {
 // ── GET /api/users/me — full profile ─────────────────────────
 router.get('/me', requireAuth, async (req, res) => {
   const fields = req.user.encrypted_fields || {};
+  // Support both old camelCase and new snake_case field names
   res.json({
     id: req.user.id,
     type: req.user.type,
     created_at: req.user.created_at,
     username: fields.username || '',
-    first_name: fields.first_name || '',
-    last_name: fields.last_name || '',
+    first_name: fields.first_name || fields.firstName || '',
+    last_name: fields.last_name || fields.lastName || '',
     email: fields.email || '',
     age: fields.age || '',
     grade: fields.grade || '',
