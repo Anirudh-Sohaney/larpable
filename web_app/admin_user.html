@@ -202,12 +202,13 @@
     }
 
     function renderProfile(data) {
+      const displayName = data.username || data.email || 'Unknown';
       document.getElementById('user-name').innerHTML =
-        esc(data.username || 'Unknown') + '<span class="admin-badge">Admin View</span>';
+        esc(displayName) + '<span class="admin-badge">Admin View</span>';
       document.getElementById('user-subtitle').textContent =
         [data.first_name, data.last_name].filter(Boolean).join(' ') || 'No name set';
 
-      document.getElementById('p-username').value = data.username || '';
+      document.getElementById('p-username').value = data.username || (data.email ? '(not set — email: ' + data.email + ')' : '(not set — user must re-login)');
       document.getElementById('p-first').value = data.first_name || '';
       document.getElementById('p-last').value = data.last_name || '';
       document.getElementById('p-email').value = data.email || '';

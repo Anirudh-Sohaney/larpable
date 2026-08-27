@@ -243,7 +243,9 @@ async function saveOpportunity(oppId, oppData) {
 async function getOpportunity(oppId) {
   const opp = await getById('opportunities.json', oppId);
   if (!opp) return null;
-  return decryptObject(opp);
+  const decrypted = decryptObject(opp);
+  decrypted.id = oppId;
+  return decrypted;
 }
 
 /**
