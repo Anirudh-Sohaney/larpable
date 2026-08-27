@@ -276,7 +276,19 @@
       try {
         const res = await fetch('/api/users/me', { credentials: 'include' });
         if (!res.ok) { window.location.href = '/login'; return; }
-        // Check legal agreement
+        const data = await res.json();
+        // Redirect admin away from profile page
+        if (data.username === '' && !data.first_name) {
+          // Check if this is admin via auth/me
+          try {
+            const authRes = await fetch('/api/auth/me', { credentials: 'include' });
+            if (authRes.ok) {
+              const authData = await authRes.json();
+              if (authData.user?.role === 'admin') { window.location.href = '/feed'; return; }
+            }
+          } catch {}
+        }
+        // Check legal agreement (skip for admin)
         try {
           const legalRes = await fetch('/api/legal/status', { credentials: 'include' });
           if (legalRes.ok) {

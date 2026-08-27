@@ -202,7 +202,7 @@
         <button class="tab active" data-tab="projects">Projects</button>
         <button class="tab" data-tab="nonprofits">Non Profits</button>
         <button class="tab" data-tab="companies">Companies</button>
-        <button class="tab" data-tab="yours">Your Projects</button>
+        <button class="tab" data-tab="yours" id="tab-yours">Your Projects</button>
       </div>
       <button class="btn-create" onclick="window.location.href='/create_student'">+ Create</button>
     </div>
@@ -252,17 +252,19 @@
         if (res.ok) {
           const data = await res.json();
           currentUser = data.user;
-          // Check legal agreement status
-          try {
-            const legalRes = await fetch('/api/legal/status', { credentials: 'include' });
-            if (legalRes.ok) {
-              const legalData = await legalRes.json();
-              if (!legalData.all_agreed) {
-                window.location.href = '/agreement';
-                return;
+          // Skip legal agreement check for admin
+          if (currentUser.role !== 'admin') {
+            try {
+              const legalRes = await fetch('/api/legal/status', { credentials: 'include' });
+              if (legalRes.ok) {
+                const legalData = await legalRes.json();
+                if (!legalData.all_agreed) {
+                  window.location.href = '/agreement';
+                  return;
+                }
               }
-            }
-          } catch {}
+            } catch {}
+          }
           await loadUserProfile();
         } else {
           window.location.href = '/login';
@@ -274,6 +276,12 @@
 
     async function loadUserProfile() {
       try {
+        // Admin doesn't have a regular user profile
+        if (currentUser && currentUser.role === 'admin') {
+          userProfile = { skills: [], interests: [], location: null };
+          hideYoursTab();
+          return;
+        }
         const res = await fetch('/api/users/me', { credentials: 'include' });
         if (res.ok) {
           const data = await res.json();
@@ -357,6 +365,14 @@
         render();
       });
     });
+
+    // Hide 'Your Projects' tab for admin
+    function hideYoursTab() {
+      if (currentUser && currentUser.role === 'admin') {
+        const yoursTab = document.getElementById('tab-yours');
+        if (yoursTab) yoursTab.style.display = 'none';
+      }
+    }
 
     // ── SEARCH ──
     const searchInput = document.getElementById('search-input');
@@ -449,7 +465,14 @@
       if (activeTab === 'projects') filtered = filtered.filter(o => o.type === 'project');
       else if (activeTab === 'nonprofits') filtered = filtered.filter(o => o.type === 'nonprofit');
       else if (activeTab === 'companies') filtered = filtered.filter(o => o.type === 'company');
-      else if (activeTab === 'yours') filtered = filtered.filter(o => o.created_by === currentUser?.id);
+      else if (activeTab === 'yours') {
+        // Admin sees all opportunities in 'yours' tab (tab hidden, but just in case)
+        if (currentUser && currentUser.role === 'admin') {
+          // Show all - no filter
+        } else {
+          filtered = filtered.filter(o => o.created_by === currentUser?.id);
+        }
+      }
 
       // Apply filters
       const hasForYou = activeFilters.includes('foryou');
@@ -522,12 +545,15 @@
         const badgeClass = o.type === 'project' ? 'badge-project' : o.type === 'nonprofit' ? 'badge-nonprofit' : 'badge-company';
         const badgeLabel = o.type === 'project' ? 'Project' : o.type === 'nonprofit' ? 'Non-profit' : 'Company';
         const isOwner = o.created_by === currentUser?.id;
+        const isAdmin = currentUser && currentUser.role === 'admin';
         const isYours = activeTab === 'yours';
 
-        const editDelete = isOwner && isYours ? `
+        // Admin can edit/delete any opportunity; owners can edit/delete in 'yours' tab
+        const editDelete = (isAdmin || (isOwner && isYours)) ? `
           <div class="your-card-actions">
-            <button class="edit-btn" onclick="event.stopPropagation(); window.location.href='/create_student?edit=${o.id}'">Edit</button>
+            ${isAdmin || isOwner ? `<button class="edit-btn" onclick="event.stopPropagation(); window.location.href='/create_student?edit=${o.id}'">Edit</button>` : ''}
             <button class="delete-btn" onclick="event.stopPropagation(); deleteOpportunity('${o.id}')">Delete</button>
+            ${isAdmin && !isOwner ? `<button class="edit-btn" onclick="event.stopPropagation(); window.location.href='/admin_user?id=${o.created_by}'">View User</button>` : ''}
           </div>` : '';
 
         const skillsHtml = (o.skills || []).slice(0, 5).map(s => `<span class="skill-tag">${esc(s)}</span>`).join('');

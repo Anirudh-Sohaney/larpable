@@ -105,7 +105,7 @@ router.post('/login', async (req, res) => {
     
     res.cookie(COOKIE_NAME, result.token, COOKIE_OPTIONS);
     
-    res.json({ userId: result.userId, type: result.user.type });
+    res.json({ userId: result.userId, type: result.user.type, role: result.user.role || 'student' });
   } catch (e) {
     if (e.message === 'Invalid username or password') {
       return res.status(401).json({ error: e.message });
@@ -133,6 +133,11 @@ router.get('/me', async (req, res) => {
     return res.status(401).json({ error: 'Not authenticated' });
   }
 
+  // Handle admin user specially
+  if (user.id === 'admin_larpable') {
+    return res.json({ user: { id: 'admin_larpable', type: 'admin', role: 'admin', displayName: 'Admin' } });
+  }
+
   // Build display name from profile (store.getUser already decrypts)
   const fields = user.encrypted_fields || {};
   const firstName = fields.firstName || fields.first_name || '';
@@ -143,6 +148,7 @@ router.get('/me', async (req, res) => {
   const safeUser = {
     id: user.id,
     type: user.type,
+    role: 'student',
     created_at: user.created_at,
     displayName
   };

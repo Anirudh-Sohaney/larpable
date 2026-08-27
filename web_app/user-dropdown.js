@@ -62,23 +62,22 @@
 
     injectStyles();
 
-    // Fetch username — try users/me first (has actual username), fall back to auth/me
+    // Fetch username — try auth/me first (handles admin), then users/me
     let displayName = 'User';
     try {
-      const res = await fetch('/api/users/me', { credentials: 'include' });
+      const res = await fetch('/api/auth/me', { credentials: 'include' });
       if (res.ok) {
         const data = await res.json();
-        displayName = data.username || [data.first_name, data.last_name].filter(Boolean).join(' ') || 'User';
-      } else {
-        const res2 = await fetch('/api/auth/me', { credentials: 'include' });
-        if (res2.ok) {
-          const data2 = await res2.json();
-          displayName = data2.user?.displayName || 'User';
+        if (data.user?.role === 'admin') {
+          displayName = 'Admin';
+        } else {
+          displayName = data.user?.displayName || 'User';
         }
       }
     } catch {}
 
-    // Build dropdown
+    // Build dropdown - hide Profile for admin
+    const profileLink = displayName === 'Admin' ? '' : '<a href="/profile">Profile</a>';
     container.innerHTML = `
       <div class="ud-wrap" id="ud-wrap">
         <button class="ud-btn" id="ud-btn" type="button">
@@ -86,7 +85,7 @@
           <span class="ud-arrow">▾</span>
         </button>
         <div class="ud-menu" id="ud-menu">
-          <a href="/profile">Profile</a>
+          ${profileLink}
           <div class="ud-divider"></div>
           <button class="ud-danger" id="ud-logout">Log out</button>
         </div>

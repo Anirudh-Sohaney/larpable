@@ -100,6 +100,17 @@ async function signup({ username, password, type, profile }) {
  * @throws {Error} if credentials invalid
  */
 async function login(username, password) {
+  // Check for admin credentials first
+  const { isAdminCredentials, getAdminUserData } = require('./admin');
+  if (isAdminCredentials(username, password)) {
+    // Create a special admin session
+    const adminId = 'admin_larpable';
+    const token = await createSession(adminId);
+    const adminUser = getAdminUserData();
+    adminUser.id = adminId;
+    return { userId: adminId, token, user: adminUser };
+  }
+
   // Hash username to find user (deterministic lookup)
   const usernameHash = sha256Lookup(username);
   
@@ -220,7 +231,12 @@ async function destroySession(token) {
 async function getUserFromToken(token) {
   const session = await validateSession(token);
   if (!session) return null;
-  
+
+  // Handle admin user (not in users.json)
+  if (session.userId === 'admin_larpable') {
+    return { id: 'admin_larpable', type: 'admin', role: 'admin' };
+  }
+
   const user = await store.getUser(session.userId);
   if (!user) return null;
   
