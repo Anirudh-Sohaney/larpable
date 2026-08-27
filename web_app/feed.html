@@ -548,7 +548,12 @@
         const isAdmin = currentUser && currentUser.role === 'admin';
         const isYours = activeTab === 'yours';
 
-        const editDelete = '';
+        // Edit/delete only for owners in 'Your Projects' tab
+        const editDelete = (isOwner && isYours) ? `
+          <div class="your-card-actions">
+            <button class="edit-btn" onclick="event.stopPropagation(); window.location.href='/create_student?type=${o.type}&edit=${o.id}'">Edit</button>
+            <button class="delete-btn" onclick="event.stopPropagation(); deleteOpportunity('${o.id}')">Delete</button>
+          </div>` : '';
 
         const skillsHtml = (o.skills || []).slice(0, 5).map(s => `<span class="skill-tag">${esc(s)}</span>`).join('');
         const actionLabel = isOwner ? 'View' : 'Learn more';
