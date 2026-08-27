@@ -91,6 +91,18 @@
     /* Posted */
     .posted { font-size: 0.75rem; color: var(--muted); margin-top: 20px; text-align: center; }
 
+    /* Admin controls */
+    .admin-controls { display: none; background: #fff5f5; border: 1px solid #fecaca; border-radius: 10px; padding: 16px; margin-bottom: 16px; }
+    .admin-controls h2 { font-size: 0.9rem; font-weight: 700; color: #dc3545; margin-bottom: 10px; }
+    .admin-controls p { font-size: 0.82rem; color: var(--muted); margin-bottom: 12px; }
+    .admin-btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+    .btn-admin { padding: 7px 16px; border-radius: 6px; font-family: inherit; font-size: 0.8rem; font-weight: 600; cursor: pointer; border: 1.5px solid var(--border); background: var(--card); color: var(--font); transition: all 0.15s; }
+    .btn-admin:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-admin.danger { border-color: #dc3545; color: #dc3545; }
+    .btn-admin.danger:hover { background: #dc3545; color: #fff; }
+    .btn-admin.primary { border-color: var(--accent); background: var(--accent); color: #fff; }
+    .btn-admin.primary:hover { opacity: 0.9; }
+
     .contact-links-list { display: flex; flex-direction: column; gap: 4px; }
     .contact-link {
       font-size: 0.85rem; color: var(--accent); text-decoration: none;
@@ -159,9 +171,35 @@
     </div>
 
     <div class="posted" id="opp-posted"></div>
+
+    <!-- Admin controls (only visible for admin on expanded view) -->
+    <div class="admin-controls" id="admin-controls">
+      <h2>Admin Controls</h2>
+      <p>This opportunity can be managed from here.</p>
+      <div class="admin-btn-row">
+        <button class="btn-admin primary" id="admin-edit-btn" onclick="adminEdit()">Edit</button>
+        <button class="btn-admin danger" id="admin-delete-btn" onclick="adminDelete()">Delete</button>
+        <button class="btn-admin" id="admin-viewuser-btn" onclick="adminViewUser()">View User</button>
+      </div>
+    </div>
+
+    <!-- Delete confirmation modal -->
+    <div id="admin-delete-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.45);z-index:1000;justify-content:center;align-items:center;padding:20px;">
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;max-width:400px;width:100%;padding:24px;box-shadow:0 8px 32px rgba(0,0,0,0.15);">
+        <h3 style="font-size:1rem;font-weight:700;margin-bottom:8px;color:#dc3545;">Delete Opportunity?</h3>
+        <p style="font-size:0.85rem;color:var(--muted);margin-bottom:20px;">This will permanently remove this opportunity. This action cannot be undone.</p>
+        <div style="display:flex;gap:8px;">
+          <button class="btn-admin" onclick="document.getElementById('admin-delete-modal').style.display='none'" style="flex:1;">Cancel</button>
+          <button class="btn-admin danger" onclick="confirmAdminDelete()" style="flex:1;">Yes, delete</button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script>
+    let oppData = null;
+    let isAdmin = false;
+
     function esc(str) { if (!str) return ''; const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
 
     (async () => {
@@ -254,10 +292,54 @@
 
         // Update page title
         document.title = 'LARPABLE. — ' + (f.title || 'Opportunity');
+
+        // Store opportunity data for admin actions
+        oppData = data;
+
+        // Check if admin and show controls
+        try {
+          const authRes = await fetch('/api/auth/me', { credentials: 'include' });
+          if (authRes.ok) {
+            const authData = await authRes.json();
+            isAdmin = authData.user && authData.user.role === 'admin';
+            if (isAdmin) {
+              document.getElementById('admin-controls').style.display = 'block';
+            }
+          }
+        } catch {}
+
       } catch (e) {
         console.error('Failed to load opportunity:', e);
       }
     })();
+
+    function adminEdit() {
+      if (!oppData) return;
+      window.location.href = '/create?type=' + oppData.type + '&edit=' + oppData.id;
+    }
+
+    function adminDelete() {
+      document.getElementById('admin-delete-modal').style.display = 'flex';
+    }
+
+    async function confirmAdminDelete() {
+      if (!oppData) return;
+      try {
+        const res = await fetch('/api/opportunities/' + oppData.id, { method: 'DELETE', credentials: 'include' });
+        if (res.ok) { window.location.href = '/feed'; }
+        else { alert('Failed to delete.'); }
+      } catch { alert('Network error.'); }
+    }
+
+    function adminViewUser() {
+      if (!oppData || !oppData.created_by) return;
+      window.location.href = '/admin_user?id=' + oppData.created_by;
+    }
+
+    // Close delete modal on overlay click
+    document.getElementById('admin-delete-modal').addEventListener('click', (e) => {
+      if (e.target.id === 'admin-delete-modal') e.target.style.display = 'none';
+    });
   </script>
   <script src="/user-dropdown.js"></script>
   <script src="/scaling.js"></script>

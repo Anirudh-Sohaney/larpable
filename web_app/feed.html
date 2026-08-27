@@ -548,13 +548,7 @@
         const isAdmin = currentUser && currentUser.role === 'admin';
         const isYours = activeTab === 'yours';
 
-        // Admin can edit/delete any opportunity; owners can edit/delete in 'yours' tab
-        const editDelete = (isAdmin || (isOwner && isYours)) ? `
-          <div class="your-card-actions">
-            ${isAdmin || isOwner ? `<button class="edit-btn" onclick="event.stopPropagation(); window.location.href='/create_student?edit=${o.id}'">Edit</button>` : ''}
-            <button class="delete-btn" onclick="event.stopPropagation(); deleteOpportunity('${o.id}')">Delete</button>
-            ${isAdmin && !isOwner ? `<button class="edit-btn" onclick="event.stopPropagation(); window.location.href='/admin_user?id=${o.created_by}'">View User</button>` : ''}
-          </div>` : '';
+        const editDelete = '';
 
         const skillsHtml = (o.skills || []).slice(0, 5).map(s => `<span class="skill-tag">${esc(s)}</span>`).join('');
         const actionLabel = isOwner ? 'View' : 'Learn more';
