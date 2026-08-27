@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LARPABLE. — Agreement Required</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
+    :root {
+      --bg: #F5F0E8; --font: #2D2A26; --accent: #E8734A; --card: #FFFDF8;
+      --border: #D6D1C9; --shadow: #C4BEB5; --muted: #8A8580;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Space Grotesk', sans-serif; background: var(--bg); color: var(--font); min-height: 100vh; display: flex; justify-content: center; }
+    .page { width: 600px; padding: 40px 20px 60px; }
+    h1 { font-size: 1.3rem; font-weight: 700; margin-bottom: 4px; }
+    .subtitle { font-size: 0.85rem; color: var(--muted); margin-bottom: 24px; }
+    .section { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin-bottom: 16px; }
+    .section h2 { font-size: 0.9rem; font-weight: 700; margin-bottom: 12px; color: var(--accent); }
+    .legal-content { font-size: 0.82rem; line-height: 1.6; max-height: 300px; overflow-y: auto; padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); margin-bottom: 12px; }
+    .legal-content h1 { font-size: 1rem; margin-bottom: 6px; }
+    .legal-content h2 { font-size: 0.88rem; margin-top: 12px; margin-bottom: 4px; font-weight: 700; }
+    .legal-content p { margin-bottom: 6px; }
+    .legal-content ul { margin: 4px 0 8px 18px; }
+    .legal-content li { margin-bottom: 3px; }
+    .legal-content hr { border: none; border-top: 1px solid var(--border); margin: 12px 0; }
+    .legal-content em { color: var(--muted); }
+    .legal-check { display: flex; align-items: flex-start; gap: 8px; margin: 12px 0 8px; font-size: 0.82rem; line-height: 1.4; }
+    .legal-check input[type="checkbox"] { margin-top: 2px; accent-color: var(--accent); width: 14px; height: 14px; cursor: pointer; flex-shrink: 0; }
+    .legal-check a { color: var(--accent); text-decoration: none; font-weight: 600; cursor: pointer; }
+    .legal-check a:hover { text-decoration: underline; }
+    .legal-error { font-size: 0.72rem; color: #dc2626; margin-top: 4px; display: none; }
+    .legal-error.show { display: block; }
+    .btn { width: 100%; padding: 10px 20px; border: none; border-radius: 8px; font-family: 'Space Grotesk', sans-serif; font-size: 0.88rem; font-weight: 600; cursor: pointer; transition: all 0.15s; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { opacity: 0.9; }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+    .version-info { font-size: 0.72rem; color: var(--muted); margin-top: 8px; }
+  </style>
+</head>
+<body>
+  <div class="page" data-scale-target="600">
+    <h1>Agreement Required</h1>
+    <p class="subtitle">Please review and accept the updated documents to continue.</p>
+
+    <div class="section">
+      <h2>Terms of Service</h2>
+      <div class="legal-content" id="terms-content">Loading...</div>
+    </div>
+
+    <div class="section">
+      <h2>Privacy Policy</h2>
+      <div class="legal-content" id="privacy-content">Loading...</div>
+    </div>
+
+    <div class="legal-check">
+      <input type="checkbox" id="agree-check">
+      <label for="agree-check">I have read and agree to the <a onclick="openModal('terms')">Terms of Service</a> and the <a onclick="openModal('privacy')">Privacy Policy</a>.</label>
+    </div>
+    <div class="legal-error" id="legal-error">You must agree to both documents to continue.</div>
+
+    <button class="btn btn-primary" id="agree-btn" onclick="submitAgreement()" disabled>Continue</button>
+    <div class="version-info" id="version-info"></div>
+  </div>
+
+  <!-- Legal modals -->
+  <div class="legal-modal-overlay" id="terms-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.45);z-index:1000;justify-content:center;align-items:center;padding:20px;">
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;max-width:640px;width:100%;max-height:80vh;display:flex;flex-direction:column;box-shadow:0 8px 32px rgba(0,0,0,0.15);">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--border);">
+        <h3 style="font-size:1rem;font-weight:700;">Terms of Service</h3>
+        <button onclick="closeModal('terms')" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--muted);padding:4px 8px;border-radius:4px;">&times;</button>
+      </div>
+      <div style="padding:20px;overflow-y:auto;font-size:0.82rem;line-height:1.6;" id="terms-modal-body">Loading...</div>
+    </div>
+  </div>
+  <div class="legal-modal-overlay" id="privacy-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.45);z-index:1000;justify-content:center;align-items:center;padding:20px;">
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;max-width:640px;width:100%;max-height:80vh;display:flex;flex-direction:column;box-shadow:0 8px 32px rgba(0,0,0,0.15);">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--border);">
+        <h3 style="font-size:1rem;font-weight:700;">Privacy Policy</h3>
+        <button onclick="closeModal('privacy')" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--muted);padding:4px 8px;border-radius:4px;">&times;</button>
+      </div>
+      <div style="padding:20px;overflow-y:auto;font-size:0.82rem;line-height:1.6;" id="privacy-modal-body">Loading...</div>
+    </div>
+  </div>
+
+  <script src="/scaling.js"></script>
+  <script>
+    const legalDocs = {};
+
+    async function loadDoc(type) {
+      if (legalDocs[type]) return legalDocs[type];
+      try {
+        const res = await fetch('/legal/' + type + '.html');
+        if (!res.ok) throw new Error();
+        const html = await res.text();
+        legalDocs[type] = html;
+        return html;
+      } catch {
+        return '<p>Failed to load document.</p>';
+      }
+    }
+
+    async function init() {
+      const [terms, privacy] = await Promise.all([loadDoc('terms'), loadDoc('privacy')]);
+      document.getElementById('terms-content').innerHTML = terms;
+      document.getElementById('privacy-content').innerHTML = privacy;
+
+      // Fetch version info
+      try {
+        const res = await fetch('/api/legal/versions');
+        if (res.ok) {
+          const v = await res.json();
+          document.getElementById('version-info').textContent =
+            'Terms v' + (v.terms?.version || '?') + ' · Privacy v' + (v.privacy?.version || '?');
+        }
+      } catch {}
+    }
+
+    function openModal(type) {
+      const modal = document.getElementById(type + '-modal');
+      const body = document.getElementById(type + '-modal-body');
+      modal.style.display = 'flex';
+      body.innerHTML = legalDocs[type] || 'Loading...';
+    }
+
+    function closeModal(type) {
+      document.getElementById(type + '-modal').style.display = 'none';
+    }
+
+    // Close on overlay click
+    document.querySelectorAll('.legal-modal-overlay').forEach(m => {
+      m.addEventListener('click', (e) => { if (e.target === m) m.style.display = 'none'; });
+    });
+
+    // Enable button when checkbox checked
+    document.getElementById('agree-check').addEventListener('change', (e) => {
+      document.getElementById('agree-btn').disabled = !e.target.checked;
+      document.getElementById('legal-error').classList.remove('show');
+    });
+
+    async function submitAgreement() {
+      if (!document.getElementById('agree-check').checked) {
+        document.getElementById('legal-error').classList.add('show');
+        return;
+      }
+      const btn = document.getElementById('agree-btn');
+      btn.disabled = true;
+      btn.textContent = 'Saving...';
+      try {
+        const res = await fetch('/api/legal/agree', {
+          method: 'POST',
+          credentials: 'include'
+        });
+        if (res.ok) {
+          // Check if there's a redirect URL in the query
+          const params = new URLSearchParams(window.location.search);
+          const redirect = params.get('redirect') || '/feed';
+          window.location.href = redirect;
+        } else {
+          alert('Failed to save agreement. Please try again.');
+          btn.disabled = false;
+          btn.textContent = 'Continue';
+        }
+      } catch {
+        alert('Connection error. Please try again.');
+        btn.disabled = false;
+        btn.textContent = 'Continue';
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>

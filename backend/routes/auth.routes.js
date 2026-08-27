@@ -29,11 +29,16 @@ const COOKIE_OPTIONS = {
 // ── POST /api/auth/signup ────────────────────────────────────
 router.post('/signup', async (req, res) => {
   try {
-    const { username, password, type, ...profile } = req.body;
+    const { username, password, type, legal_agreed, ...profile } = req.body;
     
     // Validate required fields
     if (!username || !password || !type) {
       return res.status(400).json({ error: 'Username, password, and type are required' });
+    }
+    
+    // Require legal agreement
+    if (!legal_agreed) {
+      return res.status(400).json({ error: 'You must agree to the Terms of Service and Privacy Policy' });
     }
     
     if (username.length < 3 || username.length > 30) {
@@ -57,6 +62,23 @@ router.post('/signup', async (req, res) => {
     }
     
     const result = await auth.signup({ username, password, type, profile });
+    
+    // Record legal agreement for this user
+    try {
+      const store = require('../store');
+      const versions = await store.read('legal_versions.json');
+      const rawUser = await store.getRawUser(result.userId);
+      if (rawUser) {
+        rawUser.legal_agreements = {
+          terms_version: versions.terms?.version || '',
+          privacy_version: versions.privacy?.version || '',
+          agreed_at: new Date().toISOString()
+        };
+        await store.saveUser(result.userId, rawUser);
+      }
+    } catch (e) {
+      console.error('Failed to record legal agreement:', e);
+    }
     
     res.cookie(COOKIE_NAME, result.token, COOKIE_OPTIONS);
     

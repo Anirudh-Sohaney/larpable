@@ -118,6 +118,7 @@ app.use((req, res, next) => {
 const authRoutes = require('./backend/routes/auth.routes');
 const opportunityRoutes = require('./backend/routes/opportunity.routes');
 const userRoutes = require('./backend/routes/user.routes');
+const legalRoutes = require('./backend/routes/legal.routes');
 const matching = require('./backend/matching');
 
 // Rate-limit auth endpoints (Issue #10 fix)
@@ -126,6 +127,7 @@ app.use('/api/auth', authRoutes);
 
 app.use('/api/opportunities', rateLimit('api'), opportunityRoutes);
 app.use('/api/users', rateLimit('api'), userRoutes);
+app.use('/api/legal', rateLimit('api'), legalRoutes);
 
 // ── Matching API ─────────────────────────────────────────────
 app.get('/api/match/entities', (req, res) => {

@@ -237,6 +237,14 @@
       try {
         const res = await fetch('/api/users/me', { credentials: 'include' });
         if (!res.ok) { window.location.href = '/login'; return; }
+        // Check legal agreement
+        try {
+          const legalRes = await fetch('/api/legal/status', { credentials: 'include' });
+          if (legalRes.ok) {
+            const legalData = await legalRes.json();
+            if (!legalData.all_agreed) { window.location.href = '/agreement'; return; }
+          }
+        } catch {}
         const data = await res.json();
         profileData = data;
 

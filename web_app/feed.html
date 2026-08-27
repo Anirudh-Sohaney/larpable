@@ -252,6 +252,17 @@
         if (res.ok) {
           const data = await res.json();
           currentUser = data.user;
+          // Check legal agreement status
+          try {
+            const legalRes = await fetch('/api/legal/status', { credentials: 'include' });
+            if (legalRes.ok) {
+              const legalData = await legalRes.json();
+              if (!legalData.all_agreed) {
+                window.location.href = '/agreement';
+                return;
+              }
+            }
+          } catch {}
           await loadUserProfile();
         } else {
           window.location.href = '/login';

@@ -208,6 +208,53 @@
     .login-link a { color: var(--accent); text-decoration: none; font-weight: 600; transition: color var(--transition); }
     .login-link a:hover { color: var(--accent-hover); }
 
+    /* Legal checkbox */
+    .legal-check {
+      display: flex; align-items: flex-start; gap: 8px;
+      margin: 16px 0 4px; font-size: 0.78rem; color: var(--fg-secondary);
+      line-height: 1.4;
+    }
+    .legal-check input[type="checkbox"] {
+      margin-top: 2px; accent-color: var(--accent); width: 14px; height: 14px; cursor: pointer; flex-shrink: 0;
+    }
+    .legal-check a { color: var(--accent); text-decoration: none; font-weight: 600; cursor: pointer; }
+    .legal-check a:hover { text-decoration: underline; }
+    .legal-error { font-size: 0.72rem; color: #dc2626; margin-top: 4px; display: none; }
+    .legal-error.show { display: block; }
+
+    /* Legal popup modal */
+    .legal-modal-overlay {
+      display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.45); z-index: 1000; justify-content: center; align-items: center;
+      padding: 20px;
+    }
+    .legal-modal-overlay.show { display: flex; }
+    .legal-modal {
+      background: var(--bg-primary); border: 1px solid var(--border); border-radius: 12px;
+      max-width: 640px; width: 100%; max-height: 80vh; display: flex; flex-direction: column;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+    }
+    .legal-modal-header {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 16px 20px; border-bottom: 1px solid var(--border);
+    }
+    .legal-modal-header h3 { font-size: 1rem; font-weight: 700; }
+    .legal-modal-close {
+      background: none; border: none; font-size: 1.2rem; cursor: pointer;
+      color: var(--fg-secondary); padding: 4px 8px; border-radius: 4px;
+    }
+    .legal-modal-close:hover { background: rgba(0,0,0,0.05); }
+    .legal-modal-body {
+      padding: 20px; overflow-y: auto; font-size: 0.82rem; line-height: 1.6;
+      color: var(--fg-primary);
+    }
+    .legal-modal-body h1 { font-size: 1.1rem; margin-bottom: 8px; }
+    .legal-modal-body h2 { font-size: 0.92rem; margin-top: 16px; margin-bottom: 6px; font-weight: 700; }
+    .legal-modal-body p { margin-bottom: 8px; }
+    .legal-modal-body ul { margin: 6px 0 10px 20px; }
+    .legal-modal-body li { margin-bottom: 4px; }
+    .legal-modal-body hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+    .legal-modal-body em { color: var(--fg-tertiary); }
 
   </style>
 </head>
@@ -282,6 +329,11 @@
             <div class="chip-grid-wrapper" id="sk-wrapper"></div>
             <div class="chip-min-hint" id="sk-min-hint">Select at least 3 skills</div>
           </div>
+          <div class="legal-check">
+            <input type="checkbox" id="legal-agree" >
+            <label for="legal-agree">I agree to the <a onclick="openLegal('terms')">Terms of Service</a> and acknowledge the <a onclick="openLegal('privacy')">Privacy Policy</a>.</label>
+          </div>
+          <div class="legal-error" id="legal-error">You must agree to the Terms of Service and Privacy Policy to sign up.</div>
           <div class="btn-row">
             <button class="btn btn--ghost" type="button" onclick="prevStep()">Back</button>
             <button class="btn btn--filled" type="button" id="submitBtn" onclick="submitSignup()">Sign up</button>
@@ -683,6 +735,11 @@
         document.getElementById('sk-min-hint').classList.add('show');
         return;
       }
+      if (!document.getElementById('legal-agree').checked) {
+        document.getElementById('legal-error').classList.add('show');
+        return;
+      }
+      document.getElementById('legal-error').classList.remove('show');
 
       const locData = JSON.parse(locationValue.value);
       const body = {
@@ -699,7 +756,8 @@
         state: locData.state,
         country: locData.country,
         interests,
-        skills
+        skills,
+        legal_agreed: true
       };
 
       const btn = document.getElementById('submitBtn');
@@ -728,7 +786,61 @@
         if (btn) { btn.disabled = false; btn.textContent = 'Sign up'; }
       }
     }
+
+    // ── LEGAL MODALS ──
+    const legalCache = {};
+
+    async function loadLegalDoc(type) {
+      if (legalCache[type]) return legalCache[type];
+      try {
+        const res = await fetch('/legal/' + type + '.html');
+        if (!res.ok) throw new Error('Failed to load');
+        const html = await res.text();
+        legalCache[type] = html;
+        return html;
+      } catch {
+        return '<p>Failed to load document. Please try again.</p>';
+      }
+    }
+
+    async function openLegal(type) {
+      const modal = document.getElementById(type + '-modal');
+      const body = document.getElementById(type + '-body');
+      body.innerHTML = 'Loading...';
+      modal.classList.add('show');
+      body.innerHTML = await loadLegalDoc(type);
+    }
+
+    function closeLegal(type) {
+      document.getElementById(type + '-modal').classList.remove('show');
+    }
+
+    // Close modal on overlay click
+    document.querySelectorAll('.legal-modal-overlay').forEach(overlay => {
+      overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) overlay.classList.remove('show');
+      });
+    });
   </script>
+  <!-- Legal modals -->
+  <div class="legal-modal-overlay" id="terms-modal">
+    <div class="legal-modal">
+      <div class="legal-modal-header">
+        <h3>Terms of Service</h3>
+        <button class="legal-modal-close" onclick="closeLegal('terms')">&times;</button>
+      </div>
+      <div class="legal-modal-body" id="terms-body">Loading...</div>
+    </div>
+  </div>
+  <div class="legal-modal-overlay" id="privacy-modal">
+    <div class="legal-modal">
+      <div class="legal-modal-header">
+        <h3>Privacy Policy</h3>
+        <button class="legal-modal-close" onclick="closeLegal('privacy')">&times;</button>
+      </div>
+      <div class="legal-modal-body" id="privacy-body">Loading...</div>
+    </div>
+  </div>
   <script src="/scaling.js"></script>
 </body>
 </html>
