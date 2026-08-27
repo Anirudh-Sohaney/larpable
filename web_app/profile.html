@@ -118,6 +118,41 @@
       .field input, .field select { font-size: 0.82rem; padding: 8px 10px; }
       .btn { font-size: 0.82rem; padding: 8px 14px; }
     }
+
+    /* Chip grid (editable skills/interests) */
+    .chip-search {
+      width: 100%; padding: 8px 12px; border: 1.5px solid var(--border); border-radius: 8px;
+      font-family: inherit; font-size: 0.82rem; background: var(--bg); color: var(--font);
+      outline: none; transition: border 0.15s; margin-bottom: 10px;
+    }
+    .chip-search:focus { border-color: var(--accent); }
+    .chip-grid-wrapper {
+      max-height: 220px; overflow-y: auto; padding-right: 4px;
+      border: 1px solid var(--border); border-radius: 8px; padding: 10px; background: var(--card);
+    }
+    .chip-grid-wrapper::-webkit-scrollbar { width: 4px; }
+    .chip-grid-wrapper::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+    .chip-category {
+      display: block; font-size: 0.72rem; font-weight: 700; color: var(--accent);
+      text-transform: uppercase; letter-spacing: 0.5px; margin: 10px 0 5px;
+    }
+    .chip-category:first-child { margin-top: 0; }
+    .chip-grid { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+    .chip-option { display: none; }
+    .chip-label {
+      display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 0.72rem;
+      border: 1.5px solid var(--border); background: var(--bg); color: var(--font);
+      cursor: pointer; transition: all 0.15s; user-select: none;
+    }
+    .chip-label:hover { border-color: var(--accent); }
+    .chip-option:checked + .chip-label { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .chip-option:disabled + .chip-label { opacity: 0.4; cursor: not-allowed; }
+    .no-results { display: none; font-size: 0.78rem; color: var(--muted); padding: 8px 0; }
+    .chip-count { font-size: 0.72rem; color: var(--muted); font-weight: 500; margin-left: 6px; }
+    .chip-count.at-limit { color: var(--accent); }
+    .chip-min-hint { font-size: 0.7rem; color: #dc2626; margin-top: 4px; display: none; }
+    .chip-min-hint.show { display: block; }
+
   </style>
 </head>
 <body>
@@ -191,14 +226,18 @@
 
       <!-- INTERESTS -->
       <div class="section">
-        <h2>Interests</h2>
-        <div class="chip-list" id="p-interests-display"></div>
+        <h2>Interests <span class="chip-count" id="p-int-count">0 / 5</span></h2>
+        <input class="chip-search" type="text" placeholder="Search interests..." id="p-int-search">
+        <div class="chip-grid-wrapper" id="p-int-wrapper"></div>
+        <div class="chip-min-hint" id="p-int-min-hint">Select at least 3 interests</div>
       </div>
 
       <!-- SKILLS -->
       <div class="section">
-        <h2>Skills</h2>
-        <div class="chip-list" id="p-skills-display"></div>
+        <h2>Skills <span class="chip-count" id="p-sk-count">0 / 8</span></h2>
+        <input class="chip-search" type="text" placeholder="Search skills..." id="p-sk-search">
+        <div class="chip-grid-wrapper" id="p-sk-wrapper"></div>
+        <div class="chip-min-hint" id="p-sk-min-hint">Select at least 3 skills</div>
       </div>
 
       <div class="btn-row">
@@ -265,22 +304,115 @@
           });
         }
 
-        // Interests
-        renderChips('p-interests-display', data.interests || [], 'var(--accent)');
-
-        // Skills
-        renderChips('p-skills-display', data.skills || [], 'var(--accent)');
+        // Build interest & skill grids, then pre-select user's current values
+        buildGrid(interestsData, 'p-int-wrapper', 'p-int-search', 'pinterest', 'p-int-count', 'p-int-min-hint', 5, 3);
+        buildGrid(skillsData, 'p-sk-wrapper', 'p-sk-search', 'pskill', 'p-sk-count', 'p-sk-min-hint', 8, 3);
+        preselectChips('pinterest', data.interests || []);
+        preselectChips('pskill', data.skills || []);
       } catch (e) {
         console.error('Failed to load profile:', e);
       }
     }
 
-    function renderChips(containerId, items) {
-      const el = document.getElementById(containerId);
-      el.innerHTML = items.map(i => '<span class="chip is-accent">' + esc(i) + '</span>').join('');
+    function esc(str) { const d = document.createElement('div'); d.textContent = str || ''; return d.innerHTML; }
+
+    // ── INTERESTS DATA ──
+    const interestsData = {
+      'Computer Science & Tech': ['AI / Machine Learning','Web Development','Mobile Development','Game Development','Cybersecurity','Data Science','Cloud Computing','DevOps / Infrastructure','Blockchain / Web3','AR / VR Development','IoT / Embedded Systems','Natural Language Processing','Computer Vision','Quantum Computing','Operating Systems','Distributed Systems'],
+      'Engineering & Design': ['Robotics','Aerospace','Biomedical Engineering','Civil Engineering','Mechanical Engineering','Electrical Engineering','Industrial Design','UI/UX Design','Product Design','3D Printing / Fabrication','CAD / Engineering Design','Nanotechnology'],
+      'Science & Research': ['Biology','Chemistry','Physics','Mathematics','Environmental Science','Neuroscience','Genetics','Astrophysics','Geology','Microbiology','Ecology','Materials Science'],
+      'Business & Entrepreneurship': ['Entrepreneurship','Venture Capital','Marketing','Finance / Fintech','Accounting','Supply Chain / Logistics','Real Estate','Consulting','Sales','Business Strategy','E-Commerce','Nonprofit Management'],
+      'Health & Medicine': ['Health Tech','Public Health','Biotech','Pharmacology','Nutrition Science','Sports Medicine','Mental Health','Epidemiology','Medical Devices','Nursing','Healthcare Policy'],
+      'Creative & Arts': ['Creative Writing','Graphic Design','Music Production','Photography','Film / Media','Animation','Fashion Design','Interior Design','Architecture','Digital Art','Content Creation'],
+      'Culinary & Hospitality': ['Culinary Arts','Food Science','Restaurant Management','Pastry & Baking','Sustainable Food Systems','Wine & Beverage Studies','Hospitality Management','Event Planning','Nutrition & Dietetics'],
+      'Aviation & Transportation': ['Aviation / Piloting','Drone Technology','Autonomous Vehicles','Marine Engineering','Space Exploration','Urban Planning / Transit','Logistics Technology'],
+      'Environment & Sustainability': ['Climate / Sustainability','Renewable Energy','Conservation Biology','Environmental Policy','Agriculture / Agritech','Water Resource Management','Sustainable Architecture','Zero Waste'],
+      'Social Sciences & Humanities': ['Psychology','Sociology','Political Science','Economics','Philosophy','Linguistics','Anthropology','International Relations','Criminal Justice','Education Tech','Social Impact','Human Rights'],
+      'Trades & Hands-On': ['Automotive Repair','Woodworking','Electrical Wiring','Plumbing Basics','Metalworking','Textile / Sewing','Gardening / Horticulture','Home Renovation']
+    };
+
+    // ── SKILLS DATA ──
+    const skillsData = {
+      'Programming Languages': ['Python','JavaScript','TypeScript','Java','C / C++','C#','Swift','Kotlin','Rust','Go','Ruby','PHP','Dart','Scala','R','MATLAB','Assembly','Lua'],
+      'Web & Frontend': ['HTML / CSS','React','Vue.js','Angular','Svelte','Next.js','Tailwind CSS','SASS / LESS','Web Accessibility'],
+      'Backend & Infrastructure': ['Node.js','Express.js','Django','Flask','Spring Boot','GraphQL','REST APIs','Docker','Kubernetes','AWS / Cloud','Firebase','MongoDB','SQL / Databases','Redis'],
+      'Data & AI': ['Data Analysis','Machine Learning','TensorFlow','Pandas / NumPy','Data Visualization','Statistical Modeling','NLP','SQL / Database Design'],
+      'Design & Creative': ['Figma','Photoshop / Illustrator','Canva','Adobe Premiere / After Effects','Video Editing','3D Modeling','Blender','UI/UX Design','Logo Design','Brand Identity','Motion Graphics'],
+      'Writing & Communication': ['Public Speaking','Technical Writing','Copywriting','Grant Writing','Blogging','Newsletter Writing','Storytelling','Debate'],
+      'Business & Leadership': ['Project Management','Product Management','Marketing','SEO / SEM','Social Media Management','Market Research','Financial Modeling','Pitch Deck Creation','Fundraising','Team Leadership','Negotiation'],
+      'Science & Math': ['Math / Statistics','Lab Research','Scientific Writing','Experimental Design','Calculus','Linear Algebra','Physics Modeling','Chemistry Lab Skills'],
+      'Culinary & Food': ['Cooking / Cuisine','Baking / Pastry','Food Photography','Menu Planning','Food Safety','Meal Prep & Nutrition','Sous Vide','Fermentation'],
+      'Mechanical & Trades': ['Soldering','3D Printing','CAD / SolidWorks','Arduino / Raspberry Pi','Woodworking','Basic Carpentry','Automotive Basics','Drone Operation'],
+      'Aviation & Marine': ['Flight Simulation','Aircraft Maintenance Basics','Navigation / Cartography','Sailing','Scuba Diving','Meteorology Basics'],
+      'Languages & Culture': ['Spanish','Mandarin','French','Japanese','German','ASL (Sign Language)','Portuguese','Arabic','Korean'],
+      'Fitness & Outdoors': ['First Aid / CPR','Wilderness Survival','Yoga','Strength Training','Swimming','Rock Climbing','Trail Running']
+    };
+
+    // ── BUILD CHIP GRID ──
+    function buildGrid(data, wrapperId, searchId, groupName, countId, minHintId, max, min) {
+      const wrapper = document.getElementById(wrapperId);
+      const search = document.getElementById(searchId);
+      let html = '';
+      for (const [cat, items] of Object.entries(data)) {
+        html += '<span class="chip-category">' + cat + '</span>';
+        html += '<div class="chip-grid">';
+        items.forEach((item, i) => {
+          const id = groupName + '-' + cat.replace(/[^a-z0-9]/gi,'') + '-' + i;
+          html += '<input type="checkbox" class="chip-option" id="' + id + '" value="' + item + '"><label class="chip-label" for="' + id + '">' + item + '</label>';
+        });
+        html += '</div>';
+      }
+      html += '<div class="no-results" id="' + groupName + '-no-results">No matches found</div>';
+      wrapper.innerHTML = html;
+
+      const allChips = wrapper.querySelectorAll('.chip-option');
+      const countEl = document.getElementById(countId);
+      const minHint = document.getElementById(minHintId);
+
+      allChips.forEach(chip => {
+        chip.addEventListener('change', () => {
+          const checked = wrapper.querySelectorAll('.chip-option:checked').length;
+          if (checked > max) { chip.checked = false; return; }
+          countEl.textContent = checked + ' / ' + max;
+          countEl.classList.toggle('at-limit', checked === max);
+          countEl.classList.toggle('at-min', checked < min);
+          minHint.classList.toggle('show', checked < min);
+          allChips.forEach(c => { if (!c.checked) c.disabled = (checked >= max); });
+        });
+      });
+
+      search.addEventListener('input', () => {
+        const q = search.value.trim().toLowerCase();
+        const categories = wrapper.querySelectorAll('.chip-category');
+        let anyVisible = false;
+        categories.forEach(catEl => {
+          const grid = catEl.nextElementSibling;
+          if (!grid || !grid.classList.contains('chip-grid')) return;
+          const chips = grid.querySelectorAll('.chip-label');
+          let catVisible = false;
+          chips.forEach(label => {
+            const match = label.textContent.toLowerCase().includes(q);
+            label.style.display = match ? '' : 'none';
+            if (match) catVisible = true;
+          });
+          catEl.style.display = catVisible ? '' : 'none';
+          grid.style.display = catVisible ? '' : 'none';
+          if (catVisible) anyVisible = true;
+        });
+        const noRes = document.getElementById(groupName + '-no-results');
+        if (noRes) noRes.style.display = anyVisible ? 'none' : 'block';
+      });
     }
 
-    function esc(str) { const d = document.createElement('div'); d.textContent = str || ''; return d.innerHTML; }
+    function preselectChips(groupName, values) {
+      values.forEach(val => {
+        const chip = document.querySelector('input[type=checkbox].chip-option[value="' + val.replace(/"/g, '&quot;') + '"]');
+        if (chip) {
+          chip.checked = true;
+          chip.dispatchEvent(new Event('change'));
+        }
+      });
+    }
 
     // ── Save profile ──
     document.getElementById('save-btn').addEventListener('click', async () => {
@@ -299,7 +431,9 @@
         location: locData.display || document.getElementById('p-location').value.trim(),
         city: locData.city || '',
         state: locData.state || '',
-        country: locData.country || ''
+        country: locData.country || '',
+        interests: Array.from(document.querySelectorAll('#p-int-wrapper .chip-option:checked')).map(c => c.value),
+        skills: Array.from(document.querySelectorAll('#p-sk-wrapper .chip-option:checked')).map(c => c.value)
       };
 
       try {

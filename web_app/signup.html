@@ -343,6 +343,7 @@
     </div>
   </div>
 
+  <script src="/legal-filter.js"></script>
   <script>
     // ── Redirect if already logged in ──
     (async () => {
@@ -795,7 +796,8 @@
       try {
         const res = await fetch('/legal/' + type + '.html');
         if (!res.ok) throw new Error('Failed to load');
-        const html = await res.text();
+        let html = await res.text();
+        html = legalFilterClean(html);
         legalCache[type] = html;
         return html;
       } catch {

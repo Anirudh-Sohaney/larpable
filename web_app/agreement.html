@@ -83,6 +83,7 @@
     </div>
   </div>
 
+  <script src="/legal-filter.js"></script>
   <script src="/scaling.js"></script>
   <script>
     const legalDocs = {};
@@ -92,7 +93,8 @@
       try {
         const res = await fetch('/legal/' + type + '.html');
         if (!res.ok) throw new Error();
-        const html = await res.text();
+        let html = await res.text();
+        html = legalFilterClean(html);
         legalDocs[type] = html;
         return html;
       } catch {

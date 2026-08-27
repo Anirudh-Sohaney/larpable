@@ -199,6 +199,17 @@ process.on('unhandledRejection', (reason) => {
 // Serve web_app/ at root
 app.use(express.static(path.join(__dirname, 'web_app')));
 
+// Extensionless URL support (mirrors nginx try_files behavior for local dev)
+app.use((req, res, next) => {
+  if (req.method !== 'GET' || req.path.includes('.')) return next();
+  const filePath = path.join(__dirname, 'web_app', req.path + '.html');
+  const fs = require('fs');
+  if (fs.existsSync(filePath)) {
+    return res.sendFile(filePath);
+  }
+  next();
+});
+
 // ── Start Server ─────────────────────────────────────────────
 app.listen(PORT, HOST, () => {
   console.log(`\n  ┌─────────────────────────────────────┐`);
