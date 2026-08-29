@@ -184,12 +184,6 @@
     }
     .your-card-actions .edit-btn:hover { border-color: var(--accent); color: var(--accent); }
     .your-card-actions .delete-btn:hover { border-color: #dc3545; color: #dc3545; }
-    .your-card-actions .draft-publish-btn {
-      padding: 3px 8px; border-radius: 4px; font-size: 0.68rem; font-family: inherit;
-      cursor: pointer; border: 1px solid var(--accent); background: var(--accent); color: #fff;
-      transition: all 0.15s; font-weight: 600;
-    }
-    .your-card-actions .draft-publish-btn:hover { opacity: 0.85; }
     .badge-draft { background: rgba(138,133,128,0.15); color: var(--muted); }
     .draft-card { border-style: dashed; border-color: var(--muted); opacity: 0.92; }
     .draft-card:hover { opacity: 1; }
@@ -566,7 +560,6 @@
             <div class="card your-card draft-card" onclick="window.location.href='/create_student?draft=${d.id}'">
               <div class="your-card-actions">
                 <button class="edit-btn" onclick="event.stopPropagation(); window.location.href='/create_student?draft=${d.id}'">Edit</button>
-                <button class="draft-publish-btn" onclick="event.stopPropagation(); publishDraft('${d.id}')">Upload</button>
                 <button class="delete-btn" onclick="event.stopPropagation(); deleteDraft('${d.id}')">Delete</button>
               </div>
               <div class="card-header">
@@ -641,22 +634,6 @@
         const res = await fetch(`/api/opportunities/${id}`, { method: 'DELETE', credentials: 'include' });
         if (res.ok) { opportunities = opportunities.filter(o => o.id !== id); render(); }
         else { alert('Failed to delete.'); }
-      } catch { alert('Network error.'); }
-    }
-
-    async function publishDraft(id) {
-      if (!confirm('Publish this draft as an opportunity?')) return;
-      try {
-        const res = await fetch(`/api/drafts/${id}/publish`, { method: 'POST', credentials: 'include' });
-        if (res.ok) {
-          const data = await res.json();
-          drafts = drafts.filter(d => d.id !== id);
-          // Reload to show the new opportunity
-          await loadOpportunities();
-        } else {
-          const d = await res.json();
-          alert(d.error || 'Failed to publish draft.');
-        }
       } catch { alert('Network error.'); }
     }
 
