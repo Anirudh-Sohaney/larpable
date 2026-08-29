@@ -184,6 +184,15 @@
     }
     .your-card-actions .edit-btn:hover { border-color: var(--accent); color: var(--accent); }
     .your-card-actions .delete-btn:hover { border-color: #dc3545; color: #dc3545; }
+    .your-card-actions .draft-publish-btn {
+      padding: 3px 8px; border-radius: 4px; font-size: 0.68rem; font-family: inherit;
+      cursor: pointer; border: 1px solid var(--accent); background: var(--accent); color: #fff;
+      transition: all 0.15s; font-weight: 600;
+    }
+    .your-card-actions .draft-publish-btn:hover { opacity: 0.85; }
+    .badge-draft { background: rgba(138,133,128,0.15); color: var(--muted); }
+    .draft-card { border-style: dashed; border-color: var(--muted); opacity: 0.92; }
+    .draft-card:hover { opacity: 1; }
 
 
 
@@ -241,6 +250,7 @@
 
   <script>
     let opportunities = [];
+    let drafts = [];
     let currentUser = null;
     let userProfile = null; // { skills, interests, location }
     let matchScores = {};   // oppId → score
@@ -312,13 +322,20 @@
 
     async function loadOpportunities() {
       try {
-        const res = await fetch('/api/opportunities', { credentials: 'include' });
-        if (res.ok) {
-          const data = await res.json();
+        const [oppRes, draftRes] = await Promise.all([
+          fetch('/api/opportunities', { credentials: 'include' }),
+          fetch('/api/drafts', { credentials: 'include' })
+        ]);
+        if (oppRes.ok) {
+          const data = await oppRes.json();
           opportunities = data.opportunities || [];
-          await computeMatchScores();
-          init();
         }
+        if (draftRes.ok) {
+          const data = await draftRes.json();
+          drafts = data.drafts || [];
+        }
+        await computeMatchScores();
+        init();
       } catch (e) {
         console.error('Failed to load opportunities:', e);
       }
@@ -535,13 +552,48 @@
         filtered.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
       }
 
-      // Render
-      if (filtered.length === 0) {
+      // Build draft cards for the Your Projects tab
+      let draftCards = '';
+      if (activeTab === 'yours' && drafts.length > 0) {
+        draftCards = drafts.map(d => {
+          const f = d.fields || {};
+          const badgeClass = d.type === 'project' ? 'badge-project' : d.type === 'nonprofit' ? 'badge-nonprofit' : 'badge-company';
+          const badgeLabel = d.type === 'project' ? 'Project' : d.type === 'nonprofit' ? 'Non-profit' : 'Company';
+          const skillsHtml = (f.skills || []).slice(0, 5).map(s => `<span class="skill-tag">${esc(s)}</span>`).join('');
+          const updatedAgo = d.updated_at ? formatPosted(d.updated_at) : '';
+
+          return `
+            <div class="card your-card draft-card" onclick="window.location.href='/create_student?draft=${d.id}'">
+              <div class="your-card-actions">
+                <button class="edit-btn" onclick="event.stopPropagation(); window.location.href='/create_student?draft=${d.id}'">Edit</button>
+                <button class="draft-publish-btn" onclick="event.stopPropagation(); publishDraft('${d.id}')">Upload</button>
+                <button class="delete-btn" onclick="event.stopPropagation(); deleteDraft('${d.id}')">Delete</button>
+              </div>
+              <div class="card-header">
+                <div class="card-title">${esc(f.title || 'Untitled draft')}</div>
+                <span class="badge badge-draft">Draft</span>
+              </div>
+              <div class="card-desc">${esc(f.description || '')}</div>
+              <div class="card-meta">
+                ${f.looking_for ? `<span>👤 ${esc(f.looking_for)}</span>` : ''}
+                ${f.location ? `<span>📍 ${esc(f.location)}</span>` : ''}
+              </div>
+              ${skillsHtml ? `<div class="card-skills">${skillsHtml}</div>` : ''}
+              <div class="card-footer">
+                <span class="card-posted">Saved ${esc(updatedAgo)}</span>
+                <span class="card-action">Open draft →</span>
+              </div>
+            </div>`;
+        }).join('');
+      }
+
+      // Show empty state only if there are no drafts AND no opportunities
+      if (!draftCards && filtered.length === 0) {
         container.innerHTML = '<div class="empty-msg">No opportunities found.</div>';
         return;
       }
 
-      container.innerHTML = filtered.map(o => {
+      container.innerHTML = draftCards + filtered.map(o => {
         const badgeClass = o.type === 'project' ? 'badge-project' : o.type === 'nonprofit' ? 'badge-nonprofit' : 'badge-company';
         const badgeLabel = o.type === 'project' ? 'Project' : o.type === 'nonprofit' ? 'Non-profit' : 'Company';
         const isOwner = o.created_by === currentUser?.id;
@@ -590,6 +642,46 @@
         if (res.ok) { opportunities = opportunities.filter(o => o.id !== id); render(); }
         else { alert('Failed to delete.'); }
       } catch { alert('Network error.'); }
+    }
+
+    async function publishDraft(id) {
+      if (!confirm('Publish this draft as an opportunity?')) return;
+      try {
+        const res = await fetch(`/api/drafts/${id}/publish`, { method: 'POST', credentials: 'include' });
+        if (res.ok) {
+          const data = await res.json();
+          drafts = drafts.filter(d => d.id !== id);
+          // Reload to show the new opportunity
+          await loadOpportunities();
+        } else {
+          const d = await res.json();
+          alert(d.error || 'Failed to publish draft.');
+        }
+      } catch { alert('Network error.'); }
+    }
+
+    async function deleteDraft(id) {
+      if (!confirm('Delete this draft?')) return;
+      try {
+        const res = await fetch(`/api/drafts/${id}`, { method: 'DELETE', credentials: 'include' });
+        if (res.ok) { drafts = drafts.filter(d => d.id !== id); render(); }
+        else { alert('Failed to delete draft.'); }
+      } catch { alert('Network error.'); }
+    }
+
+    function formatPosted(isoString) {
+      const date = new Date(isoString);
+      const now = new Date();
+      const diffMs = now - date;
+      const diffMins = Math.floor(diffMs / 60000);
+      const diffHours = Math.floor(diffMs / 3600000);
+      const diffDays = Math.floor(diffMs / 86400000);
+      if (diffMins < 1) return 'Just now';
+      if (diffMins < 60) return `${diffMins}m ago`;
+      if (diffHours < 24) return `${diffHours}h ago`;
+      if (diffDays === 1) return 'Yesterday';
+      if (diffDays < 7) return `${diffDays} days ago`;
+      return `${Math.floor(diffDays / 7)} weeks ago`;
     }
 
     function esc(str) { const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }

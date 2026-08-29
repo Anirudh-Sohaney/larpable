@@ -568,6 +568,231 @@
       el.addEventListener('change', () => clearError(el.id));
     });
 
+    // ─── DRAFT AUTO-SAVE ───
+    let currentDraftId = null;
+    let draftSaveTimer = null;
+    let draftSaveInProgress = false;
+    let suppressAutoSave = false; // suppress while loading draft data
+
+    function collectFormData() {
+      const contactInputs = document.querySelectorAll('.contact-link-input');
+      const contactLinks = [];
+      contactInputs.forEach(inp => { const v = inp.value.trim(); if (v) contactLinks.push(v); });
+
+      const body = {
+        type: selectedType,
+        looking_for: (document.getElementById('looking-for').value || '').trim(),
+        skills: selectedSkills,
+        description: (document.getElementById('description').value || '').trim(),
+        details: (document.getElementById('details').value || '').trim(),
+        remote: remoteCheck.checked,
+        location: remoteCheck.checked ? 'Remote' : (selectedLocation ? selectedLocation.display : ''),
+        contact_links: contactLinks
+      };
+
+      if (selectedType === 'project') {
+        body.title = (document.getElementById('project-title').value || '').trim();
+      } else if (selectedType === 'nonprofit') {
+        body.title = (document.getElementById('np-name').value || '').trim();
+        body.nonprofit_field = document.getElementById('np-field').value;
+      } else if (selectedType === 'company') {
+        body.title = (document.getElementById('co-name').value || '').trim();
+        body.industry = document.getElementById('co-industry').value;
+      }
+
+      return body;
+    }
+
+    function hasAnyContent(body) {
+      if (body.title) return true;
+      if (body.looking_for) return true;
+      if (body.description) return true;
+      if (body.details) return true;
+      if (body.skills && body.skills.length > 0) return true;
+      if (body.contact_links && body.contact_links.length > 0) return true;
+      return false;
+    }
+
+    async function saveDraft() {
+      if (suppressAutoSave || draftSaveInProgress) return;
+
+      // Don't save if already in edit mode (editing an existing opportunity, not a draft)
+      const editId = new URLSearchParams(window.location.search).get('edit');
+      if (editId) return;
+
+      const body = collectFormData();
+      if (!hasAnyContent(body)) return; // nothing to save yet
+
+      draftSaveInProgress = true;
+      try {
+        if (currentDraftId) body.id = currentDraftId;
+        const res = await fetch('/api/drafts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify(body)
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.id) currentDraftId = data.id;
+          showDraftIndicator();
+        }
+      } catch (e) {
+        console.error('Draft save failed:', e);
+      } finally {
+        draftSaveInProgress = false;
+      }
+    }
+
+    function scheduleDraftSave() {
+      clearTimeout(draftSaveTimer);
+      draftSaveTimer = setTimeout(saveDraft, 800); // 800ms debounce
+    }
+
+    function showDraftIndicator() {
+      // Show a subtle "Draft saved" indicator near the submit button
+      let indicator = document.getElementById('draft-indicator');
+      if (!indicator) {
+        indicator = document.createElement('span');
+        indicator.id = 'draft-indicator';
+        indicator.style.cssText = 'font-size:0.72rem; color:var(--muted); font-weight:500; margin-left:8px; transition: opacity 0.3s;';
+        const btnRow = document.querySelector('.btn-row');
+        if (btnRow) btnRow.appendChild(indicator);
+      }
+      indicator.textContent = 'Draft saved';
+      indicator.style.opacity = '1';
+      clearTimeout(indicator._hideTimer);
+      indicator._hideTimer = setTimeout(() => { indicator.style.opacity = '0'; }, 3000);
+    }
+
+    // Attach auto-save listeners to all form inputs
+    function attachDraftListeners() {
+      // Text inputs and textareas: save on blur (user finishes typing)
+      document.querySelectorAll('.field input[type="text"], .field textarea').forEach(el => {
+        el.addEventListener('blur', () => { if (!suppressAutoSave) scheduleDraftSave(); });
+        el.addEventListener('input', () => { if (!suppressAutoSave) scheduleDraftSave(); });
+      });
+
+      // Selects: save on change
+      document.querySelectorAll('.field select').forEach(el => {
+        el.addEventListener('change', () => { if (!suppressAutoSave) scheduleDraftSave(); });
+      });
+
+      // Remote checkbox: save on change
+      remoteCheck.addEventListener('change', () => { if (!suppressAutoSave) scheduleDraftSave(); });
+
+      // Skills chips: save on change (via delegation on the grid)
+      const skillsGrid = document.getElementById('skills-grid');
+      if (skillsGrid) {
+        skillsGrid.addEventListener('change', () => { if (!suppressAutoSave) scheduleDraftSave(); });
+      }
+
+      // Location selection: save on selection
+      locInput.addEventListener('blur', () => { if (!suppressAutoSave) scheduleDraftSave(); });
+
+      // Contact link inputs
+      const contactContainer = document.getElementById('contact-links');
+      if (contactContainer) {
+        contactContainer.addEventListener('blur', () => { if (!suppressAutoSave) scheduleDraftSave(); }, true);
+        contactContainer.addEventListener('input', (e) => {
+          if (e.target.classList.contains('contact-link-input') && !suppressAutoSave) scheduleDraftSave();
+        });
+      }
+    }
+
+    async function deleteCurrentDraft() {
+      if (!currentDraftId) return;
+      try {
+        await fetch(`/api/drafts/${currentDraftId}`, { method: 'DELETE', credentials: 'same-origin' });
+        currentDraftId = null;
+      } catch (e) { /* best effort */ }
+    }
+
+    async function loadDraft(draftId) {
+      try {
+        const res = await fetch('/api/drafts', { credentials: 'same-origin' });
+        if (!res.ok) return;
+        const data = await res.json();
+        const draft = (data.drafts || []).find(d => d.id === draftId);
+        if (!draft) return;
+
+        suppressAutoSave = true;
+        currentDraftId = draft.id;
+        const f = draft.fields || {};
+        const type = draft.type || 'project';
+
+        // Update page title
+        document.querySelector('h1').textContent = 'Edit draft';
+        document.getElementById('submit-btn').textContent = 'Post opportunity';
+
+        // Select type
+        const typeBtn = document.querySelector(`.type-btn[onclick*="'${type}'"]`);
+        if (typeBtn) selectType(type, typeBtn);
+
+        // Fill type-specific fields
+        if (type === 'project') {
+          document.getElementById('project-title').value = f.title || '';
+          document.getElementById('project-title').dispatchEvent(new Event('input'));
+        } else if (type === 'nonprofit') {
+          document.getElementById('np-name').value = f.title || '';
+          document.getElementById('np-name').dispatchEvent(new Event('input'));
+          if (f.nonprofit_field) document.getElementById('np-field').value = f.nonprofit_field;
+        } else if (type === 'company') {
+          document.getElementById('co-name').value = f.title || '';
+          document.getElementById('co-name').dispatchEvent(new Event('input'));
+          if (f.industry) document.getElementById('co-industry').value = f.industry;
+        }
+
+        // Fill common fields
+        document.getElementById('looking-for').value = f.looking_for || '';
+        document.getElementById('looking-for').dispatchEvent(new Event('input'));
+
+        // Skills
+        const skills = f.skills || [];
+        selectedSkills = [...skills];
+        renderSkills();
+
+        // Description
+        document.getElementById('description').value = f.description || '';
+        document.getElementById('description').dispatchEvent(new Event('input'));
+
+        // Details
+        document.getElementById('details').value = f.details || '';
+        document.getElementById('details').dispatchEvent(new Event('input'));
+
+        // Remote / Location
+        if (f.remote === false || f.remote === 'false') {
+          document.getElementById('remote-check').checked = false;
+          document.getElementById('location-field').style.display = 'block';
+          if (f.location) {
+            document.getElementById('location-input').value = f.location;
+            document.getElementById('location-display').textContent = f.location;
+            document.getElementById('location-selected').style.display = 'flex';
+            selectedLocation = { display: f.location };
+            document.getElementById('location-data').value = JSON.stringify(selectedLocation);
+          }
+        }
+
+        // Contact links
+        const links = Array.isArray(f.contact_links) ? f.contact_links : (f.contact ? [f.contact] : []);
+        const container = document.getElementById('contact-links');
+        container.innerHTML = '';
+        links.forEach((link) => {
+          const row = document.createElement('div');
+          row.className = 'contact-link-row';
+          row.innerHTML = '<input type="text" class="contact-link-input" placeholder="https://... or email" value="' + link.replace(/"/g, '&quot;') + '"><button type="button" class="contact-remove-btn" onclick="removeContactLink(this)"' + (links.length <= 1 ? ' style="display:none;"' : '') + '>&times;</button>';
+          container.appendChild(row);
+        });
+
+        showDraftIndicator();
+        // Re-enable auto-save after a tick
+        setTimeout(() => { suppressAutoSave = false; }, 100);
+      } catch (e) {
+        console.error('Failed to load draft:', e);
+        suppressAutoSave = false;
+      }
+    }
+
     // ─── SUBMIT ───
     document.querySelector('form').addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -644,7 +869,11 @@
           credentials: 'same-origin',
           body: JSON.stringify(body)
         });
-        if (res.ok) { window.location.href = '/feed'; }
+        if (res.ok) {
+          // Delete the draft if this was a draft submission
+          if (!editId && currentDraftId) await deleteCurrentDraft();
+          window.location.href = '/feed';
+        }
         else { const d = await res.json(); alert(d.error || 'Failed'); btn.disabled = false; btn.textContent = editId ? 'Save changes' : 'Post opportunity'; }
       } catch (err) { alert('Connection error'); btn.disabled = false; btn.textContent = editId ? 'Save changes' : 'Post opportunity'; }
     });
@@ -666,8 +895,16 @@
           } catch {}
         }
 
-        const editId = new URLSearchParams(window.location.search).get('edit');
-        if (editId) await loadForEdit(editId);
+        const params = new URLSearchParams(window.location.search);
+        const editId = params.get('edit');
+        const draftId = params.get('draft');
+        if (editId) {
+          await loadForEdit(editId);
+        } else if (draftId) {
+          await loadDraft(draftId);
+        }
+        // Attach auto-save listeners after page is ready
+        attachDraftListeners();
       } catch (e) { window.location.href = '/login'; }
     })();
 

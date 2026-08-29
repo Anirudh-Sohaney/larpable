@@ -131,7 +131,9 @@ app.use('/api/legal', rateLimit('api'), legalRoutes);
 
 // Admin routes (must come before user routes to avoid conflict)
 const adminRoutes = require('./backend/routes/admin.routes');
+const draftRoutes = require('./backend/routes/draft.routes');
 app.use('/api/admin', rateLimit('api'), adminRoutes);
+app.use('/api/drafts', rateLimit('api'), draftRoutes);
 
 // ── Matching API ─────────────────────────────────────────────
 app.get('/api/match/entities', (req, res) => {
