@@ -74,7 +74,7 @@
     .step-dot.active { background: var(--accent); }
     .step-dot.done   { background: var(--fg-secondary); }
 
-    .container { width: 420px; }
+    .container { width: 100%; max-width: 420px; }
 
     .form-panel { display: none; animation: fadeSlideIn 0.25s ease; }
     .form-panel.active { display: block; }
@@ -103,6 +103,8 @@
       padding: 0.6rem 0.85rem;
       outline: none;
       transition: border-color var(--transition), box-shadow var(--transition);
+      width: 100%;
+      box-sizing: border-box;
     }
     .field input::placeholder, .field textarea::placeholder { color: var(--fg-tertiary); }
     .field input:focus, .field select:focus, .field textarea:focus {
@@ -266,9 +268,7 @@
     <div class="steps" id="steps">
       <div class="step-dot active" data-step="0"></div>
       <div class="step-dot" data-step="1"></div>
-    </div>
-
-    <div class="container" data-scale-target="420">
+    </div>     <div class="container">
       <div class="error" id="globalError"></div>
 
       <!-- STEP 0: TEXT INPUTS -->

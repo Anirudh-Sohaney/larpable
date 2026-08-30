@@ -37,7 +37,8 @@
     }
 
     .login {
-      width: 340px;
+      width: 100%;
+      max-width: 340px;
       padding: 0 1.5rem;
     }
 
@@ -78,6 +79,8 @@
       padding: 0.6rem 0.85rem;
       outline: none;
       transition: border-color var(--transition), box-shadow var(--transition);
+      width: 100%;
+      box-sizing: border-box;
     }
 
     .field input::placeholder { color: var(--fg-tertiary); }
@@ -133,7 +136,7 @@
   </style>
 </head>
 <body>
-  <div class="login" data-scale-target="340">
+  <div class="login">
     <div class="logo">LARPABLE.</div>
 
     <div class="error" id="error"></div>
