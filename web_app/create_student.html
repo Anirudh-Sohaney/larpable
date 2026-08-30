@@ -267,7 +267,7 @@
 
       <!-- REQUIRED SKILLS (all types) -->
       <div class="field">
-        <label>Required skills <span class="chip-count" id="sk-count">0 / 8 (min 3)</span></label>
+        <label>Required skills <span class="chip-count" id="sk-count">0 / 15</span></label>
         <input class="skill-search" type="text" placeholder="Search skills..." id="skill-search">
         <div class="chip-grid" id="skills-grid"></div>
         <div class="error-msg" id="skills-error">Select at least 3 skills</div>
@@ -357,7 +357,7 @@
     // Build skill chips
     const skillsGrid = document.getElementById('skills-grid');
     let selectedSkills = [];
-    const MAX_SKILLS = 8;
+    const MAX_SKILLS = 15;
     const MIN_SKILLS = 0;
 
     function renderSkills(filter = '') {
