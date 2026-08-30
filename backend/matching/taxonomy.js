@@ -35,11 +35,11 @@ const SKILL_CATEGORIES = {
   ],
   'Web & Frontend': [
     'HTML / CSS', 'React', 'Vue.js', 'Angular', 'Svelte', 'Next.js',
-    'Tailwind CSS', 'Bootstrap', 'jQuery', 'WebGL', 'Three.js', 'SASS / SCSS'
+    'Tailwind CSS', 'Bootstrap', 'jQuery', 'WebGL', 'Three.js', 'SASS / SCSS', 'Web Design'
   ],
   'Backend & Infrastructure': [
     'Node.js', 'Express.js', 'Django', 'Flask', 'Spring Boot', 'Ruby on Rails',
-    'ASP.NET', 'FastAPI', 'GraphQL', 'REST APIs', 'gRPC', 'Nginx', 'Apache'
+    'ASP.NET', 'FastAPI', 'GraphQL', 'REST APIs', 'gRPC', 'Nginx', 'Apache', 'Cloud Architecture'
   ],
   'DevOps & Cloud': [
     'AWS', 'Google Cloud', 'Azure', 'Docker', 'Kubernetes', 'CI/CD',
@@ -48,7 +48,7 @@ const SKILL_CATEGORIES = {
   'Data & AI': [
     'SQL', 'MongoDB', 'PostgreSQL', 'Redis', 'Elasticsearch', 'Data Science',
     'Machine Learning', 'Deep Learning', 'NLP', 'Computer Vision', 'TensorFlow',
-    'PyTorch', 'Pandas', 'NumPy', 'Tableau', 'Power BI'
+    'PyTorch', 'Pandas', 'NumPy', 'Tableau', 'Power BI', 'Data Engineering', 'Quality Assurance'
   ],
   'Mobile Development': [
     'React Native', 'Flutter', 'SwiftUI', 'Jetpack Compose', 'iOS Dev',
@@ -56,20 +56,23 @@ const SKILL_CATEGORIES = {
   ],
   'Design & Creative': [
     'UI/UX Design', 'Figma', 'Adobe Photoshop', 'Adobe Illustrator', 'Sketch',
-    'InVision', 'Motion Graphics', '3D Modeling', 'Blender', 'AutoCAD'
+    'InVision', 'Motion Graphics', '3D Modeling', 'Blender', 'AutoCAD', 'Graphic Design'
   ],
   'Writing & Communication': [
     'Technical Writing', 'Copywriting', 'Content Strategy', 'SEO',
-    'Social Media', 'Public Speaking', 'Grant Writing', 'Documentation'
+    'Social Media', 'Public Speaking', 'Grant Writing', 'Documentation',
+    'Communication', 'Public Relations'
   ],
   'Business & Leadership': [
     'Project Management', 'Agile / Scrum', 'Product Management',
     'Marketing Strategy', 'Financial Modeling', 'Pitch Deck', 'Sales',
-    'Negotiation', 'Team Leadership', 'Strategic Planning'
+    'Negotiation', 'Team Leadership', 'Strategic Planning',
+    'Critical Thinking', 'Problem Solving', 'Time Management',
+    'Client Relations', 'Business Analysis', 'Excel / Spreadsheets'
   ],
   'Science & Math': [
     'Physics', 'Chemistry', 'Biology', 'Statistics', 'Calculus',
-    'Linear Algebra', 'Research Methods', 'Lab Techniques'
+    'Linear Algebra', 'Research Methods', 'Lab Techniques', 'Research'
   ],
   'Culinary & Food': [
     'Cooking', 'Baking', 'Food Safety', 'Menu Planning', 'Meal Prep',
@@ -77,7 +80,7 @@ const SKILL_CATEGORIES = {
   ],
   'Mechanical & Trades': [
     'CAD / SolidWorks', '3D Printing', 'Welding', 'Woodworking',
-    'Electrical Wiring', 'Plumbing', 'CNC Machining', 'Robotics'
+    'Electrical Wiring', 'Plumbing', 'CNC Machining', 'Robotics', 'Robotics Programming'
   ],
   'Aviation & Marine': [
     'Pilot Knowledge', 'Drone Operation', 'Aviation Safety',
@@ -107,11 +110,11 @@ const INTEREST_CATEGORIES = {
   'Science & Research': [
     'Physics Research', 'Chemistry Research', 'Biology Research',
     'Environmental Science', 'Neuroscience', 'Genetics', 'Astrophysics',
-    'Materials Science'
+    'Materials Science', 'Data Analytics'
   ],
   'Business & Entrepreneurship': [
     'Startups', 'Venture Capital', 'Marketing', 'Finance',
-    'Sales', 'Business Strategy', 'E-Commerce', 'Nonprofit Management'
+    'Sales', 'Business Strategy', 'E-Commerce', 'Nonprofit Management', 'Digital Marketing'
   ],
   'Health & Medicine': [
     'Health Tech', 'Public Health', 'Biotech', 'Pharmacology',
@@ -135,7 +138,8 @@ const INTEREST_CATEGORIES = {
   ],
   'Social Sciences & Humanities': [
     'Psychology', 'Sociology', 'Political Science', 'Anthropology',
-    'Philosophy', 'Economics', 'International Relations', 'Linguistics'
+    'Philosophy', 'Economics', 'International Relations', 'Linguistics',
+    'Community Outreach', 'Volunteer Coordination'
   ],
   'Trades & Hands-On': [
     'Woodworking', 'Metalworking', 'Automotive', 'Electronics',
@@ -1134,6 +1138,421 @@ const PAIRWISE_SIMILARITIES = [
   ['Real Estate', 'Consulting', 0.55],
   ['Legal / Compliance', 'Consulting', 0.65],
   ['Energy / CleanTech', 'Transportation / Logistics', 0.55],
+
+  // ═══════════════════════════════════════════════════════════════
+  // NEW SKILLS (2024) — INTRA-CATEGORY SIMILARITIES
+  // ═══════════════════════════════════════════════════════════════
+
+  // Communication / Writing & Communication
+  ['Communication', 'Public Speaking', 0.85],
+  ['Communication', 'Copywriting', 0.70],
+  ['Communication', 'Technical Writing', 0.65],
+  ['Communication', 'Grant Writing', 0.60],
+  ['Communication', 'Content Strategy', 0.60],
+  ['Communication', 'Storytelling', 0.75],
+  ['Communication', 'Public Relations', 0.80],
+  ['Communication', 'Debate', 0.75],
+  ['Public Relations', 'Public Speaking', 0.70],
+  ['Public Relations', 'Copywriting', 0.65],
+  ['Public Relations', 'Content Strategy', 0.70],
+  ['Public Relations', 'Social Media', 0.75],
+  ['Public Relations', 'Grant Writing', 0.55],
+
+  // Business & Leadership new skills
+  ['Critical Thinking', 'Problem Solving', 0.85],
+  ['Critical Thinking', 'Strategic Planning', 0.70],
+  ['Critical Thinking', 'Business Analysis', 0.75],
+  ['Critical Thinking', 'Negotiation', 0.65],
+  ['Problem Solving', 'Business Analysis', 0.75],
+  ['Problem Solving', 'Strategic Planning', 0.65],
+  ['Problem Solving', 'Negotiation', 0.60],
+  ['Time Management', 'Project Management', 0.80],
+  ['Time Management', 'Agile / Scrum', 0.70],
+  ['Time Management', 'Team Leadership', 0.60],
+  ['Client Relations', 'Sales', 0.80],
+  ['Client Relations', 'Negotiation', 0.75],
+  ['Client Relations', 'Team Leadership', 0.65],
+  ['Client Relations', 'Public Speaking', 0.60],
+  ['Business Analysis', 'Financial Modeling', 0.70],
+  ['Business Analysis', 'Strategic Planning', 0.75],
+  ['Business Analysis', 'Data Science', 0.60],
+  ['Business Analysis', 'SQL', 0.55],
+  ['Excel / Spreadsheets', 'Financial Modeling', 0.85],
+  ['Excel / Spreadsheets', 'Data Analysis', 0.70],
+  ['Excel / Spreadsheets', 'Tableau', 0.65],
+  ['Excel / Spreadsheets', 'Power BI', 0.65],
+  ['Excel / Spreadsheets', 'Pandas', 0.60],
+
+  // Web Design
+  ['Web Design', 'HTML / CSS', 0.90],
+  ['Web Design', 'UI/UX Design', 0.80],
+  ['Web Design', 'React', 0.65],
+  ['Web Design', 'Figma', 0.70],
+  ['Web Design', 'Tailwind CSS', 0.75],
+  ['Web Design', 'Bootstrap', 0.75],
+  ['Web Design', 'JavaScript', 0.60],
+  ['Web Design', 'SASS / SCSS', 0.70],
+
+  // Graphic Design
+  ['Graphic Design', 'UI/UX Design', 0.75],
+  ['Graphic Design', 'Adobe Photoshop', 0.85],
+  ['Graphic Design', 'Adobe Illustrator', 0.85],
+  ['Graphic Design', 'Figma', 0.70],
+  ['Graphic Design', 'Motion Graphics', 0.65],
+  ['Graphic Design', '3D Modeling', 0.55],
+  ['Graphic Design', 'Brand Identity', 0.80],
+  ['Graphic Design', 'Logo Design', 0.85],
+
+  // Cloud Architecture
+  ['Cloud Architecture', 'AWS', 0.90],
+  ['Cloud Architecture', 'Google Cloud', 0.85],
+  ['Cloud Architecture', 'Azure', 0.85],
+  ['Cloud Architecture', 'Docker', 0.75],
+  ['Cloud Architecture', 'Kubernetes', 0.80],
+  ['Cloud Architecture', 'Terraform', 0.75],
+  ['Cloud Architecture', 'DevOps / Infrastructure', 0.80],
+
+  // Data Engineering
+  ['Data Engineering', 'SQL', 0.80],
+  ['Data Engineering', 'Python', 0.75],
+  ['Data Engineering', 'Data Science', 0.75],
+  ['Data Engineering', 'Machine Learning', 0.65],
+  ['Data Engineering', 'Pandas', 0.70],
+  ['Data Engineering', 'AWS', 0.65],
+  ['Data Engineering', 'Docker', 0.60],
+
+  // Quality Assurance
+  ['Quality Assurance', 'Testing', 0.90],
+  ['Quality Assurance', 'Python', 0.55],
+  ['Quality Assurance', 'JavaScript', 0.55],
+  ['Quality Assurance', 'CI/CD', 0.70],
+  ['Quality Assurance', 'Agile / Scrum', 0.65],
+  ['Quality Assurance', 'Problem Solving', 0.60],
+
+  // Research (skill)
+  ['Research', 'Research Methods', 0.90],
+  ['Research', 'Lab Techniques', 0.65],
+  ['Research', 'Data Analysis', 0.70],
+  ['Research', 'Statistical Modeling', 0.65],
+  ['Research', 'Technical Writing', 0.70],
+  ['Research', 'Scientific Writing', 0.75],
+
+  // Robotics Programming
+  ['Robotics Programming', 'Robotics', 0.90],
+  ['Robotics Programming', 'Arduino / Raspberry Pi', 0.80],
+  ['Robotics Programming', 'C / C++', 0.65],
+  ['Robotics Programming', 'Python', 0.65],
+  ['Robotics Programming', 'Machine Learning', 0.60],
+
+  // ═══════════════════════════════════════════════════════════════
+  // NEW SKILLS — CROSS-CATEGORY SIMILARITIES
+  // ═══════════════════════════════════════════════════════════════
+
+  // Communication ↔ other categories
+  ['Communication', 'Team Leadership', 0.65],
+  ['Communication', 'Marketing Strategy', 0.55],
+  ['Communication', 'Coaching', 0.60],
+  ['Communication', 'Debate', 0.75],
+  ['Communication', 'Education / EdTech', 0.50],
+
+  // Critical Thinking ↔ other categories
+  ['Critical Thinking', 'Python', 0.40],
+  ['Critical Thinking', 'Data Science', 0.55],
+  ['Critical Thinking', 'Physics', 0.50],
+  ['Critical Thinking', 'Philosophy', 0.65],
+  ['Critical Thinking', 'Economics', 0.55],
+
+  // Problem Solving ↔ other categories
+  ['Problem Solving', 'Python', 0.45],
+  ['Problem Solving', 'Data Science', 0.55],
+  ['Problem Solving', 'Machine Learning', 0.50],
+  ['Problem Solving', 'Physics', 0.50],
+
+  // Time Management ↔ other categories
+  ['Time Management', 'Product Management', 0.65],
+  ['Time Management', 'Productivity', 0.80],
+
+  // Client Relations ↔ other categories
+  ['Client Relations', 'Marketing Strategy', 0.60],
+  ['Client Relations', 'Social Media', 0.55],
+
+  // Business Analysis ↔ other categories
+  ['Business Analysis', 'Data Science', 0.65],
+  ['Business Analysis', 'Machine Learning', 0.55],
+  ['Business Analysis', 'Python', 0.50],
+  ['Business Analysis', 'SQL', 0.60],
+
+  // Excel / Spreadsheets ↔ other categories
+  ['Excel / Spreadsheets', 'Python', 0.50],
+  ['Excel / Spreadsheets', 'SQL', 0.55],
+  ['Excel / Spreadsheets', 'Statistics', 0.55],
+
+  // Web Design ↔ other categories
+  ['Web Design', 'React', 0.65],
+  ['Web Design', 'Vue.js', 0.60],
+  ['Web Design', 'Angular', 0.60],
+  ['Web Design', 'Next.js', 0.60],
+  ['Web Design', 'WordPress', 0.80],
+
+  // Graphic Design ↔ other categories
+  ['Graphic Design', 'Canva', 0.80],
+  ['Graphic Design', 'Brand Identity', 0.80],
+  ['Graphic Design', 'Logo Design', 0.85],
+
+  // Cloud Architecture ↔ other categories
+  ['Cloud Architecture', 'DevOps / Infrastructure', 0.85],
+  ['Cloud Architecture', 'CI/CD', 0.70],
+  ['Cloud Architecture', 'Terraform', 0.75],
+  ['Cloud Architecture', 'Node.js', 0.55],
+  ['Cloud Architecture', 'Django', 0.50],
+
+  // Data Engineering ↔ other categories
+  ['Data Engineering', 'Django', 0.60],
+  ['Data Engineering', 'Flask', 0.60],
+  ['Data Engineering', 'Node.js', 0.55],
+  ['Data Engineering', 'PostgreSQL', 0.75],
+  ['Data Engineering', 'MongoDB', 0.65],
+
+  // Quality Assurance ↔ other categories
+  ['Quality Assurance', 'Software Testing', 0.90],
+  ['Quality Assurance', 'Agile / Scrum', 0.65],
+  ['Quality Assurance', 'Git', 0.50],
+
+  // ═══════════════════════════════════════════════════════════════
+  // NEW INTERESTS — CROSS-CATEGORY SIMILARITIES
+  // ═══════════════════════════════════════════════════════════════
+
+  // Data Analytics (interest)
+  ['Data Analytics', 'Data Science', 0.85],
+  ['Data Analytics', 'Machine Learning', 0.70],
+  ['Data Analytics', 'Statistics', 0.75],
+  ['Data Analytics', 'Python', 0.65],
+  ['Data Analytics', 'SQL', 0.70],
+  ['Data Analytics', 'Tableau', 0.75],
+  ['Data Analytics', 'Power BI', 0.75],
+  ['Data Analytics', 'Financial Modeling', 0.60],
+  ['Data Analytics', 'Finance', 0.65],
+  ['Data Analytics', 'Marketing', 0.60],
+  ['Data Analytics', 'Web Development', 0.50],
+  ['Data Analytics', 'Business Strategy', 0.60],
+
+  // Digital Marketing (interest)
+  ['Digital Marketing', 'Marketing', 0.90],
+  ['Digital Marketing', 'Marketing Strategy', 0.85],
+  ['Digital Marketing', 'SEO', 0.80],
+  ['Digital Marketing', 'Social Media', 0.85],
+  ['Digital Marketing', 'Content Strategy', 0.80],
+  ['Digital Marketing', 'Copywriting', 0.70],
+  ['Digital Marketing', 'E-Commerce', 0.75],
+  ['Digital Marketing', 'Web Development', 0.60],
+  ['Digital Marketing', 'Sales', 0.65],
+  ['Digital Marketing', 'Business Strategy', 0.70],
+
+  // Community Outreach (interest)
+  ['Community Outreach', 'Community Development', 0.90],
+  ['Community Outreach', 'Nonprofit Management', 0.75],
+  ['Community Outreach', 'Social Impact', 0.80],
+  ['Community Outreach', 'Human Rights', 0.65],
+  ['Community Outreach', 'Grant Writing', 0.60],
+  ['Community Outreach', 'Public Speaking', 0.65],
+  ['Community Outreach', 'Volunteer Management', 0.85],
+  ['Community Outreach', 'Event Planning', 0.60],
+  ['Community Outreach', 'Education', 0.55],
+  ['Community Outreach', 'Mental Health', 0.50],
+
+  // Volunteer Coordination (interest)
+  ['Volunteer Coordination', 'Volunteer Management', 0.90],
+  ['Volunteer Coordination', 'Community Outreach', 0.85],
+  ['Volunteer Coordination', 'Community Development', 0.75],
+  ['Volunteer Coordination', 'Nonprofit Management', 0.70],
+  ['Volunteer Coordination', 'Event Planning', 0.65],
+  ['Volunteer Coordination', 'Team Leadership', 0.70],
+  ['Volunteer Coordination', 'Project Management', 0.65],
+  ['Volunteer Coordination', 'Social Impact', 0.75],
+
+  // Data Analytics (interest) ↔ skills
+  ['Data Analytics', 'Data Analysis', 0.90],
+  ['Data Analytics', 'Data Visualization', 0.80],
+  ['Data Analytics', 'Statistical Modeling', 0.75],
+  ['Data Analytics', 'Pandas / NumPy', 0.70],
+  ['Data Analytics', 'Financial Modeling', 0.60],
+
+  // Digital Marketing (interest) ↔ skills
+  ['Digital Marketing', 'SEO / SEM', 0.85],
+  ['Digital Marketing', 'Social Media Management', 0.85],
+  ['Digital Marketing', 'Marketing', 0.90],
+  ['Digital Marketing', 'Copywriting', 0.70],
+  ['Digital Marketing', 'Content Creation', 0.75],
+  ['Digital Marketing', 'Brand Identity', 0.60],
+  ['Digital Marketing', 'Figma', 0.55],
+
+  // Community Outreach (interest) ↔ skills
+  ['Community Outreach', 'Public Speaking', 0.70],
+  ['Community Outreach', 'Grant Writing', 0.65],
+  ['Community Outreach', 'Fundraising', 0.70],
+  ['Community Outreach', 'Team Leadership', 0.65],
+  ['Community Outreach', 'Project Management', 0.60],
+
+  // Volunteer Coordination (interest) ↔ skills
+  ['Volunteer Coordination', 'Project Management', 0.65],
+  ['Volunteer Coordination', 'Team Leadership', 0.70],
+  ['Volunteer Coordination', 'Fundraising', 0.60],
+  ['Volunteer Coordination', 'Event Planning', 0.65],
+  ['Volunteer Coordination', 'Communication', 0.65],
+
+  // ═══════════════════════════════════════════════════════════════
+  // NEW SKILLS ↔ INDUSTRY MAPPINGS
+  // ═══════════════════════════════════════════════════════════════
+
+  // Communication
+  ['Communication', 'Education / EdTech', 0.65],
+  ['Communication', 'Marketing / Advertising', 0.70],
+  ['Communication', 'Consulting', 0.65],
+  ['Communication', 'Non-profit / Social Enterprise', 0.60],
+  ['Communication', 'Media / Entertainment', 0.60],
+
+  // Public Relations
+  ['Public Relations', 'Marketing / Advertising', 0.80],
+  ['Public Relations', 'Media / Entertainment', 0.75],
+  ['Public Relations', 'Non-profit / Social Enterprise', 0.60],
+
+  // Critical Thinking
+  ['Critical Thinking', 'Consulting', 0.70],
+  ['Critical Thinking', 'Technology / SaaS', 0.55],
+  ['Critical Thinking', 'Finance / Fintech', 0.60],
+  ['Critical Thinking', 'Education / EdTech', 0.55],
+
+  // Problem Solving
+  ['Problem Solving', 'Technology / SaaS', 0.60],
+  ['Problem Solving', 'Consulting', 0.70],
+  ['Problem Solving', 'Manufacturing', 0.55],
+
+  // Time Management
+  ['Time Management', 'Consulting', 0.60],
+  ['Time Management', 'Education / EdTech', 0.55],
+  ['Time Management', 'Non-profit / Social Enterprise', 0.55],
+
+  // Client Relations
+  ['Client Relations', 'Consulting', 0.80],
+  ['Client Relations', 'Marketing / Advertising', 0.70],
+  ['Client Relations', 'Finance / Fintech', 0.60],
+  ['Client Relations', 'Real Estate', 0.65],
+  ['Client Relations', 'Legal / Compliance', 0.60],
+
+  // Business Analysis
+  ['Business Analysis', 'Consulting', 0.85],
+  ['Business Analysis', 'Technology / SaaS', 0.70],
+  ['Business Analysis', 'Finance / Fintech', 0.75],
+  ['Business Analysis', 'E-commerce / Retail', 0.70],
+  ['Business Analysis', 'Healthcare / Biotech', 0.60],
+
+  // Excel / Spreadsheets
+  ['Excel / Spreadsheets', 'Finance / Fintech', 0.80],
+  ['Excel / Spreadsheets', 'Consulting', 0.75],
+  ['Excel / Spreadsheets', 'E-commerce / Retail', 0.60],
+  ['Excel / Spreadsheets', 'Real Estate', 0.65],
+  ['Excel / Spreadsheets', 'Education / EdTech', 0.55],
+
+  // Web Design
+  ['Web Design', 'Technology / SaaS', 0.75],
+  ['Web Design', 'E-commerce / Retail', 0.70],
+  ['Web Design', 'Marketing / Advertising', 0.65],
+  ['Web Design', 'Media / Entertainment', 0.60],
+  ['Web Design', 'Real Estate', 0.55],
+
+  // Graphic Design
+  ['Graphic Design', 'Marketing / Advertising', 0.80],
+  ['Graphic Design', 'Media / Entertainment', 0.75],
+  ['Graphic Design', 'E-commerce / Retail', 0.60],
+  ['Graphic Design', 'Technology / SaaS', 0.55],
+  ['Graphic Design', 'Non-profit / Social Enterprise', 0.55],
+
+  // Cloud Architecture
+  ['Cloud Architecture', 'Technology / SaaS', 0.85],
+  ['Cloud Architecture', 'Finance / Fintech', 0.65],
+  ['Cloud Architecture', 'Healthcare / Biotech', 0.55],
+  ['Cloud Architecture', 'E-commerce / Retail', 0.60],
+
+  // Data Engineering
+  ['Data Engineering', 'Technology / SaaS', 0.80],
+  ['Data Engineering', 'Finance / Fintech', 0.70],
+  ['Data Engineering', 'Healthcare / Biotech', 0.60],
+  ['Data Engineering', 'E-commerce / Retail', 0.65],
+  ['Data Engineering', 'Consulting', 0.60],
+
+  // Quality Assurance
+  ['Quality Assurance', 'Technology / SaaS', 0.75],
+  ['Quality Assurance', 'Manufacturing', 0.70],
+  ['Quality Assurance', 'Healthcare / Biotech', 0.55],
+
+  // Research
+  ['Research', 'Education / EdTech', 0.70],
+  ['Research', 'Healthcare / Biotech', 0.65],
+  ['Research', 'Consulting', 0.60],
+  ['Research', 'Non-profit / Social Enterprise', 0.55],
+
+  // Robotics Programming
+  ['Robotics Programming', 'Manufacturing', 0.75],
+  ['Robotics Programming', 'Technology / SaaS', 0.70],
+  ['Robotics Programming', 'Energy / CleanTech', 0.55],
+
+  // ═══════════════════════════════════════════════════════════════
+  // NEW INTERESTS ↔ INDUSTRY MAPPINGS
+  // ═══════════════════════════════════════════════════════════════
+
+  // Data Analytics
+  ['Data Analytics', 'Technology / SaaS', 0.75],
+  ['Data Analytics', 'Finance / Fintech', 0.80],
+  ['Data Analytics', 'Healthcare / Biotech', 0.65],
+  ['Data Analytics', 'E-commerce / Retail', 0.70],
+  ['Data Analytics', 'Consulting', 0.75],
+  ['Data Analytics', 'Marketing / Advertising', 0.65],
+
+  // Digital Marketing
+  ['Digital Marketing', 'Marketing / Advertising', 0.90],
+  ['Digital Marketing', 'E-commerce / Retail', 0.80],
+  ['Digital Marketing', 'Media / Entertainment', 0.70],
+  ['Digital Marketing', 'Technology / SaaS', 0.60],
+  ['Digital Marketing', 'Non-profit / Social Enterprise', 0.55],
+
+  // Community Outreach
+  ['Community Outreach', 'Non-profit / Social Enterprise', 0.85],
+  ['Community Outreach', 'Education / EdTech', 0.60],
+  ['Community Outreach', 'Healthcare / Biotech', 0.50],
+
+  // Volunteer Coordination
+  ['Volunteer Coordination', 'Non-profit / Social Enterprise', 0.85],
+  ['Volunteer Coordination', 'Education / EdTech', 0.55],
+  ['Volunteer Coordination', 'Healthcare / Biotech', 0.50],
+
+  // ═══════════════════════════════════════════════════════════════
+  // NEW SKILLS ↔ NONPROFIT FIELD MAPPINGS
+  // ═══════════════════════════════════════════════════════════════
+
+  ['Communication', 'Education', 0.65],
+  ['Communication', 'Human Rights', 0.60],
+  ['Communication', 'Community Development', 0.60],
+  ['Public Relations', 'Human Rights', 0.55],
+  ['Critical Thinking', 'Education', 0.60],
+  ['Problem Solving', 'Technology Access', 0.55],
+  ['Research', 'Health / Medical', 0.60],
+  ['Research', 'Environment / Climate', 0.55],
+  ['Research', 'STEM Education', 0.65],
+
+  // ═══════════════════════════════════════════════════════════════
+  // NEW INTERESTS ↔ NONPROFIT FIELD MAPPINGS
+  // ═══════════════════════════════════════════════════════════════
+
+  ['Community Outreach', 'Community Development', 0.85],
+  ['Community Outreach', 'Youth Development', 0.65],
+  ['Community Outreach', 'Human Rights', 0.60],
+  ['Volunteer Coordination', 'Community Development', 0.75],
+  ['Volunteer Coordination', 'Youth Development', 0.60],
+  ['Volunteer Coordination', 'Disaster Relief', 0.55],
+  ['Data Analytics', 'Technology Access', 0.60],
+  ['Data Analytics', 'STEM Education', 0.65],
+  ['Digital Marketing', 'Technology Access', 0.55],
+  ['Digital Marketing', 'Arts / Culture', 0.50],
 
   // ═══════════════════════════════════════════════════════════════
   // NONPROFIT FIELD ↔ SKILL

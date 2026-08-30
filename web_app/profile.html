@@ -234,7 +234,7 @@
 
       <!-- SKILLS -->
       <div class="section">
-        <h2>Skills <span class="chip-count" id="p-sk-count">0 / 8</span></h2>
+        <h2>Skills <span class="chip-count" id="p-sk-count">0 / 15</span></h2>
         <input class="chip-search" type="text" placeholder="Search skills..." id="p-sk-search">
         <div class="chip-grid-wrapper" id="p-sk-wrapper"></div>
         <div class="chip-min-hint" id="p-sk-min-hint">Select at least 3 skills</div>
@@ -267,6 +267,7 @@
     </div>
   </div>
 
+  <script src="/synonyms.js"></script>
   <script src="/user-dropdown.js"></script>
   <script>
     // ── Load profile ──
@@ -317,7 +318,7 @@
 
         // Build interest & skill grids, then pre-select user's current values
         buildGrid(interestsData, 'p-int-wrapper', 'p-int-search', 'pinterest', 'p-int-count', 'p-int-min-hint', 5, 3);
-        buildGrid(skillsData, 'p-sk-wrapper', 'p-sk-search', 'pskill', 'p-sk-count', 'p-sk-min-hint', 8, 3);
+        buildGrid(skillsData, 'p-sk-wrapper', 'p-sk-search', 'pskill', 'p-sk-count', 'p-sk-min-hint', 15, 3);
         preselectChips('pinterest', data.interests || []);
         preselectChips('pskill', data.skills || []);
       } catch (e) {
@@ -331,29 +332,29 @@
     const interestsData = {
       'Computer Science & Tech': ['AI / Machine Learning','Web Development','Mobile Development','Game Development','Cybersecurity','Data Science','Cloud Computing','DevOps / Infrastructure','Blockchain / Web3','AR / VR Development','IoT / Embedded Systems','Natural Language Processing','Computer Vision','Quantum Computing','Operating Systems','Distributed Systems'],
       'Engineering & Design': ['Robotics','Aerospace','Biomedical Engineering','Civil Engineering','Mechanical Engineering','Electrical Engineering','Industrial Design','UI/UX Design','Product Design','3D Printing / Fabrication','CAD / Engineering Design','Nanotechnology'],
-      'Science & Research': ['Biology','Chemistry','Physics','Mathematics','Environmental Science','Neuroscience','Genetics','Astrophysics','Geology','Microbiology','Ecology','Materials Science'],
-      'Business & Entrepreneurship': ['Entrepreneurship','Venture Capital','Marketing','Finance / Fintech','Accounting','Supply Chain / Logistics','Real Estate','Consulting','Sales','Business Strategy','E-Commerce','Nonprofit Management'],
+      'Science & Research': ['Biology','Chemistry','Physics','Mathematics','Environmental Science','Neuroscience','Genetics','Astrophysics','Geology','Microbiology','Ecology','Materials Science','Data Analytics'],
+      'Business & Entrepreneurship': ['Entrepreneurship','Venture Capital','Marketing','Finance / Fintech','Accounting','Supply Chain / Logistics','Real Estate','Consulting','Sales','Business Strategy','E-Commerce','Nonprofit Management','Digital Marketing'],
       'Health & Medicine': ['Health Tech','Public Health','Biotech','Pharmacology','Nutrition Science','Sports Medicine','Mental Health','Epidemiology','Medical Devices','Nursing','Healthcare Policy'],
       'Creative & Arts': ['Creative Writing','Graphic Design','Music Production','Photography','Film / Media','Animation','Fashion Design','Interior Design','Architecture','Digital Art','Content Creation'],
       'Culinary & Hospitality': ['Culinary Arts','Food Science','Restaurant Management','Pastry & Baking','Sustainable Food Systems','Wine & Beverage Studies','Hospitality Management','Event Planning','Nutrition & Dietetics'],
       'Aviation & Transportation': ['Aviation / Piloting','Drone Technology','Autonomous Vehicles','Marine Engineering','Space Exploration','Urban Planning / Transit','Logistics Technology'],
       'Environment & Sustainability': ['Climate / Sustainability','Renewable Energy','Conservation Biology','Environmental Policy','Agriculture / Agritech','Water Resource Management','Sustainable Architecture','Zero Waste'],
-      'Social Sciences & Humanities': ['Psychology','Sociology','Political Science','Economics','Philosophy','Linguistics','Anthropology','International Relations','Criminal Justice','Education Tech','Social Impact','Human Rights'],
+      'Social Sciences & Humanities': ['Psychology','Sociology','Political Science','Economics','Philosophy','Linguistics','Anthropology','International Relations','Criminal Justice','Education Tech','Social Impact','Human Rights','Community Outreach','Volunteer Coordination'],
       'Trades & Hands-On': ['Automotive Repair','Woodworking','Electrical Wiring','Plumbing Basics','Metalworking','Textile / Sewing','Gardening / Horticulture','Home Renovation']
     };
 
     // ── SKILLS DATA ──
     const skillsData = {
       'Programming Languages': ['Python','JavaScript','TypeScript','Java','C / C++','C#','Swift','Kotlin','Rust','Go','Ruby','PHP','Dart','Scala','R','MATLAB','Assembly','Lua'],
-      'Web & Frontend': ['HTML / CSS','React','Vue.js','Angular','Svelte','Next.js','Tailwind CSS','SASS / LESS','Web Accessibility'],
-      'Backend & Infrastructure': ['Node.js','Express.js','Django','Flask','Spring Boot','GraphQL','REST APIs','Docker','Kubernetes','AWS / Cloud','Firebase','MongoDB','SQL / Databases','Redis'],
-      'Data & AI': ['Data Analysis','Machine Learning','TensorFlow','Pandas / NumPy','Data Visualization','Statistical Modeling','NLP','SQL / Database Design'],
-      'Design & Creative': ['Figma','Photoshop / Illustrator','Canva','Adobe Premiere / After Effects','Video Editing','3D Modeling','Blender','UI/UX Design','Logo Design','Brand Identity','Motion Graphics'],
-      'Writing & Communication': ['Public Speaking','Technical Writing','Copywriting','Grant Writing','Blogging','Newsletter Writing','Storytelling','Debate'],
-      'Business & Leadership': ['Project Management','Product Management','Marketing','SEO / SEM','Social Media Management','Market Research','Financial Modeling','Pitch Deck Creation','Fundraising','Team Leadership','Negotiation'],
-      'Science & Math': ['Math / Statistics','Lab Research','Scientific Writing','Experimental Design','Calculus','Linear Algebra','Physics Modeling','Chemistry Lab Skills'],
+      'Web & Frontend': ['HTML / CSS','React','Vue.js','Angular','Svelte','Next.js','Tailwind CSS','SASS / LESS','Web Accessibility','Web Design'],
+      'Backend & Infrastructure': ['Node.js','Express.js','Django','Flask','Spring Boot','GraphQL','REST APIs','Docker','Kubernetes','AWS / Cloud','Firebase','MongoDB','SQL / Databases','Redis','Cloud Architecture'],
+      'Data & AI': ['Data Analysis','Machine Learning','TensorFlow','Pandas / NumPy','Data Visualization','Statistical Modeling','NLP','SQL / Database Design','Data Engineering','Quality Assurance'],
+      'Design & Creative': ['Figma','Photoshop / Illustrator','Canva','Adobe Premiere / After Effects','Video Editing','3D Modeling','Blender','UI/UX Design','Logo Design','Brand Identity','Motion Graphics','Graphic Design'],
+      'Writing & Communication': ['Public Speaking','Technical Writing','Copywriting','Grant Writing','Blogging','Newsletter Writing','Storytelling','Debate','Communication','Public Relations'],
+      'Business & Leadership': ['Project Management','Product Management','Marketing','SEO / SEM','Social Media Management','Market Research','Financial Modeling','Pitch Deck Creation','Fundraising','Team Leadership','Negotiation','Critical Thinking','Problem Solving','Time Management','Client Relations','Business Analysis','Excel / Spreadsheets'],
+      'Science & Math': ['Math / Statistics','Lab Research','Scientific Writing','Experimental Design','Calculus','Linear Algebra','Physics Modeling','Chemistry Lab Skills','Research'],
       'Culinary & Food': ['Cooking / Cuisine','Baking / Pastry','Food Photography','Menu Planning','Food Safety','Meal Prep & Nutrition','Sous Vide','Fermentation'],
-      'Mechanical & Trades': ['Soldering','3D Printing','CAD / SolidWorks','Arduino / Raspberry Pi','Woodworking','Basic Carpentry','Automotive Basics','Drone Operation'],
+      'Mechanical & Trades': ['Soldering','3D Printing','CAD / SolidWorks','Arduino / Raspberry Pi','Woodworking','Basic Carpentry','Automotive Basics','Drone Operation','Robotics Programming'],
       'Aviation & Marine': ['Flight Simulation','Aircraft Maintenance Basics','Navigation / Cartography','Sailing','Scuba Diving','Meteorology Basics'],
       'Languages & Culture': ['Spanish','Mandarin','French','Japanese','German','ASL (Sign Language)','Portuguese','Arabic','Korean'],
       'Fitness & Outdoors': ['First Aid / CPR','Wilderness Survival','Yoga','Strength Training','Swimming','Rock Climbing','Trail Running']
@@ -402,9 +403,12 @@
           const chips = grid.querySelectorAll('.chip-label');
           let catVisible = false;
           chips.forEach(label => {
-            const match = label.textContent.toLowerCase().includes(q);
-            label.style.display = match ? '' : 'none';
-            if (match) catVisible = true;
+            const itemValue = label.previousElementSibling ? label.previousElementSibling.value : label.textContent;
+            const matched = typeof matchesSynonym === 'function'
+              ? matchesSynonym(q, itemValue)
+              : label.textContent.toLowerCase().includes(q);
+            label.style.display = (!q || matched) ? '' : 'none';
+            if (!q || matched) catVisible = true;
           });
           catEl.style.display = catVisible ? '' : 'none';
           grid.style.display = catVisible ? '' : 'none';

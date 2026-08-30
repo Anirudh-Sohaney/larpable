@@ -324,7 +324,7 @@
             <div class="chip-min-hint" id="int-min-hint">Select at least 3 interests</div>
           </div>
           <div class="field">
-            <label>Skills <span class="chip-count" id="sk-count">0 / 8</span></label>
+            <label>Skills <span class="chip-count" id="sk-count">0 / 15</span></label>
             <input class="chip-search" type="text" placeholder="Search skills..." id="sk-search">
             <div class="chip-grid-wrapper" id="sk-wrapper"></div>
             <div class="chip-min-hint" id="sk-min-hint">Select at least 3 skills</div>
@@ -343,6 +343,7 @@
     </div>
   </div>
 
+  <script src="/synonyms.js"></script>
   <script src="/legal-filter.js"></script>
   <script>
     // ── Redirect if already logged in ──
@@ -369,12 +370,12 @@
       'Science & Research': [
         'Biology', 'Chemistry', 'Physics', 'Mathematics',
         'Environmental Science', 'Neuroscience', 'Genetics', 'Astrophysics',
-        'Geology', 'Microbiology', 'Ecology', 'Materials Science'
+        'Geology', 'Microbiology', 'Ecology', 'Materials Science', 'Data Analytics'
       ],
       'Business & Entrepreneurship': [
         'Entrepreneurship', 'Venture Capital', 'Marketing', 'Finance / Fintech',
         'Accounting', 'Supply Chain / Logistics', 'Real Estate', 'Consulting',
-        'Sales', 'Business Strategy', 'E-Commerce', 'Nonprofit Management'
+        'Sales', 'Business Strategy', 'E-Commerce', 'Nonprofit Management', 'Digital Marketing'
       ],
       'Health & Medicine': [
         'Health Tech', 'Public Health', 'Biotech', 'Pharmacology',
@@ -402,7 +403,8 @@
       'Social Sciences & Humanities': [
         'Psychology', 'Sociology', 'Political Science', 'Economics',
         'Philosophy', 'Linguistics', 'Anthropology', 'International Relations',
-        'Criminal Justice', 'Education Tech', 'Social Impact', 'Human Rights'
+        'Criminal Justice', 'Education Tech', 'Social Impact', 'Human Rights',
+        'Community Outreach', 'Volunteer Coordination'
       ],
       'Trades & Hands-On': [
         'Automotive Repair', 'Woodworking', 'Electrical Wiring', 'Plumbing Basics',
@@ -419,34 +421,38 @@
       ],
       'Web & Frontend': [
         'HTML / CSS', 'React', 'Vue.js', 'Angular', 'Svelte',
-        'Next.js', 'Tailwind CSS', 'SASS / LESS', 'Web Accessibility'
+        'Next.js', 'Tailwind CSS', 'SASS / LESS', 'Web Accessibility', 'Web Design'
       ],
       'Backend & Infrastructure': [
         'Node.js', 'Express.js', 'Django', 'Flask', 'Spring Boot',
         'GraphQL', 'REST APIs', 'Docker', 'Kubernetes', 'AWS / Cloud',
-        'Firebase', 'MongoDB', 'SQL / Databases', 'Redis'
+        'Firebase', 'MongoDB', 'SQL / Databases', 'Redis', 'Cloud Architecture'
       ],
       'Data & AI': [
         'Data Analysis', 'Machine Learning', 'TensorFlow', 'Pandas / NumPy',
-        'Data Visualization', 'Statistical Modeling', 'NLP', 'SQL / Database Design'
+        'Data Visualization', 'Statistical Modeling', 'NLP', 'SQL / Database Design',
+        'Data Engineering', 'Quality Assurance'
       ],
       'Design & Creative': [
         'Figma', 'Photoshop / Illustrator', 'Canva', 'Adobe Premiere / After Effects',
         'Video Editing', '3D Modeling', 'Blender', 'UI/UX Design',
-        'Logo Design', 'Brand Identity', 'Motion Graphics'
+        'Logo Design', 'Brand Identity', 'Motion Graphics', 'Graphic Design'
       ],
       'Writing & Communication': [
         'Public Speaking', 'Technical Writing', 'Copywriting', 'Grant Writing',
-        'Blogging', 'Newsletter Writing', 'Storytelling', 'Debate'
+        'Blogging', 'Newsletter Writing', 'Storytelling', 'Debate',
+        'Communication', 'Public Relations'
       ],
       'Business & Leadership': [
         'Project Management', 'Product Management', 'Marketing', 'SEO / SEM',
         'Social Media Management', 'Market Research', 'Financial Modeling',
-        'Pitch Deck Creation', 'Fundraising', 'Team Leadership', 'Negotiation'
+        'Pitch Deck Creation', 'Fundraising', 'Team Leadership', 'Negotiation',
+        'Critical Thinking', 'Problem Solving', 'Time Management',
+        'Client Relations', 'Business Analysis', 'Excel / Spreadsheets'
       ],
       'Science & Math': [
         'Math / Statistics', 'Lab Research', 'Scientific Writing', 'Experimental Design',
-        'Calculus', 'Linear Algebra', 'Physics Modeling', 'Chemistry Lab Skills'
+        'Calculus', 'Linear Algebra', 'Physics Modeling', 'Chemistry Lab Skills', 'Research'
       ],
       'Culinary & Food': [
         'Cooking / Cuisine', 'Baking / Pastry', 'Food Photography', 'Menu Planning',
@@ -454,7 +460,8 @@
       ],
       'Mechanical & Trades': [
         'Soldering', '3D Printing', 'CAD / SolidWorks', 'Arduino / Raspberry Pi',
-        'Woodworking', 'Basic Carpentry', 'Automotive Basics', 'Drone Operation'
+        'Woodworking', 'Basic Carpentry', 'Automotive Basics', 'Drone Operation',
+        'Robotics Programming'
       ],
       'Aviation & Marine': [
         'Flight Simulation', 'Aircraft Maintenance Basics', 'Navigation / Cartography',
@@ -504,7 +511,7 @@
         });
       });
 
-      // Search
+      // Search (with synonym matching)
       search.addEventListener('input', () => {
         const q = search.value.trim().toLowerCase();
         const categories = wrapper.querySelectorAll('.chip-category');
@@ -517,8 +524,11 @@
           let catVisible = false;
 
           chips.forEach(label => {
-            const text = label.textContent.toLowerCase();
-            if (!q || text.includes(q)) {
+            const itemValue = label.previousElementSibling ? label.previousElementSibling.value : label.textContent;
+            const matched = typeof matchesSynonym === 'function'
+              ? matchesSynonym(q, itemValue)
+              : label.textContent.toLowerCase().includes(q);
+            if (!q || matched) {
               label.classList.remove('hidden');
               catVisible = true;
               anyVisible = true;
@@ -535,7 +545,7 @@
     }
 
     buildGrid(interests, 'int-wrapper', 'int-search', 'int', 'int-count', 'int-min-hint', 5, 3);
-    buildGrid(skills, 'sk-wrapper', 'sk-search', 'sk', 'sk-count', 'sk-min-hint', 8, 3);
+    buildGrid(skills, 'sk-wrapper', 'sk-search', 'sk', 'sk-count', 'sk-min-hint', 15, 3);
 
     // ── LOCATION AUTOCOMPLETE (Photon API) ──
     const locationInput = document.getElementById('location');

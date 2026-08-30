@@ -43,6 +43,9 @@ const {
   NONPROFIT_FIELDS
 } = require('./taxonomy');
 
+const path = require('path');
+const { normalizeSynonym } = require(path.join(__dirname, '../../web_app/synonyms.js'));
+
 
 // ═══════════════════════════════════════════════════════════════
 // CONFIGURATION
@@ -292,7 +295,11 @@ const CONFIG = {
  * @returns {{ type: string, category: string } | null}
  */
 function getCategory(entity) {
-  return entityCategory[entity] || null;
+  // Try original, then synonym-normalized
+  const info = entityCategory[entity];
+  if (info) return info;
+  const canon = normalizeSynonym(entity);
+  return entityCategory[canon] || null;
 }
 
 /**
@@ -354,8 +361,16 @@ function entitySimilarity(a, b) {
   const bNorm = b.trim();
   if (aNorm === bNorm) return 1.0;
 
-  // 1. Direct graph lookup (O(1))
-  const directScore = similarityMap.get(`${aNorm}|||${bNorm}`);
+  // Synonym normalization: map synonyms to canonical names
+  const aCanon = normalizeSynonym(aNorm);
+  const bCanon = normalizeSynonym(bNorm);
+  if (aCanon === bCanon) return 1.0;
+
+  // 1. Direct graph lookup (O(1)) — try both original and canonical
+  let directScore = similarityMap.get(`${aCanon}|||${bCanon}`);
+  if (directScore === undefined) directScore = similarityMap.get(`${aNorm}|||${bNorm}`);
+  if (directScore === undefined) directScore = similarityMap.get(`${aCanon}|||${bNorm}`);
+  if (directScore === undefined) directScore = similarityMap.get(`${aNorm}|||${bCanon}`);
   if (directScore !== undefined) return directScore;
 
   // 2. Get categories
