@@ -40,6 +40,13 @@
     .ud-menu .ud-danger { color: #dc3545; }
     .ud-menu .ud-danger:hover { background: rgba(220,53,69,0.06); }
     .ud-divider { height: 1px; background: var(--border, #D6D1C9); margin: 0; }
+    .ud-staff-btn {
+      display: inline-block; padding: 5px 12px; border-radius: 6px; border: 1.5px solid var(--accent, #E8734A);
+      background: var(--accent, #E8734A); color: #fff; font-family: inherit;
+      font-size: 0.8rem; font-weight: 600; cursor: pointer; text-decoration: none;
+      transition: opacity 0.15s; margin-right: 8px;
+    }
+    .ud-staff-btn:hover { opacity: 0.9; }
   `;
 
   function injectStyles() {
@@ -64,24 +71,40 @@
 
     // Fetch username — try users/me (has actual username), fall back to auth/me for admin
     let displayName = 'User';
+    let hasStaffAccess = false;
+    let userId = null;
     try {
       const res = await fetch('/api/users/me', { credentials: 'include' });
       if (res.ok) {
         const data = await res.json();
         displayName = data.username || [data.first_name, data.last_name].filter(Boolean).join(' ') || 'User';
+        userId = data.id;
       } else {
         // Likely admin (no user record) — try auth/me
         const res2 = await fetch('/api/auth/me', { credentials: 'include' });
         if (res2.ok) {
           const data2 = await res2.json();
           if (data2.user?.role === 'admin') displayName = 'Admin';
+          userId = data2.user?.id;
         }
+      }
+      
+      // Check staff access
+      const staffRes = await fetch('/api/staff/check', { credentials: 'include' });
+      if (staffRes.ok) {
+        const staffData = await staffRes.json();
+        hasStaffAccess = staffData.hasAccess;
       }
     } catch {}
 
     // Build dropdown - hide Profile for admin
     const profileLink = displayName === 'Admin' ? '' : '<a href="/profile">Profile</a>';
+    
+    // Staff button - only show if user has staff access
+    const staffButton = hasStaffAccess ? '<a href="/staff" class="ud-staff-btn">Staff</a>' : '';
+    
     container.innerHTML = `
+      ${staffButton}
       <div class="ud-wrap" id="ud-wrap">
         <button class="ud-btn" id="ud-btn" type="button">
           <span id="ud-name">${esc(displayName)}</span>

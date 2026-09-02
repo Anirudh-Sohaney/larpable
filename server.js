@@ -135,6 +135,10 @@ const draftRoutes = require('./backend/routes/draft.routes');
 app.use('/api/admin', rateLimit('api'), adminRoutes);
 app.use('/api/drafts', rateLimit('api'), draftRoutes);
 
+// Staff routes
+const staffRoutes = require('./staff/routes/staff.routes');
+app.use('/api/staff', rateLimit('api'), staffRoutes);
+
 // ── Matching API ─────────────────────────────────────────────
 app.get('/api/match/entities', (req, res) => {
   const entities = [];
@@ -215,6 +219,59 @@ app.use((req, res, next) => {
   }
   next();
 });
+
+// ── Protected Routes ──────────────────────────────────────────
+// Staff dashboard protection - only accessible to authorized staff members
+// Serve staff page (HTML) when hitting /staff exactly
+const fs = require('fs');
+app.get('/staff', async (req, res) => {
+  // Parse cookies manually
+  const cookies = {};
+  const cookieHeader = req.headers.cookie;
+  if (cookieHeader) {
+    cookieHeader.split(';').forEach(cookie => {
+      const parts = cookie.trim().split('=');
+      if (parts.length === 2) {
+        cookies[parts[0]] = decodeURIComponent(parts[1]);
+      }
+    });
+  }
+  
+  const token = cookies['larpable_session'];
+  if (!token) {
+    return res.redirect('/feed');
+  }
+  
+  try {
+    const auth = require('./backend/auth');
+    const session = await auth.validateSession(token);
+    
+    if (!session) {
+      return res.redirect('/feed');
+    }
+    
+    if (session.userId === 'admin_larpable') {
+      return res.sendFile(path.join(__dirname, 'staff', 'staff.html'));
+    }
+    
+    const user = await require('./backend/store').getUser(session.userId);
+    if (!user) {
+      return res.redirect('/feed');
+    }
+    
+    if (user.staff_access !== true) {
+      return res.redirect('/feed');
+    }
+    
+    return res.sendFile(path.join(__dirname, 'staff', 'staff.html'));
+  } catch (e) {
+    console.error('Staff route protection error:', e);
+    return res.redirect('/feed');
+  }
+});
+
+// Serve staff/ static assets (CSS, JS) — for /staff/staff.js, /staff/staff.css, etc.
+app.use('/staff', express.static(path.join(__dirname, 'staff')));
 
 // ── Start Server ─────────────────────────────────────────────
 app.listen(PORT, HOST, () => {

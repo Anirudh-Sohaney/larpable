@@ -61,6 +61,14 @@ router.post('/signup', async (req, res) => {
       return res.status(400).json({ error: 'Select at least 3 skills' });
     }
     
+    // Validate age and grade are required
+    if (!profile.age && profile.age !== 0) {
+      return res.status(400).json({ error: 'Age is required' });
+    }
+    if (!profile.grade) {
+      return res.status(400).json({ error: 'Grade is required' });
+    }
+    
     const result = await auth.signup({ username, password, type, profile });
     
     // Record legal agreement for this user
