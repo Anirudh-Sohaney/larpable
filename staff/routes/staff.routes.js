@@ -30,6 +30,8 @@ const router = express.Router();
 const auth = require('../../backend/auth');
 const store = require('../../backend/store');
 const crypto = require('../../backend/crypto');
+const path = require('path');
+const fs = require('fs');
 
 const COOKIE_NAME = 'larpable_session';
 const STAFF_FILE = 'staff.json';
@@ -876,13 +878,14 @@ async function addLog(logData) {
 
 // ── GET /api/staff/git-logs ──────────────────────────────────
 // Returns recent git commits from the app repository
+// App directory is parallel to data directory (both in same parent folder)
 router.get('/git-logs', requireAuth, requireStaff, async (req, res) => {
   try {
     const { execSync } = require('child_process');
     const path = require('path');
     
-    // Path to the git repo (app directory)
-    const gitDir = path.resolve(__dirname, '..', '..');
+    // Path to the git repo (app directory) - parallel to data directory
+    const gitDir = path.join(path.dirname(store.DATA_DIR), 'app');
     
     // Get recent commits with date and message
     // Format: hash|date|message
@@ -1097,13 +1100,11 @@ async function recordGoalCompletion(userId, goal, completedAt) {
 
 // ── GET /api/staff/data-size ──────────────────────────────────
 // Returns size of /data/ folder in GB (anisohaney only)
+// Uses store.DATA_DIR which correctly resolves to the data folder
+// parallel to /app/ regardless of deployment path
 router.get('/data-size', requireAuth, requireStaffAdmin, async (req, res) => {
   try {
-    const fs = require('fs');
-    const path = require('path');
-    
-    // /data/ is parallel to /app/ in the same parent folder
-    const dataDir = path.resolve(__dirname, '..', '..', '..', 'data');
+    const dataDir = store.DATA_DIR;
     
     function getDirSize(dir) {
       let total = 0;
