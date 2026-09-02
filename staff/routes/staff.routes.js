@@ -1121,7 +1121,7 @@ router.get('/data-size', requireAuth, requireStaffAdmin, async (req, res) => {
     }
     
     const sizeBytes = getDirSize(dataDir);
-    const sizeGB = (sizeBytes / (1024 * 1024 * 1024)).toFixed(2);
+    const sizeGB = (sizeBytes / (1024 * 1024 * 1024)).toFixed(4);
     
     res.json({ sizeGB: parseFloat(sizeGB), path: dataDir });
   } catch (e) {

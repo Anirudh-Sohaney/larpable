@@ -327,8 +327,7 @@
           if (sizeRes.ok) {
             const sizeData = await sizeRes.json();
             dataSize = sizeData.sizeGB;
-          }
-        } catch (e) { /* ignore */ }
+          }        } catch (e) { /* ignore */ }
       }
       
       let html = `
@@ -345,7 +344,7 @@
               DATA USAGE
             </div>
             <div style="font-size: 1.1rem; font-weight: 600; color: var(--accent);">
-              ${dataSize} GB
+              ${Number(dataSize).toFixed(4)} GB
             </div>
           </div>
         `;
