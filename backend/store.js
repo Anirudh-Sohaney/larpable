@@ -13,8 +13,17 @@ const { encryptObject, decryptObject } = require('./crypto');
 
 // Data storage path.
 // - If DATA_DIR env var is set (production), use that.
-// - Otherwise, resolve relative: from app/backend/ → ../../data = <parent>/data/
-const DATA_DIR = process.env.DATA_DIR || path.resolve(__dirname, '..', '..', 'data');
+// - Otherwise, check for /data/ first, then /larpable_data/ (both parallel to /app/)
+function resolveDataDir() {
+  if (process.env.DATA_DIR) return process.env.DATA_DIR;
+  const parentDir = path.resolve(__dirname, '..', '..');
+  const dataDir = path.join(parentDir, 'data');
+  if (fs.existsSync(dataDir)) return dataDir;
+  const larpableDataDir = path.join(parentDir, 'larpable_data');
+  if (fs.existsSync(larpableDataDir)) return larpableDataDir;
+  return dataDir; // default — will be created if missing
+}
+const DATA_DIR = resolveDataDir();
 
 // ── Async Write Queue ────────────────────────────────────────
 // Per-file promise chain: writes to the same file are serialized

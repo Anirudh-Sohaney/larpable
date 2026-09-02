@@ -1099,8 +1099,8 @@ async function recordGoalCompletion(userId, goal, completedAt) {
 }
 
 // ── GET /api/staff/data-size ──────────────────────────────────
-// Returns size of /data/ folder in GB (anisohaney only)
-// Uses store.DATA_DIR which correctly resolves to the data folder
+// Returns size of data folder in GB (anisohaney only)
+// Uses store.DATA_DIR which resolves to /data/ (or /larpable_data/ as fallback),
 // parallel to /app/ regardless of deployment path
 router.get('/data-size', requireAuth, requireStaffAdmin, async (req, res) => {
   try {
