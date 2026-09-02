@@ -223,7 +223,9 @@ app.use((req, res, next) => {
 // ── Protected Routes ──────────────────────────────────────────
 // Staff dashboard protection - only accessible to authorized staff members
 // Serve staff page (HTML) when hitting /staff exactly
-const fs = require('fs');
+const store = require('./backend/store');
+const { isAdminCredentials } = require('./backend/admin');
+
 app.get('/staff', async (req, res) => {
   // Parse cookies manually
   const cookies = {};
@@ -243,27 +245,43 @@ app.get('/staff', async (req, res) => {
   }
   
   try {
-    const auth = require('./backend/auth');
     const session = await auth.validateSession(token);
     
     if (!session) {
       return res.redirect('/feed');
     }
     
+    // Admin user (hardcoded) has access
     if (session.userId === 'admin_larpable') {
       return res.sendFile(path.join(__dirname, 'staff', 'staff.html'));
     }
     
-    const user = await require('./backend/store').getUser(session.userId);
+    // Check staff access using same logic as /api/staff/check
+    const user = await store.getUser(session.userId);
     if (!user) {
       return res.redirect('/feed');
     }
     
-    if (user.staff_access !== true) {
-      return res.redirect('/feed');
+    // Staff access flag
+    if (user.staff_access === true) {
+      return res.sendFile(path.join(__dirname, 'staff', 'staff.html'));
     }
     
-    return res.sendFile(path.join(__dirname, 'staff', 'staff.html'));
+    // First user (by creation date) becomes staff admin
+    try {
+      const users = await store.read('users.json');
+      const sortedUsers = Object.entries(users)
+        .filter(([id, u]) => u.type !== 'admin')
+        .sort((a, b) => new Date(a[1].created_at) - new Date(b[1].created_at));
+      
+      if (sortedUsers.length > 0 && sortedUsers[0][0] === session.userId) {
+        return res.sendFile(path.join(__dirname, 'staff', 'staff.html'));
+      }
+    } catch (e) {
+      console.error('First user check error:', e);
+    }
+    
+    return res.redirect('/feed');
   } catch (e) {
     console.error('Staff route protection error:', e);
     return res.redirect('/feed');
