@@ -883,9 +883,15 @@ router.get('/git-logs', requireAuth, requireStaff, async (req, res) => {
   try {
     const { execSync } = require('child_process');
     const path = require('path');
+    const fs = require('fs');
     
-    // Path to the git repo (app directory) - parallel to data directory
-    const gitDir = path.join(path.dirname(store.DATA_DIR), 'app');
+    // Path to the git repo - app dir is parallel to data dir
+    // Check for /<parent>/app first, then /<parent>/larpable.me
+    const parentDir = path.dirname(store.DATA_DIR);
+    let gitDir = path.join(parentDir, 'app');
+    if (!fs.existsSync(gitDir)) {
+      gitDir = path.join(parentDir, 'larpable.me');
+    }
     
     // Get recent commits with date and message
     // Format: hash|date|message
