@@ -221,7 +221,7 @@ router.get('/team-goals', requireAuth, requireStaff, async (req, res) => {
     const goalsArray = Object.entries(goals).map(([id, goal]) => ({
       id,
       ...goal
-    })).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    })).sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
     
     res.json({ goals: goalsArray });
   } catch (e) {
