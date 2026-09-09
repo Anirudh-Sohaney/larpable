@@ -17,6 +17,7 @@ const auth = require('../auth');
 const store = require('../store');
 const { encryptObject, decryptObject } = require('../crypto');
 const { sanitizeObject } = require('../sanitize');
+const { geocode } = require('../geocode');
 
 // ── Middleware: require auth ──────────────────────────────────
 async function requireAuth(req, res, next) {
@@ -37,7 +38,7 @@ router.get('/', async (req, res) => {
     const { type } = req.query;
     const opportunities = await store.getAllOpportunities(type || null);
     
-    const enriched = opportunities.map(opp => enrichOpp(opp));
+    const enriched = await Promise.all(opportunities.map(opp => enrichOppWithCoords(opp)));
     
     res.json({ opportunities: enriched });
   } catch (e) {
@@ -52,7 +53,7 @@ router.get('/mine', requireAuth, async (req, res) => {
     const allOpps = await store.getAllOpportunities(null);
     const mine = allOpps.filter(o => o.created_by === req.user.id);
     
-    const enriched = mine.map(opp => enrichOpp(opp));
+    const enriched = await Promise.all(mine.map(opp => enrichOppWithCoords(opp)));
     
     res.json({ opportunities: enriched });
   } catch (e) {
@@ -122,7 +123,7 @@ router.post('/', requireAuth, async (req, res) => {
     // Build issuer info from user profile
     const userFields = decryptObject(req.user.encrypted_fields || {});
     const issuerName = [userFields.firstName || userFields.first_name, userFields.lastName || userFields.last_name].filter(Boolean).join(' ') || 'Student';
-    const issuerContext = [userFields.grade, userFields.school].filter(Boolean).join(', ');
+    const issuerContext = [userFields.grade].filter(Boolean).join(', ');
     
     const oppData = {
       type,
@@ -136,6 +137,8 @@ router.post('/', requireAuth, async (req, res) => {
         looking_for: cleanFields.looking_for || '',
         location: cleanFields.location || '',
         remote: cleanFields.remote !== undefined ? cleanFields.remote : true,
+        latitude: cleanFields.latitude || null,
+        longitude: cleanFields.longitude || null,
         contact_links: Array.isArray(cleanFields.contact_links) ? cleanFields.contact_links.filter(l => l && l.trim()) : (cleanFields.contact ? [cleanFields.contact] : []),
         skills: cleanFields.skills || [],
         details: cleanFields.details || '',
@@ -258,6 +261,8 @@ function enrichOpp(opp) {
     looking_for: f.looking_for || '',
     location: f.location || '',
     remote: f.remote !== undefined ? f.remote : true,
+    latitude: f.latitude || null,
+    longitude: f.longitude || null,
     contact_links: Array.isArray(f.contact_links) ? f.contact_links : (f.contact ? [f.contact] : []),
     skills: f.skills || [],
     details: f.details || '',
@@ -267,6 +272,43 @@ function enrichOpp(opp) {
     created_at: opp.created_at || '',
     posted: opp.created_at ? formatPosted(opp.created_at) : 'Recently'
   };
+}
+
+/**
+ * Enrich an opportunity with lat/long, deriving from location if missing.
+ * Persists derived coordinates back to the store.
+ */
+async function enrichOppWithCoords(opp) {
+  const enriched = enrichOpp(opp);
+
+  // If lat/long already present, return as-is
+  if (enriched.latitude && enriched.longitude) return enriched;
+
+  // Skip remote opportunities with no useful location
+  if (!enriched.location || enriched.location.toLowerCase() === 'remote') return enriched;
+
+  // Derive from location string
+  try {
+    const coords = await geocode(enriched.location);
+    if (coords) {
+      enriched.latitude = coords.lat;
+      enriched.longitude = coords.lon;
+
+      // Persist back to store (fire-and-forget, don't block response)
+      store.getById('opportunities.json', opp.id).then(raw => {
+        if (!raw) return;
+        const currentFields = decryptObject(raw.encrypted_fields || {});
+        currentFields.latitude = coords.lat;
+        currentFields.longitude = coords.lon;
+        raw.encrypted_fields = encryptObject(currentFields);
+        return store.saveOpportunity(opp.id, raw);
+      }).catch(() => {});
+    }
+  } catch (e) {
+    // Non-fatal — just return without coordinates
+  }
+
+  return enriched;
 }
 
 module.exports = router;

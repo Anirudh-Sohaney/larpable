@@ -594,6 +594,80 @@ const CANONICAL_SYNONYMS = {
   ],
 };
 
+// Safe aliases for labels introduced by the redesign. Each target already
+// exists in the deployed taxonomy; values are normalized in memory only.
+Object.assign(CANONICAL_SYNONYMS, {
+  'Artificial Intelligence': ['ai / machine learning'],
+  'Mobile Apps': ['mobile development'],
+  'Computer Vision': ['computer vision'],
+  'Nonprofit Management': ['nonprofit management'],
+  'Web & Mobile Development': ['web & mobile development'],
+  'Technology & Software': ['technology & software'],
+  'Engineering & Manufacturing': ['engineering & manufacturing'],
+  'Mathematics & Data': ['mathematics & data'],
+  'Medicine & Public Health': ['medicine & public health'],
+  'Business & Entrepreneurship': ['business & entrepreneurship'],
+  'Finance & Economics': ['finance & economics'],
+  'Law & Public Policy': ['law & public policy'],
+  'Education & Learning': ['education & learning'],
+  'Arts, Design & Media': ['arts, design & media'],
+  'Humanities & Social Sciences': ['humanities & social sciences'],
+  'Environment, Agriculture & Sports': ['environment, agriculture & sports']
+});
+
+// New canonical labels map to the closest labels in the deployed taxonomy.
+// This is read-time matching compatibility; stored records remain untouched.
+const COMPATIBILITY_CANONICAL = {
+  'Lab Methods': 'Lab Techniques', 'Field Research': 'Research', 'Microscopy': 'Research',
+  'Genetics': 'Biology', 'Ecology': 'Biology', 'Chemistry': 'Chemistry', 'Physics': 'Physics',
+  'Scientific Writing': 'Technical Writing', 'Programming': 'JavaScript', 'Web Development': 'HTML / CSS',
+  'Mobile Development': 'React Native', 'Databases': 'SQL', 'APIs': 'REST APIs', 'Cybersecurity': 'Linux Admin',
+  'Cloud Computing': 'AWS', 'Git': 'GitHub Actions', 'CAD': 'CAD / SolidWorks', 'Prototyping': '3D Printing',
+  'Robotics': 'Robotics', 'Electronics': 'Robotics', 'Mechanics': 'Robotics', 'Systems Design': 'Cloud Architecture',
+  'Technical Drawing': 'CAD / SolidWorks', 'Statistics': 'Statistics', 'Data Analysis': 'Data Science',
+  'Data Visualization': 'Tableau', 'Linear Algebra': 'Linear Algebra', 'Calculus': 'Calculus',
+  'Modeling': 'Data Science', 'Data Mining': 'Machine Learning', 'Spreadsheets': 'Excel / Spreadsheets',
+  'Patient Care': 'First Aid / CPR', 'Clinical Research': 'Research', 'Public Health': 'Biology',
+  'Epidemiology': 'Research', 'Anatomy': 'Biology', 'Medical Writing': 'Technical Writing',
+  'First Aid': 'First Aid / CPR', 'Nutrition': 'Nutrition Knowledge', 'Strategy': 'Strategic Planning',
+  'Product Planning': 'Product Management', 'Project Planning': 'Project Management', 'Operations': 'Project Management',
+  'Market Research': 'Marketing Strategy', 'Sales': 'Sales', 'Customer Research': 'Research',
+  'Entrepreneurship': 'Business Analysis', 'Financial Modeling': 'Financial Modeling', 'Accounting': 'Excel / Spreadsheets',
+  'Budgeting': 'Financial Modeling', 'Investing': 'Financial Modeling', 'Economics': 'Financial Modeling',
+  'Risk Analysis': 'Critical Thinking', 'Bookkeeping': 'Excel / Spreadsheets', 'Auditing': 'Quality Assurance',
+  'Legal Research': 'Research', 'Policy Analysis': 'Strategic Planning', 'Advocacy': 'Public Relations',
+  'Mediation': 'Negotiation', 'Compliance': 'Quality Assurance', 'Civic Organizing': 'Public Relations',
+  'Public Speaking': 'Public Speaking', 'Ethics': 'Critical Thinking', 'Teaching': 'Public Speaking',
+  'Curriculum Design': 'Project Management', 'Facilitation': 'Communication', 'Tutoring': 'Communication',
+  'Mentoring': 'Coaching', 'Instructional Design': 'UI/UX Design', 'Education Research': 'Research',
+  'Assessment': 'Quality Assurance', 'Illustration': 'Graphic Design', 'Graphic Design': 'Graphic Design',
+  'Typography': 'Graphic Design', 'Photography': 'Graphic Design', 'Video Editing': 'Motion Graphics',
+  'Animation': 'Motion Graphics', 'Music Production': 'Motion Graphics', 'Art Direction': 'Graphic Design',
+  'Copywriting': 'Copywriting', 'Creative Writing': 'Copywriting', 'Storytelling': 'Public Speaking',
+  'History Research': 'Research', 'Philosophy': 'Critical Thinking', 'Cultural Analysis': 'Communication',
+  'Linguistics': 'Translation', 'Translation': 'Translation', 'Archival Research': 'Research',
+  'Conservation': 'Research', 'Climate Science': 'Physics', 'Horticulture': 'Gardening',
+  'Food Systems': 'Nutrition Knowledge', 'Sports Coaching': 'Coaching', 'Fitness Training': 'Personal Training',
+  'Wilderness Skills': 'Wilderness Survival', 'Baking': 'Baking', 'Catering': 'Catering', 'Cooking': 'Cooking',
+  'Technology & Software': 'Technology / SaaS', 'Engineering & Manufacturing': 'Manufacturing',
+  'Mathematics & Data': 'Finance / Fintech', 'Medicine & Public Health': 'Healthcare / Biotech',
+  'Business & Entrepreneurship': 'Consulting', 'Finance & Economics': 'Finance / Fintech',
+  'Law & Public Policy': 'Legal / Compliance', 'Education & Learning': 'Education / EdTech',
+  'Arts, Design & Media': 'Media / Entertainment', 'Humanities & Social Sciences': 'Consulting',
+  'Environment, Agriculture & Sports': 'Energy / CleanTech',
+  'Biology & Life Science': 'Biology', 'Chemistry & Materials': 'Chemistry', 'Physics & Space': 'Physics Research',
+  'Mathematics & Statistics': 'Data Analytics', 'Web & Mobile Development': 'Web Development',
+  'Cybersecurity & Privacy': 'Cybersecurity', 'Robotics & Hardware': 'Robotics',
+  'Healthcare Innovation': 'Health Tech', 'Mental Health & Wellness': 'Mental Health',
+  'Entrepreneurship & Startups': 'Startups', 'Marketing & Brand Strategy': 'Marketing',
+  'Finance, Investing & Fintech': 'Finance', 'Economics & Social Enterprise': 'Economics',
+  'Law, Justice & Human Rights': 'Human Rights', 'Civic Engagement & Politics': 'Political Science',
+  'Teaching & Education Access': 'Education Tech', 'Creative Writing & Storytelling': 'Creative Writing',
+  'Visual Art & Illustration': 'Graphic Design', 'Film, Music & Digital Media': 'Film / Video',
+  'Culture, History & Philosophy': 'Philosophy', 'Community & Social Impact': 'Community Outreach',
+  'Climate & Conservation': 'Climate / Sustainability', 'Food, Agriculture & Athletics': 'Culinary Arts'
+};
+
 // ── Build reverse lookup: synonym → canonical name ──
 // Process in order; later entries overwrite earlier ones for the same synonym.
 const SYNONYM_TO_CANONICAL = {};
@@ -614,7 +688,8 @@ for (const [canonical, synonyms] of Object.entries(CANONICAL_SYNONYMS)) {
 function normalizeSynonym(name) {
   if (!name) return name;
   const lower = name.toLowerCase().trim();
-  return SYNONYM_TO_CANONICAL[lower] || name;
+  const canonical = SYNONYM_TO_CANONICAL[lower] || name;
+  return COMPATIBILITY_CANONICAL[canonical] || canonical;
 }
 
 /**
@@ -648,5 +723,5 @@ function matchesSynonym(query, itemName) {
 
 // Export for Node.js (backend) and browser (frontend)
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { CANONICAL_SYNONYMS, SYNONYM_TO_CANONICAL, normalizeSynonym, matchesSynonym };
+  module.exports = { CANONICAL_SYNONYMS, SYNONYM_TO_CANONICAL, COMPATIBILITY_CANONICAL, normalizeSynonym, matchesSynonym };
 }

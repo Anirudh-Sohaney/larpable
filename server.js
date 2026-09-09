@@ -139,18 +139,44 @@ app.use('/api/drafts', rateLimit('api'), draftRoutes);
 const staffRoutes = require('./staff/routes/staff.routes');
 app.use('/api/staff', rateLimit('api'), staffRoutes);
 
+// Verification + validation routes (email codes live in memory only)
+const verifyRoutes = require('./backend/routes/verify.routes');
+app.use('/api/verify', rateLimit('auth'), verifyRoutes.verify);
+app.use('/api/validate', rateLimit('auth'), verifyRoutes.validate);
+
 // ── Matching API ─────────────────────────────────────────────
+const { CANONICAL_SYNONYMS } = require('./web_app/synonyms');
+
 app.get('/api/match/entities', (req, res) => {
   const entities = [];
+  const skills = [];
+  const interests = [];
+  const skillSynonymMap = {};
+  const interestSynonymMap = {};
+
   for (const [cat, items] of Object.entries(matching.categories.skills)) {
-    for (const item of items) entities.push({ name: item, type: 'skill', category: cat });
+    for (const item of items) {
+      entities.push({ name: item, type: 'skill', category: cat });
+      skills.push(item);
+      skillSynonymMap[item] = CANONICAL_SYNONYMS[item] || [];
+    }
   }
   for (const [cat, items] of Object.entries(matching.categories.interests)) {
-    for (const item of items) entities.push({ name: item, type: 'interest', category: cat });
+    for (const item of items) {
+      entities.push({ name: item, type: 'interest', category: cat });
+      interests.push(item);
+      interestSynonymMap[item] = CANONICAL_SYNONYMS[item] || [];
+    }
   }
   for (const ind of matching.industries) entities.push({ name: ind, type: 'industry', category: ind });
   for (const f of matching.nonprofitFields) entities.push({ name: f, type: 'industry', category: f });
-  res.json({ entities });
+  res.json({
+    entities,
+    interests,
+    skills,
+    taxonomy_synonyms: { synonyms: { interests: interestSynonymMap } },
+    skill_synonyms: skillSynonymMap
+  });
 });
 
 app.get('/api/match/similarity', (req, res) => {
@@ -180,6 +206,11 @@ app.post('/api/match/rank', rateLimit('api'), async (req, res) => {
     if (!Array.isArray(opportunities) || opportunities.length > 50) {
       return res.status(400).json({ error: 'Maximum 50 opportunities per rank request' });
     }
+
+    // Inject authenticated user's coordinates into matchUser
+    const fields = user.encrypted_fields || {};
+    matchUser.latitude = fields.latitude || null;
+    matchUser.longitude = fields.longitude || null;
 
     const ranked = matching.rank(matchUser, opportunities);
     res.json({ ranked });
@@ -226,7 +257,10 @@ app.use((req, res, next) => {
 const store = require('./backend/store');
 const { isAdminCredentials } = require('./backend/admin');
 
-app.get('/staff', async (req, res) => {
+// Redirect /staff (no trailing slash) → /staff/ so relative URLs resolve correctly
+app.get(/^\/staff$/, (req, res) => res.redirect(301, '/staff/'));
+
+app.get('/staff/', async (req, res) => {
   // Parse cookies manually
   const cookies = {};
   const cookieHeader = req.headers.cookie;

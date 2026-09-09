@@ -16,6 +16,7 @@ const auth = require('../auth');
 const COOKIE_NAME = 'larpable_session';
 const COOKIE_MAX_AGE = 30 * 24 * 60 * 60 * 1000; // 30 days
 const IS_PRODUCTION = process.env.NODE_ENV === 'production';
+const DEFAULT_LEGAL_VERSIONS = { terms: { version: '2026-08-27' }, privacy: { version: '2026-08-27' } };
 
 const COOKIE_OPTIONS = {
   httpOnly: true,
@@ -75,11 +76,12 @@ router.post('/signup', async (req, res) => {
     try {
       const store = require('../store');
       const versions = await store.read('legal_versions.json');
+      const legalVersions = versions.terms?.version && versions.privacy?.version ? versions : DEFAULT_LEGAL_VERSIONS;
       const rawUser = await store.getRawUser(result.userId);
       if (rawUser) {
         rawUser.legal_agreements = {
-          terms_version: versions.terms?.version || '',
-          privacy_version: versions.privacy?.version || '',
+          terms_version: legalVersions.terms.version,
+          privacy_version: legalVersions.privacy.version,
           agreed_at: new Date().toISOString()
         };
         await store.saveUser(result.userId, rawUser);
@@ -151,14 +153,43 @@ router.get('/me', async (req, res) => {
   const firstName = fields.firstName || fields.first_name || '';
   const lastName = fields.lastName || fields.last_name || '';
   const displayName = [firstName, lastName].filter(Boolean).join(' ') || 'User';
+
+  // Derive latitude/longitude if missing (async, non-blocking)
+  let latitude = fields.latitude || null;
+  let longitude = fields.longitude || null;
+  if (!latitude && !longitude && (fields.city || fields.state || fields.country)) {
+    try {
+      const { geocodeStructured } = require('../geocode');
+      const coords = await geocodeStructured(fields.city, fields.state, fields.country);
+      if (coords) {
+        latitude = coords.lat;
+        longitude = coords.lon;
+        // Persist back to user record
+        const rawUser = await store.getRawUser(user.id);
+        if (rawUser) {
+          const currentFields = require('../crypto').decryptObject(rawUser.encrypted_fields || {});
+          currentFields.latitude = latitude;
+          currentFields.longitude = longitude;
+          rawUser.encrypted_fields = require('../crypto').encryptObject(currentFields);
+          await store.saveUser(user.id, rawUser);
+        }
+      }
+    } catch (e) {
+      console.error('Geocode on sign-in failed:', e.message);
+    }
+  }
   
   // Strip sensitive fields before sending to client
   const safeUser = {
     id: user.id,
     type: user.type,
-    role: 'student',
+    role: user.role || 'student',
+    staff_access: !!user.staff_access,
+    staffAccess: !!user.staff_access,
     created_at: user.created_at,
-    displayName
+    displayName,
+    latitude,
+    longitude
   };
   
   res.json({ user: safeUser });

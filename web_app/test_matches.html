@@ -7,21 +7,22 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/styles.css">
 
   <style>
     :root {
-      --bg: #F5F0E8;
-      --font: #2D2A26;
-      --accent: #E8734A;
-      --card: #FFFDF8;
-      --border: #D6D1C9;
-      --shadow: #C4BEB5;
-      --muted: #8A8580;
-      --green: #4CAF50;
-      --indigo: #5C6BC0;
-      --green-bg: rgba(76,175,80,0.08);
-      --indigo-bg: rgba(92,107,192,0.08);
-      --coral-bg: rgba(232,115,74,0.08);
+      --bg: var(--bg-primary);
+      --font: var(--fg-primary);
+      --accent: var(--accent);
+      --card: var(--bg-secondary);
+      --border: var(--border);
+      --shadow: var(--shadow-md);
+      --muted: var(--fg-secondary);
+      --green: var(--success);
+      --indigo: var(--info);
+      --green-bg: var(--success-bg);
+      --indigo-bg: var(--info-bg);
+      --coral-bg: var(--accent-light);
     }
 
     * { margin: 0; padding: 0; box-sizing: border-box; }

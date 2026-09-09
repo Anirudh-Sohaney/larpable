@@ -667,6 +667,7 @@ router.get('/members', requireAuth, requireStaff, async (req, res) => {
     
     // Convert to array
     const membersArray = Object.entries(members).map(([userId, member]) => ({
+      id: userId,
       userId,
       ...member
     }));
@@ -745,6 +746,36 @@ router.post('/members', requireAuth, requireStaffAdmin, async (req, res) => {
     });
   } catch (e) {
     console.error('Add staff member error:', e);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// ── PATCH /api/staff/members/:userId/permissions ─────────────
+// The redesigned portal uses this endpoint to grant/revoke the six
+// explicit staff capabilities. Admin access itself remains derived from the
+// staff-admin rule and cannot be granted through this route.
+router.patch('/members/:userId/permissions', requireAuth, requireStaffAdmin, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const requested = Array.isArray(req.body?.permissions) ? req.body.permissions : [];
+    const allowed = new Set([
+      'modify_calendar', 'assign_goals', 'assign_tasks',
+      'manage_staff', 'skills_control', 'user_control'
+    ]);
+    const staffData = await store.read(STAFF_FILE);
+    const member = staffData.staff_members?.[userId];
+    if (!member) return res.status(404).json({ error: 'Staff member not found' });
+    if (member.added_by === userId) {
+      return res.status(400).json({ error: 'Admin permissions cannot be changed' });
+    }
+    const permissions = [...new Set(requested.filter(permission => allowed.has(permission)))];
+    await store.atomicUpdate(STAFF_FILE, data => {
+      data.staff_members[userId].permissions = permissions;
+      return data;
+    });
+    res.json({ ok: true, permissions });
+  } catch (e) {
+    console.error('Update staff permissions error:', e);
     res.status(500).json({ error: 'Server error' });
   }
 });
@@ -1104,6 +1135,164 @@ async function recordGoalCompletion(userId, goal, completedAt) {
   return record;
 }
 
+// ── GET /api/staff/data ──────────────────────────────────────
+// One read-only payload hydrates the redesigned staff portal. The response
+// deliberately preserves the existing staff.json shapes while accepting both
+// object and array collections introduced by newer portal versions.
+router.get('/data', requireAuth, requireStaff, async (req, res) => {
+  try {
+    const staff = await store.read(STAFF_FILE);
+    const entries = (value) => Array.isArray(value)
+      ? value
+      : Object.entries(value || {}).map(([id, item]) => ({ id, ...item }));
+    res.json({
+      members: entries(staff.staff_members),
+      logs: entries(staff.logs).sort((a, b) => new Date(b.timestamp || 0) - new Date(a.timestamp || 0)),
+      teamGoals: entries(staff.team_goals),
+      userGoals: staff.user_goals || {},
+      tasks: entries(staff.tasks),
+      calendarEvents: entries(staff.calendar_events),
+      resources: entries(staff.resources)
+    });
+  } catch (e) {
+    console.error('Get staff data error:', e);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// ── GET /api/staff/overview ─────────────────────────────────
+// Read-only operational metrics for the redesigned dashboard. It computes
+// directly from the configured data directory, so local and production data
+// use the same code path and no fixture is copied or rewritten.
+router.get('/overview', requireAuth, requireStaff, async (req, res) => {
+  try {
+    const rawUsers = await store.read('users.json');
+    const users = Object.entries(rawUsers).map(([id, raw]) => {
+      const decrypted = crypto.decryptObject(raw);
+      const fields = decrypted.encrypted_fields || {};
+      return {
+        id,
+        username: fields.username || '',
+        first_name: fields.first_name || fields.firstName || '',
+        last_name: fields.last_name || fields.lastName || '',
+        skills: Array.isArray(fields.skills) ? fields.skills : [],
+        interests: Array.isArray(fields.interests) ? fields.interests : [],
+        created_at: decrypted.created_at || raw.created_at || null,
+        verified: !!(decrypted.verified || fields.verified || fields.email_verified || fields.emailVerified)
+      };
+    });      const posts = await store.getAllOpportunities(null);
+    const staff = await store.read(STAFF_FILE);
+    const count = new Map();
+    const countValues = (values) => (values || []).forEach(value => {
+      const key = String(value || '').trim();
+      if (key) count.set(key, (count.get(key) || 0) + 1);
+    });
+    const top = (map, limit = 8) => [...map.entries()]
+      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+      .slice(0, limit)
+      .map(([label, value]) => ({ label, count: value }));
+    const skillCounts = new Map(), interestCounts = new Map(), fieldCounts = new Map();
+    users.forEach(user => { countValues(user.skills); (user.skills || []).forEach(value => skillCounts.set(value, (skillCounts.get(value) || 0) + 1)); (user.interests || []).forEach(value => interestCounts.set(value, (interestCounts.get(value) || 0) + 1)); });
+    const postsByType = {};
+    posts.forEach(post => {
+      const fields = post.encrypted_fields || {};
+      postsByType[post.type || 'unknown'] = (postsByType[post.type || 'unknown'] || 0) + 1;
+      const field = fields.industry || fields.nonprofit_field || fields.field;
+      if (field) fieldCounts.set(field, (fieldCounts.get(field) || 0) + 1);
+    });
+    const dates = users.map(user => user.created_at).filter(Boolean).sort();
+    const launchDate = dates[0] ? dates[0].slice(0, 10) : new Date().toISOString().slice(0, 10);
+    const now = Date.now();
+    const daysAgo = days => now - days * 24 * 60 * 60 * 1000;
+    const usersLast7Days = users.filter(user => new Date(user.created_at).getTime() >= daysAgo(7)).length;
+    const usersLast30Days = users.filter(user => new Date(user.created_at).getTime() >= daysAgo(30)).length;
+    const postsLast7Days = posts.filter(post => new Date(post.created_at).getTime() >= daysAgo(7)).length;
+    const postsLast30Days = posts.filter(post => new Date(post.created_at).getTime() >= daysAgo(30)).length;
+    const staffCount = Object.keys(staff.staff_members || {}).length;
+    const recentUsers = [...users].sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)).slice(0, 8);
+    const recentPosts = [...posts].sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)).slice(0, 8).map(post => {
+      const fields = post.encrypted_fields || {};
+      return { title: fields.title || post.title || 'Untitled', type: post.type || 'unknown', field: fields.industry || fields.nonprofit_field || fields.field || '', created_at: post.created_at };
+    });
+    const growth = [];
+    const start = new Date(launchDate + 'T00:00:00Z');
+    for (let day = new Date(start); day <= new Date(); day.setUTCDate(day.getUTCDate() + 1)) {
+      const date = day.toISOString().slice(0, 10);
+      growth.push({ date, users: users.filter(user => (user.created_at || '').slice(0, 10) === date).length });
+    }
+    res.json({
+      generatedAt: new Date().toISOString(), launchDate,
+      totals: { users: users.length, usersSinceLaunch: users.length, usersLast7Days, usersLast30Days, posts: posts.length, postsSinceLaunch: posts.length, postsLast7Days, postsLast30Days, verifiedUsers: users.filter(user => user.verified).length, staff: staffCount },
+      postsByType, topSkills: top(skillCounts), topInterests: top(interestCounts), topFields: top(fieldCounts),
+      recentUsers, recentPosts, growth
+    });
+  } catch (e) {
+    console.error('Staff overview error:', e);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// ── Staff collection persistence used by the redesigned portal ──
+router.post('/data/:collection', requireAuth, requireStaff, async (req, res) => {
+  try {
+    const permissions = { team_goals: 'assign_goals', user_goals: 'assign_goals', tasks: 'assign_tasks', calendar_events: 'modify_calendar', resources: 'manage_staff' };
+    const permission = permissions[req.params.collection];
+    if (!permission || !(req.user.role === 'admin' || req.user.encrypted_fields?.username === STAFF_ADMIN_USERNAME || (req.user.staff_access && (await store.read(STAFF_FILE)).staff_members?.[req.user.id]?.permissions || []).includes(permission))) return res.status(403).json({ error: 'Permission required' });
+    const item = { id: req.body?.id || `${req.params.collection}_${Date.now()}`, ...req.body, created_at: req.body?.created_at || new Date().toISOString() };
+    await store.atomicUpdate(STAFF_FILE, data => {
+      if (req.params.collection === 'team_goals') { data.team_goals ||= {}; const { id, ...value } = item; data.team_goals[id] = value; }
+      else if (req.params.collection === 'user_goals') { data.user_goals ||= {}; const userId = item.user_id || req.user.id; data.user_goals[userId] ||= {}; const { id, user_id, ...value } = item; data.user_goals[userId][id] = value; }
+      else { data[req.params.collection] ||= []; if (!Array.isArray(data[req.params.collection])) data[req.params.collection] = Object.entries(data[req.params.collection]).map(([id, value]) => ({ id, ...value })); data[req.params.collection].push(item); }
+      return data;
+    });
+    res.status(201).json(item);
+  } catch (e) { console.error('Staff collection create error:', e); res.status(500).json({ error: 'Server error' }); }
+});
+
+router.patch('/data/:collection/:id', requireAuth, requireStaff, async (req, res) => {
+  try {
+    const staff = await store.read(STAFF_FILE);
+    const collection = req.params.collection;
+    const permission = { team_goals: 'assign_goals', user_goals: 'assign_goals', tasks: 'assign_tasks', calendar_events: 'modify_calendar', resources: 'manage_staff' }[collection];
+    if (!permission || !(req.user.role === 'admin' || req.user.encrypted_fields?.username === STAFF_ADMIN_USERNAME || (staff.staff_members?.[req.user.id]?.permissions || []).includes(permission))) return res.status(403).json({ error: 'Permission required' });
+    let found;
+    await store.atomicUpdate(STAFF_FILE, data => {
+      if (collection === 'team_goals' || collection === 'user_goals') {
+        const buckets = collection === 'team_goals' ? data.team_goals || {} : data.user_goals || {};
+        for (const [owner, values] of Object.entries(collection === 'team_goals' ? { company: buckets } : buckets)) {
+          if (collection === 'team_goals') { if (values[req.params.id]) { values[req.params.id] = { ...values[req.params.id], ...req.body }; found = { id: req.params.id, ...values[req.params.id] }; } }
+          else if (values[req.params.id]) { values[req.params.id] = { ...values[req.params.id], ...req.body }; found = { id: req.params.id, ...values[req.params.id] }; }
+        }
+      } else {
+        const items = Array.isArray(data[collection]) ? data[collection] : [];
+        const index = items.findIndex(item => item.id === req.params.id);
+        if (index >= 0) { items[index] = { ...items[index], ...req.body }; found = items[index]; data[collection] = items; }
+      }
+      return data;
+    });
+    if (!found) return res.status(404).json({ error: 'Staff item not found' });
+    res.json(found);
+  } catch (e) { console.error('Staff collection update error:', e); res.status(500).json({ error: 'Server error' }); }
+});
+
+router.delete('/data/:collection/:id', requireAuth, requireStaff, async (req, res) => {
+  try {
+    const staff = await store.read(STAFF_FILE);
+    const collection = req.params.collection;
+    const permission = { team_goals: 'assign_goals', user_goals: 'assign_goals', tasks: 'assign_tasks', calendar_events: 'modify_calendar', resources: 'manage_staff' }[collection];
+    if (!permission || !(req.user.role === 'admin' || req.user.encrypted_fields?.username === STAFF_ADMIN_USERNAME || (staff.staff_members?.[req.user.id]?.permissions || []).includes(permission))) return res.status(403).json({ error: 'Permission required' });
+    let removed = false;
+    await store.atomicUpdate(STAFF_FILE, data => {
+      if (collection === 'team_goals') { if (data.team_goals?.[req.params.id]) { delete data.team_goals[req.params.id]; removed = true; } }
+      else if (collection === 'user_goals') Object.values(data.user_goals || {}).forEach(goals => { if (goals[req.params.id]) { delete goals[req.params.id]; removed = true; } });
+      else if (Array.isArray(data[collection])) { const before = data[collection].length; data[collection] = data[collection].filter(item => item.id !== req.params.id); removed = data[collection].length !== before; }
+      return data;
+    });
+    if (!removed) return res.status(404).json({ error: 'Staff item not found' });
+    res.json({ ok: true });
+  } catch (e) { console.error('Staff collection delete error:', e); res.status(500).json({ error: 'Server error' }); }
+});
+
 // ── GET /api/staff/data-size ──────────────────────────────────
 // Returns size of data folder in GB (anisohaney only)
 // Uses store.DATA_DIR which resolves to /data/ (or /larpable_data/ as fallback),
@@ -1132,6 +1321,253 @@ router.get('/data-size', requireAuth, requireStaffAdmin, async (req, res) => {
     res.json({ sizeGB: parseFloat(sizeGB), path: dataDir });
   } catch (e) {
     console.error('Get data size error:', e);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// ── Middleware: require specific staff permission ─────────────
+function requirePermission(permission) {
+  return async (req, res, next) => {
+    if (req.user.role === 'admin') return next();
+    const username = req.user.encrypted_fields?.username || '';
+    if (username === STAFF_ADMIN_USERNAME) return next();
+    try {
+      const staffData = await store.read(STAFF_FILE);
+      const member = staffData.staff_members?.[req.user.id];
+      if (member && (member.permissions || []).includes(permission)) return next();
+    } catch (e) {
+      console.error('Permission check error:', e);
+    }
+    return res.status(403).json({ error: 'Permission required' });
+  };
+}
+
+// ── Work Tab: Taxonomy (skills_control) ─────────────────────
+const MATCH_DIR = path.join(__dirname, '..', '..', 'backend', 'matching');
+
+function readMatchFile(name) {
+  try { return JSON.parse(fs.readFileSync(path.join(MATCH_DIR, name), 'utf8')); }
+  catch { return {}; }
+}
+
+async function writeMatchFile(name, data) {
+  const tmp = path.join(MATCH_DIR, name + '.tmp.' + process.pid);
+  const dest = path.join(MATCH_DIR, name);
+  await fs.promises.writeFile(tmp, JSON.stringify(data, null, 2), 'utf8');
+  await fs.promises.rename(tmp, dest);
+}
+
+router.get('/work/taxonomy', requireAuth, requireStaff, requirePermission('skills_control'), async (req, res) => {
+  try {
+    const taxonomy = readMatchFile('taxonomy.json');
+    const skillSynonyms = readMatchFile('skill_synonyms.json');
+    const relationSynonyms = readMatchFile('taxonomy_synonyms.json');
+    res.json({
+      skills: taxonomy.skills || [],
+      interests: taxonomy.interests || [],
+      fields: taxonomy.fields || [],
+      skill_synonyms: skillSynonyms.synonyms || {},
+      taxonomy_synonyms: relationSynonyms.synonyms || { interests: {}, fields: {} }
+    });
+  } catch (e) {
+    console.error('Get taxonomy error:', e);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+router.post('/work/taxonomy', requireAuth, requireStaff, requirePermission('skills_control'), async (req, res) => {
+  try {
+    const kind = req.body?.kind;
+    const label = String(req.body?.label || '').trim();
+    const allowed = ['skill', 'interest', 'field'];
+    if (!allowed.includes(kind)) return res.status(400).json({ error: 'kind must be skill, interest or field' });
+    if (!label) return res.status(400).json({ error: 'A word is required' });
+
+    const listKey = `${kind}s`;
+    const taxonomy = readMatchFile('taxonomy.json');
+    const list = taxonomy[listKey] || [];
+    if (list.some(x => String(x).toLowerCase() === label.toLowerCase())) {
+      return res.status(409).json({ error: `${label} already exists as a ${kind}` });
+    }
+
+    const sentences = (req.body?.sentences || []).map(String).map(s => s.trim()).filter(Boolean);
+    const synonyms = (req.body?.synonyms || []).map(String).map(s => s.trim()).filter(Boolean);
+    if (!sentences.length && !synonyms.length) {
+      return res.status(400).json({ error: 'Add at least one definition sentence or synonym' });
+    }
+
+    // Generate vector via Python embed script
+    const { spawnSync } = require('child_process');
+    const script = path.join(MATCH_DIR, 'embed_terms.py');
+    const input = JSON.stringify([{ term: label, sentences, synonyms }]);
+    const result = spawnSync('python3', [script], {
+      input, encoding: 'utf8', maxBuffer: 100 * 1024 * 1024, timeout: 300000
+    });
+    if (result.status !== 0) {
+      console.error('Embedding failed:', result.stderr || result.error || 'unknown');
+      return res.status(500).json({ error: 'Vector generation failed' });
+    }
+    let vector;
+    try { vector = JSON.parse(result.stdout)[label]; } catch { vector = null; }
+    if (!vector) return res.status(500).json({ error: 'Vector generation failed' });
+
+    const vectors = readMatchFile('vectors.json');
+    if (!vectors.vectors) vectors.vectors = {};
+    if (!vectors.vectors[kind]) vectors.vectors[kind] = {};
+    vectors.vectors[kind][label] = vector;
+
+    const skillSynonyms = readMatchFile('skill_synonyms.json');
+    const relationSynonyms = readMatchFile('taxonomy_synonyms.json');
+    if (kind === 'skill') {
+      if (!skillSynonyms.synonyms) skillSynonyms.synonyms = {};
+      skillSynonyms.synonyms[label] = synonyms;
+    } else {
+      if (!relationSynonyms.synonyms) relationSynonyms.synonyms = {};
+      if (!relationSynonyms.synonyms[`${kind}s`]) relationSynonyms.synonyms[`${kind}s`] = {};
+      relationSynonyms.synonyms[`${kind}s`][label] = synonyms;
+    }
+
+    list.push(label);
+    taxonomy[listKey] = list;
+    await writeMatchFile('taxonomy.json', taxonomy);
+    await writeMatchFile('vectors.json', vectors);
+    if (kind === 'skill') await writeMatchFile('skill_synonyms.json', skillSynonyms);
+    else await writeMatchFile('taxonomy_synonyms.json', relationSynonyms);
+
+    res.status(201).json({ kind, label, sentences: sentences.length, synonyms, vector_generated: true });
+  } catch (e) {
+    console.error('Add taxonomy error:', e);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+router.delete('/work/taxonomy/:kind/:label', requireAuth, requireStaff, requirePermission('skills_control'), async (req, res) => {
+  try {
+    const kind = req.params.kind;
+    const allowed = ['skill', 'interest', 'field'];
+    if (!allowed.includes(kind)) return res.status(400).json({ error: 'kind must be skill, interest or field' });
+    const label = String(req.params.label || '');
+    const listKey = `${kind}s`;
+    const taxonomy = readMatchFile('taxonomy.json');
+    const list = taxonomy[listKey] || [];
+    const index = list.findIndex(x => String(x).toLowerCase() === label.toLowerCase());
+    if (index === -1) return res.status(404).json({ error: `${label} not found as a ${kind}` });
+    const actual = list[index];
+    list.splice(index, 1);
+
+    const vectors = readMatchFile('vectors.json');
+    if (vectors.vectors?.[kind]) delete vectors.vectors[kind][actual];
+
+    const skillSynonyms = readMatchFile('skill_synonyms.json');
+    const relationSynonyms = readMatchFile('taxonomy_synonyms.json');
+    if (kind === 'skill') delete skillSynonyms.synonyms?.[actual];
+    else delete relationSynonyms.synonyms?.[`${kind}s`]?.[actual];
+
+    await writeMatchFile('taxonomy.json', taxonomy);
+    await writeMatchFile('vectors.json', vectors);
+    if (kind === 'skill') await writeMatchFile('skill_synonyms.json', skillSynonyms);
+    else await writeMatchFile('taxonomy_synonyms.json', relationSynonyms);
+
+    res.json({ success: true, removed: actual });
+  } catch (e) {
+    console.error('Delete taxonomy error:', e);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// ── Work Tab: Users (user_control) ──────────────────────────
+
+router.get('/work/users', requireAuth, requireStaff, requirePermission('user_control'), async (req, res) => {
+  try {
+    const users = await store.read('users.json');
+    const staff = await store.read(STAFF_FILE);
+    const list = Object.entries(users).map(([id, raw]) => {
+      const decrypted = crypto.decryptObject(raw);
+      const ef = decrypted.encrypted_fields || {};
+      return {
+        id,
+        username: ef.username || '',
+        first_name: ef.first_name || ef.firstName || '',
+        last_name: ef.last_name || ef.lastName || '',
+        email: ef.email || '',
+        type: decrypted.type || 'student',
+        created_at: decrypted.created_at || raw.created_at || null,
+        age: ef.age || '',
+        grade: ef.grade || '',
+        location: ef.location || '',
+        city: ef.city || '',
+        state: ef.state || '',
+        country: ef.country || '',
+        skills: ef.skills || [],
+        interests: ef.interests || [],
+        staffAccess: !!staff.staff_members?.[id]
+      };
+    });
+    res.json({ users: list });
+  } catch (e) {
+    console.error('Get work users error:', e);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+router.delete('/work/users/:id', requireAuth, requireStaff, requirePermission('user_control'), async (req, res) => {
+  try {
+    const userId = req.params.id;
+    const users = await store.read('users.json');
+    if (!users[userId]) return res.status(404).json({ error: 'User not found' });
+    if (userId === req.user.id) return res.status(400).json({ error: 'You cannot remove your own account' });
+
+    const staff = await store.read(STAFF_FILE);
+    const member = staff.staff_members?.[userId];
+    const isStaffAdminUser = member && !member.added_by; // original admin
+    if (isStaffAdminUser) return res.status(400).json({ error: 'The platform admin cannot be removed' });
+
+    delete users[userId];
+    await store.atomicUpdate('users.json', () => users);
+
+    // Drop sessions
+    const sessions = await store.read('sessions.json');
+    const sessionHashes = Object.keys(sessions).filter(h => sessions[h].user_id === userId);
+    if (sessionHashes.length) {
+      await store.atomicUpdate('sessions.json', (s) => {
+        sessionHashes.forEach(h => delete s[h]);
+        return s;
+      });
+    }
+
+    // Drop drafts
+    const drafts = await store.read('drafts.json');
+    const draftIds = Object.keys(drafts).filter(id => drafts[id].user_id === userId);
+    if (draftIds.length) {
+      await store.atomicUpdate('drafts.json', (d) => {
+        draftIds.forEach(id => delete d[id]);
+        return d;
+      });
+    }
+
+    // Drop opportunities
+    const opportunities = await store.read('opportunities.json');
+    const oppIds = Object.keys(opportunities).filter(id => {
+      try { return crypto.decryptObject(opportunities[id]).created_by === userId; } catch { return false; }
+    });
+    if (oppIds.length) {
+      await store.atomicUpdate('opportunities.json', (o) => {
+        oppIds.forEach(id => delete o[id]);
+        return o;
+      });
+    }
+
+    // Revoke staff access
+    if (member) {
+      await store.atomicUpdate(STAFF_FILE, (s) => {
+        delete s.staff_members?.[userId];
+        return s;
+      });
+    }
+
+    res.json({ success: true, removed: userId, sessions: sessionHashes.length, drafts: draftIds.length, opportunities: oppIds.length, staff: !!member });
+  } catch (e) {
+    console.error('Delete work user error:', e);
     res.status(500).json({ error: 'Server error' });
   }
 });

@@ -1,348 +1,77 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>LARPABLE. — Opportunity</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
-
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="/css/styles.css">
   <style>
-    :root {
-      --bg: #F5F0E8;
-      --font: #2D2A26;
-      --accent: #E8734A;
-      --card: #FFFDF8;
-      --border: #D6D1C9;
-      --shadow: #C4BEB5;
-      --muted: #8A8580;
-      --green: #4CAF50;
-      --indigo: #5C6BC0;
-      --green-bg: rgba(76,175,80,0.08);
-      --indigo-bg: rgba(92,107,192,0.08);
-      --coral-bg: rgba(232,115,74,0.08);
-    }
-
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Space Grotesk', sans-serif; background: var(--bg); color: var(--font); min-height: 100vh; overflow-x: hidden; }
-
-    .page { width: 600px; margin: 0 auto; padding: 0 20px 60px; }
-
-    /* Header */
-    .header { display: flex; justify-content: space-between; align-items: center; padding: 16px 0 12px; }
-    .logo { font-size: 1.2rem; font-weight: 700; color: var(--accent); letter-spacing: 1px; text-decoration: none; }
-    .back-link { font-size: 0.82rem; font-weight: 600; color: var(--muted); text-decoration: none; transition: color 0.15s; }
-    .back-link:hover { color: var(--accent); }
-
-    /* Opp header */
-    .opp-header { margin-bottom: 20px; }
-    .badge {
-      display: inline-block; font-size: 0.62rem; font-weight: 600; padding: 2px 7px; border-radius: 12px;
-      text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;
-    }
-    .badge-project { background: var(--coral-bg); color: var(--accent); }
-    .badge-nonprofit { background: var(--green-bg); color: var(--green); }
-    .badge-company { background: var(--indigo-bg); color: var(--indigo); }
-    .opp-title { font-size: 1.5rem; font-weight: 700; line-height: 1.25; margin-bottom: 6px; }
-    .opp-issuer { font-size: 0.88rem; color: var(--muted); }
-    .opp-issuer strong { color: var(--font); font-weight: 600; }
-
-    /* Meta grid */
-    .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
-    .meta-card {
-      background: var(--card); border: 1px solid var(--border); border-radius: 8px;
-      padding: 12px 14px;
-    }
-    .meta-card .label {
-      font-size: 0.68rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
-      color: var(--muted); margin-bottom: 2px;
-    }
-    .meta-card .value { font-size: 0.88rem; font-weight: 600; color: var(--font); }
-
-    /* Divider */
-    .divider { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
-
-    /* Sections */
-    .section { margin-bottom: 20px; }
-    .section h2 { font-size: 0.95rem; font-weight: 700; margin-bottom: 8px; }
-    .section p { font-size: 0.88rem; color: var(--muted); line-height: 1.6; }
-
-    /* Skill tags */
-    .skill-tags { display: flex; flex-wrap: wrap; gap: 6px; }
-    .skill-tag {
-      font-size: 0.75rem; font-weight: 500; padding: 4px 12px; border-radius: 20px;
-      background: var(--bg); color: var(--muted); border: 1px solid var(--border);
-    }
-
-    /* Issuer card */
-    .issuer-card {
-      background: var(--card); border: 1px solid var(--border); border-radius: 10px;
-      padding: 14px 16px; display: flex; align-items: center; gap: 12px;
-    }
-    .issuer-avatar {
-      width: 44px; height: 44px; border-radius: 50%; background: var(--bg);
-      border: 2px solid var(--border); display: flex; align-items: center; justify-content: center;
-      font-weight: 700; font-size: 0.85rem; color: var(--muted); flex-shrink: 0;
-    }
-    .issuer-info h3 { font-size: 0.9rem; font-weight: 600; margin-bottom: 2px; }
-    .issuer-info p { font-size: 0.78rem; color: var(--muted); }
-
-    /* Posted */
-    .posted { font-size: 0.75rem; color: var(--muted); margin-top: 20px; text-align: center; }
-
-    /* Admin controls */
-    .admin-controls { display: none; background: #fff5f5; border: 1px solid #fecaca; border-radius: 10px; padding: 16px; margin-bottom: 16px; }
-    .admin-controls h2 { font-size: 0.9rem; font-weight: 700; color: #dc3545; margin-bottom: 10px; }
-    .admin-controls p { font-size: 0.82rem; color: var(--muted); margin-bottom: 12px; }
-    .admin-btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
-    .btn-admin { padding: 7px 16px; border-radius: 6px; font-family: inherit; font-size: 0.8rem; font-weight: 600; cursor: pointer; border: 1.5px solid var(--border); background: var(--card); color: var(--font); transition: all 0.15s; }
-    .btn-admin:hover { border-color: var(--accent); color: var(--accent); }
-    .btn-admin.danger { border-color: #dc3545; color: #dc3545; }
-    .btn-admin.danger:hover { background: #dc3545; color: #fff; }
-    .btn-admin.primary { border-color: var(--accent); background: var(--accent); color: #fff; }
-    .btn-admin.primary:hover { opacity: 0.9; }
-
-    .contact-links-list { display: flex; flex-direction: column; gap: 4px; }
-    .contact-link {
-      font-size: 0.85rem; color: var(--accent); text-decoration: none;
-      word-break: break-all; transition: opacity 0.15s;
-    }
-    .contact-link:hover { opacity: 0.7; text-decoration: underline; }
-    .contact-link-text {
-      font-size: 0.85rem; color: var(--font); word-break: break-all;
-    }
+    .d-detail-header{padding-bottom:30px;border-bottom:1px solid var(--border)}
+    .d-detail-kicker{display:flex;align-items:center;gap:8px;margin-bottom:14px;color:var(--fg-tertiary);font-size:.72rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+    .d-detail-kicker .d-detail-type{margin:0}.d-detail-dot{color:var(--accent)}
+    .d-detail-issuer{display:flex;align-items:center;gap:9px;margin:0}.d-detail-issuer-mark{display:grid;place-items:center;width:30px;height:30px;border-radius:50%;background:var(--fg-primary);color:var(--bg-secondary);font-size:.64rem;font-weight:700}
+    .d-detail-story{padding:25px 0;border-top:1px solid var(--border)}.d-detail-story:first-child{border-top:0;padding-top:0}
+    .d-detail-section-heading{display:flex;align-items:center;gap:12px;margin-bottom:15px}.d-detail-eyebrow{color:var(--fg-tertiary);font-size:.68rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase}.d-detail-rule{width:40px;height:1px;background:var(--accent)}
+    .d-detail-facts{display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+    .d-detail-fact{padding:15px 16px 16px 0;min-width:0}.d-detail-fact+.d-detail-fact{padding-left:16px;border-left:1px solid var(--border)}.d-detail-fact .d-detail-info-label{margin-bottom:5px}.d-detail-fact .d-detail-info-value{line-height:1.45}
+    .d-detail-contact{padding:20px;border-radius:var(--radius-lg);background:var(--fg-primary);color:var(--bg-secondary)}.d-detail-contact h2{margin-bottom:8px;font-size:.86rem}.d-detail-contact p{margin-bottom:14px;color:#aaa39d;font-size:.78rem}.d-detail-contact a{display:block;padding:9px 11px;margin-top:5px;border-radius:var(--radius-sm);background:rgba(255,255,255,.1);color:#fff;font-size:.82rem;word-break:break-all}.d-detail-contact a:hover{background:rgba(255,255,255,.18)}
+    .d-admin{display:none;padding:18px;border:1px solid #fecaca;border-radius:var(--radius-md);background:#fff5f5}.d-admin h2{margin-bottom:8px;color:#dc3545;font-size:.86rem}.d-admin p{margin-bottom:12px;color:var(--fg-secondary);font-size:.78rem}.d-admin-row{display:flex;gap:8px;flex-wrap:wrap}.d-admin button{padding:7px 13px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-secondary);font:600 .78rem var(--font-family);cursor:pointer}.d-admin button:hover{border-color:var(--accent);color:var(--accent)}.d-admin .danger{border-color:#dc3545;color:#dc3545}
+    @media(max-width:640px){.d-detail-facts{display:block}.d-detail-fact{padding:13px 0}.d-detail-fact+.d-detail-fact{padding-left:0;border-top:1px solid var(--border);border-left:0}}
   </style>
 </head>
 <body>
-
-  <div class="page" data-scale-target="600">
-    <div class="header">
-      <a href="/feed" class="back-link">← Back to feed</a>
-      <a href="/feed" class="logo">LARPABLE.</a>
-      <div id="header-actions"></div>
-    </div>
-
-    <div class="opp-header">
-      <div class="badge" id="opp-badge"></div>
-      <h1 class="opp-title" id="opp-title">Loading...</h1>
-      <div class="opp-issuer" id="opp-issuer"></div>
-    </div>
-
-    <div class="meta-grid" id="meta-grid"></div>
-
-    <hr class="divider">
-
-    <div class="section" id="desc-section">
-      <h2>Description</h2>
-      <p id="opp-description"></p>
-    </div>
-
-    <hr class="divider">
-
-    <div class="section" id="looking-for-section" style="display:none;">
-      <h2>Looking for</h2>
-      <p id="opp-looking-for"></p>
-    </div>
-
-    <div class="section" id="skills-section">
-      <h2>Skills</h2>
-      <div class="skill-tags" id="opp-skills"></div>
-    </div>
-
-    <hr class="divider" id="details-divider" style="display:none;">
-
-    <div class="section" id="details-section" style="display:none;">
-      <h2>Additional details</h2>
-      <p id="opp-details"></p>
-    </div>
-
-    <hr class="divider">
-
-    <div class="section">
-      <h2>Contact / Sign-up Link</h2>
-      <div class="issuer-card">
-        <div class="issuer-avatar" id="opp-initials"></div>
-        <div class="issuer-info">
-          <h3 id="opp-contact-name"></h3>
-          <div id="opp-contact-links" class="contact-links-list"></div>
-        </div>
-      </div>
-    </div>
-
-    <div class="posted" id="opp-posted"></div>
-
-    <!-- Admin controls (only visible for admin on expanded view) -->
-    <div class="admin-controls" id="admin-controls">
-      <h2>Admin Controls</h2>
-      <p>This opportunity can be managed from here.</p>
-      <div class="admin-btn-row">
-        <button class="btn-admin primary" id="admin-edit-btn" onclick="adminEdit()">Edit</button>
-        <button class="btn-admin danger" id="admin-delete-btn" onclick="adminDelete()">Delete</button>
-        <button class="btn-admin" id="admin-viewuser-btn" onclick="adminViewUser()">View User</button>
-      </div>
-    </div>
-
-    <!-- Delete confirmation modal -->
-    <div id="admin-delete-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.45);z-index:1000;justify-content:center;align-items:center;padding:20px;">
-      <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;max-width:400px;width:100%;padding:24px;box-shadow:0 8px 32px rgba(0,0,0,0.15);">
-        <h3 style="font-size:1rem;font-weight:700;margin-bottom:8px;color:#dc3545;">Delete Opportunity?</h3>
-        <p style="font-size:0.85rem;color:var(--muted);margin-bottom:20px;">This will permanently remove this opportunity. This action cannot be undone.</p>
-        <div style="display:flex;gap:8px;">
-          <button class="btn-admin" onclick="document.getElementById('admin-delete-modal').style.display='none'" style="flex:1;">Cancel</button>
-          <button class="btn-admin danger" onclick="confirmAdminDelete()" style="flex:1;">Yes, delete</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
+  <header class="d-header"><a href="/feed" class="d-logo">LARPABLE.</a><div class="d-header-right"><a href="/create_student" class="d-btn d-btn-sm d-btn-accent">+ Create</a><div id="header-actions"></div></div></header>
+  <main class="d-detail" id="detail"><div class="d-empty">Loading opportunity...</div></main>
+  <script src="/user-dropdown.js"></script>
   <script>
-    let oppData = null;
-    let isAdmin = false;
-
-    function esc(str) { if (!str) return ''; const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
+    const esc = value => { const d = document.createElement('div'); d.textContent = value == null ? '' : String(value); return d.innerHTML; };
+    const text = value => value == null ? '' : String(value);
+    const linkValue = link => typeof link === 'string' ? link : (link && (link.url || link.href || link.label)) || '';
+    const posted = iso => { if (!iso) return ''; const diff = Date.now() - new Date(iso).getTime(); if (!Number.isFinite(diff)) return ''; const mins = Math.floor(diff / 60000); if (mins < 1) return 'Posted just now'; if (mins < 60) return `Posted ${mins}m ago`; const hours = Math.floor(mins / 60); if (hours < 24) return `Posted ${hours}h ago`; const days = Math.floor(hours / 24); return `Posted ${days}d ago`; };
+    const initials = name => text(name).trim().split(/\s+/).map(part => part[0]).join('').slice(0, 2).toUpperCase() || '?';
 
     (async () => {
-      const params = new URLSearchParams(window.location.search);
-      const id = params.get('id');
-      if (!id) return;
-
+      const id = new URLSearchParams(location.search).get('id');
+      const root = document.getElementById('detail');
+      if (!id) { root.innerHTML = '<div class="d-empty">Opportunity not found.</div>'; return; }
       try {
-        const res = await fetch('/api/opportunities/' + id, { credentials: 'same-origin' });
-        if (!res.ok) return;
-        const data = await res.json();
-        const f = data.fields || {};
+        const response = await fetch('/api/opportunities/' + encodeURIComponent(id), { credentials: 'same-origin' });
+        if (!response.ok) { root.innerHTML = '<div class="d-empty">Opportunity not found.</div>'; return; }
+        const data = await response.json();
+        const fields = data.fields || {};
         const issuer = data.issuer || {};
-        const type = data.type || 'project';
-
-        // Badge
-        const badge = document.getElementById('opp-badge');
-        if (type === 'project') { badge.textContent = 'Project'; badge.className = 'badge badge-project'; }
-        else if (type === 'nonprofit') { badge.textContent = 'Non-profit'; badge.className = 'badge badge-nonprofit'; }
-        else if (type === 'company') { badge.textContent = 'Company'; badge.className = 'badge badge-company'; }
-
-        // Title
-        document.getElementById('opp-title').textContent = f.title || 'Untitled';
-
-        // Issuer
-        const issuerName = issuer.name || f.issuer_name || 'Unknown';
-        const issuerCtx = f.issuer_context || '';
-        document.getElementById('opp-issuer').innerHTML = `Posted by <strong>${esc(issuerName)}</strong>${issuerCtx ? ' · ' + esc(issuerCtx) : ''}`;
-
-        // Meta grid — build dynamically
-        const metaHtml = [];
-        metaHtml.push(`<div class="meta-card"><div class="label">Location</div><div class="value">${esc(f.location || '—')}</div></div>`);
-
-        if (type === 'nonprofit' && f.nonprofit_field) {
-          metaHtml.push(`<div class="meta-card"><div class="label">Field</div><div class="value">${esc(f.nonprofit_field)}</div></div>`);
+        const kind = data.type || 'project';
+        const name = issuer.name || fields.issuer_name || 'Unknown';
+        const field = fields.industry || fields.nonprofit_field || fields.field || '';
+        const location = typeof fields.location === 'object' ? (fields.location.display || [fields.location.city, fields.location.state, fields.location.country].filter(Boolean).join(', ')) : fields.location;
+        const links = (Array.isArray(fields.contact_links) ? fields.contact_links : (fields.contact ? [fields.contact] : [])).map(linkValue).filter(Boolean);
+        const typeLabel = { project: 'Project', nonprofit: 'Nonprofit', company: 'Company' }[kind] || kind;
+        const skills = Array.isArray(fields.skills) ? fields.skills : [];
+        document.title = 'LARPABLE. — ' + (fields.title || 'Opportunity');
+        root.innerHTML = `
+          <a class="d-detail-back" href="/feed">← Back to feed</a>
+          <section class="d-detail-header">
+            <div class="d-detail-kicker"><span class="d-detail-type d-badge d-badge--${esc(kind)}">${esc(typeLabel)}</span><span class="d-detail-dot">·</span><span>${esc(fields.industry || fields.nonprofit_field || 'Student-led')}</span></div>
+            <h1 class="d-detail-title">${esc(fields.title || 'Untitled opportunity')}</h1>
+            <div class="d-detail-issuer"><span class="d-detail-issuer-mark">${esc(initials(name))}</span><span>Posted by <strong>${esc(name)}</strong>${fields.issuer_context ? ' · ' + esc(fields.issuer_context) : ''}</span></div>
+          </section>
+          <section class="d-detail-story"><div class="d-detail-section-heading"><span class="d-detail-eyebrow">About this opportunity</span><span class="d-detail-rule"></span></div><p class="d-detail-desc">${esc(fields.description || 'No description provided.')}</p></section>
+          ${fields.looking_for ? `<section class="d-detail-looking-for"><div class="d-detail-looking-for-label">◉ &nbsp;Looking for</div><div class="d-detail-looking-for-value">${esc(fields.looking_for)}</div></section>` : ''}
+          ${skills.length ? `<section class="d-detail-story"><div class="d-detail-section-heading"><span class="d-detail-eyebrow">Skills needed</span><span class="d-detail-rule"></span></div><div class="d-detail-skills">${skills.map(skill => `<span class="d-chip">${esc(skill)}</span>`).join('')}</div></section>` : ''}
+          ${fields.details ? `<section class="d-detail-story"><div class="d-detail-section-heading"><span class="d-detail-eyebrow">Additional details</span><span class="d-detail-rule"></span></div><p class="d-detail-desc">${esc(fields.details)}</p></section>` : ''}
+          <section class="d-detail-story"><div class="d-detail-section-heading"><span class="d-detail-eyebrow">Details</span><span class="d-detail-rule"></span></div><div class="d-detail-facts"><div class="d-detail-fact"><div class="d-detail-info-label">Location</div><div class="d-detail-info-value">${esc(location || 'Remote')}${fields.remote ? '<span class="d-detail-fact-note">Remote OK</span>' : ''}</div></div><div class="d-detail-fact"><div class="d-detail-info-label">${kind === 'nonprofit' ? 'Field' : 'Industry'}</div><div class="d-detail-info-value">${esc(field || '—')}</div></div><div class="d-detail-fact"><div class="d-detail-info-label">Posted</div><div class="d-detail-info-value">${esc(posted(data.created_at).replace(/^Posted /, '') || '—')}</div></div></div></section>
+          <section class="d-detail-story"><div class="d-detail-contact"><h2>Contact / sign-up</h2><p>Reach out to the person behind this opportunity.</p><div>${links.length ? links.map(link => /^https?:\/\//i.test(link) ? `<a href="${esc(link)}" target="_blank" rel="noopener">${esc(link)}</a>` : `<a href="mailto:${esc(link)}">${esc(link)}</a>`).join('') : '<span>No contact link provided.</span>'}</div></div></section>
+          <section class="d-admin" id="admin-controls"><h2>Admin controls</h2><p>This opportunity can be managed from here.</p><div class="d-admin-row"><button id="admin-edit">Edit</button><button class="danger" id="admin-delete">Delete</button><button id="admin-user">View user</button></div></section>`;
+        const auth = await fetch('/api/auth/me', { credentials: 'include' });
+        const authData = auth.ok ? await auth.json() : {};
+        if (authData.user?.role === 'admin') {
+          document.getElementById('admin-controls').style.display = 'block';
+          document.getElementById('admin-edit').onclick = () => { location.href = `/create_student?type=${encodeURIComponent(kind)}&edit=${encodeURIComponent(data.id)}`; };
+          document.getElementById('admin-user').onclick = () => { if (data.created_by) location.href = `/admin_user?id=${encodeURIComponent(data.created_by)}`; };
+          document.getElementById('admin-delete').onclick = async () => { if (!confirm('Delete this opportunity?')) return; const result = await fetch('/api/opportunities/' + encodeURIComponent(data.id), { method: 'DELETE', credentials: 'include' }); if (result.ok) location.href = '/feed'; else alert('Failed to delete opportunity.'); };
         }
-        if (type === 'company' && f.industry) {
-          metaHtml.push(`<div class="meta-card"><div class="label">Industry</div><div class="value">${esc(f.industry)}</div></div>`);
-        }
-
-        document.getElementById('meta-grid').innerHTML = metaHtml.join('');
-
-        // Description
-        document.getElementById('opp-description').textContent = f.description || '';
-
-        // Looking for (project type)
-        if (type === 'project' && f.looking_for) {
-          document.getElementById('looking-for-section').style.display = 'block';
-          document.getElementById('opp-looking-for').textContent = f.looking_for;
-        }
-
-        // Skills
-        const skills = f.skills || [];
-        if (skills.length > 0) {
-          document.getElementById('opp-skills').innerHTML = skills.map(s => `<span class="skill-tag">${esc(s)}</span>`).join('');
-        } else {
-          document.getElementById('skills-section').style.display = 'none';
-        }
-
-        // Details
-        if (f.details) {
-          document.getElementById('details-divider').style.display = 'block';
-          document.getElementById('details-section').style.display = 'block';
-          document.getElementById('opp-details').textContent = f.details;
-        }
-
-        // Contact links
-        const contactName = issuer.name || issuerName;
-        const initials = contactName.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
-        document.getElementById('opp-initials').textContent = initials;
-        document.getElementById('opp-contact-name').textContent = contactName;
-        const linksContainer = document.getElementById('opp-contact-links');
-        const links = Array.isArray(f.contact_links) ? f.contact_links : (f.contact ? [f.contact] : []);
-        if (links.length === 0) { linksContainer.textContent = ''; }
-        else { linksContainer.innerHTML = links.map(l => {
-          const isUrl = /^https?:\/\//.test(l);
-          return isUrl ? '<a href="' + esc(l) + '" target="_blank" rel="noopener" class="contact-link">' + esc(l) + '</a>' : '<span class="contact-link-text">' + esc(l) + '</span>';
-        }).join(''); }
-
-        // Posted
-        if (data.created_at) {
-          const diff = Date.now() - new Date(data.created_at).getTime();
-          const mins = Math.floor(diff / 60000);
-          let posted = 'Just now';
-          if (mins >= 1 && mins < 60) posted = mins + 'm ago';
-          else if (mins >= 60 && mins < 1440) posted = Math.floor(mins / 60) + 'h ago';
-          else if (mins >= 1440) posted = Math.floor(mins / 1440) + ' days ago';
-          document.getElementById('opp-posted').textContent = 'Posted ' + posted;
-        }
-
-        // Update page title
-        document.title = 'LARPABLE. — ' + (f.title || 'Opportunity');
-
-        // Store opportunity data for admin actions
-        oppData = data;
-
-        // Check if admin and show controls
-        try {
-          const authRes = await fetch('/api/auth/me', { credentials: 'include' });
-          if (authRes.ok) {
-            const authData = await authRes.json();
-            isAdmin = authData.user && authData.user.role === 'admin';
-            if (isAdmin) {
-              document.getElementById('admin-controls').style.display = 'block';
-            }
-          }
-        } catch {}
-
-      } catch (e) {
-        console.error('Failed to load opportunity:', e);
-      }
+      } catch (error) { console.error('Failed to load opportunity:', error); root.innerHTML = '<div class="d-empty">Could not load this opportunity.</div>'; }
     })();
-
-    function adminEdit() {
-      if (!oppData) return;
-      window.location.href = '/create_student?type=' + oppData.type + '&edit=' + oppData.id;
-    }
-
-    function adminDelete() {
-      document.getElementById('admin-delete-modal').style.display = 'flex';
-    }
-
-    async function confirmAdminDelete() {
-      if (!oppData) return;
-      try {
-        const res = await fetch('/api/opportunities/' + oppData.id, { method: 'DELETE', credentials: 'include' });
-        if (res.ok) { window.location.href = '/feed'; }
-        else { alert('Failed to delete.'); }
-      } catch { alert('Network error.'); }
-    }
-
-    function adminViewUser() {
-      if (!oppData || !oppData.created_by) return;
-      window.location.href = '/admin_user?id=' + oppData.created_by;
-    }
-
-    // Close delete modal on overlay click
-    document.getElementById('admin-delete-modal').addEventListener('click', (e) => {
-      if (e.target.id === 'admin-delete-modal') e.target.style.display = 'none';
-    });
   </script>
-  <script src="/user-dropdown.js"></script>
-  <script src="/scaling.js"></script>
-
 </body>
 </html>

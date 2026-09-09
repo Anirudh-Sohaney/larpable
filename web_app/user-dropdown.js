@@ -40,13 +40,7 @@
     .ud-menu .ud-danger { color: #dc3545; }
     .ud-menu .ud-danger:hover { background: rgba(220,53,69,0.06); }
     .ud-divider { height: 1px; background: var(--border, #D6D1C9); margin: 0; }
-    .ud-staff-btn {
-      display: inline-block; padding: 5px 12px; border-radius: 6px; border: 1.5px solid var(--accent, #E8734A);
-      background: var(--accent, #E8734A); color: #fff; font-family: inherit;
-      font-size: 0.8rem; font-weight: 600; cursor: pointer; text-decoration: none;
-      transition: opacity 0.15s; margin-right: 8px;
-    }
-    .ud-staff-btn:hover { opacity: 0.9; }
+    .ud-staff-btn { color: var(--accent, #E8734A); font-weight: 600; }
   `;
 
   function injectStyles() {
@@ -100,11 +94,10 @@
     // Build dropdown - hide Profile for admin
     const profileLink = displayName === 'Admin' ? '' : '<a href="/profile">Profile</a>';
     
-    // Staff button - only show if user has staff access
-    const staffButton = hasStaffAccess ? '<a href="/staff" class="ud-staff-btn">Staff</a>' : '';
+    // Staff link — only show if user has staff access
+    const staffLink = hasStaffAccess ? '<a href="/staff" class="ud-staff-btn">Staff Portal</a>' : '';
     
     container.innerHTML = `
-      ${staffButton}
       <div class="ud-wrap" id="ud-wrap">
         <button class="ud-btn" id="ud-btn" type="button">
           <span id="ud-name">${esc(displayName)}</span>
@@ -112,6 +105,7 @@
         </button>
         <div class="ud-menu" id="ud-menu">
           ${profileLink}
+          ${staffLink}
           <div class="ud-divider"></div>
           <button class="ud-danger" id="ud-logout">Log out</button>
         </div>

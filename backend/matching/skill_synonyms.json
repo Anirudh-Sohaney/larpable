@@ -1,0 +1,830 @@
+{
+  "version": 1,
+  "source": "hardcoded canonical skill synonym database",
+  "vectorized": false,
+  "synonyms": {
+    "Lab Methods": [
+      "laboratory methods",
+      "lab techniques",
+      "bench work",
+      "experimental techniques",
+      "lab skills"
+    ],
+    "Field Research": [
+      "fieldwork",
+      "field study",
+      "onsite research",
+      "field investigation",
+      "outdoor research"
+    ],
+    "Microscopy": [
+      "microscope",
+      "microscopic analysis",
+      "light microscopy",
+      "electron microscopy",
+      "microscope work"
+    ],
+    "Genetics": [
+      "genomics",
+      "gene research",
+      "genetic analysis",
+      "heredity",
+      "DNA analysis"
+    ],
+    "Ecology": [
+      "ecosystems",
+      "ecological science",
+      "environmental biology",
+      "habitat science",
+      "ecosystem research"
+    ],
+    "Chemistry": [
+      "chemical science",
+      "chemical analysis",
+      "molecular chemistry",
+      "organic chemistry",
+      "chem lab"
+    ],
+    "Physics": [
+      "physical science",
+      "mechanics physics",
+      "theoretical physics",
+      "applied physics",
+      "physics research"
+    ],
+    "Scientific Writing": [
+      "science writing",
+      "research writing",
+      "academic writing",
+      "technical papers",
+      "journal writing"
+    ],
+    "Research": [
+      "investigation",
+      "inquiry",
+      "literature review",
+      "research methods",
+      "information gathering",
+      "desk research",
+      "study design"
+    ],
+    "Programming": [
+      "coding",
+      "software development",
+      "Python",
+      "Java",
+      "JavaScript",
+      "TypeScript",
+      "C",
+      "C++",
+      "C#",
+      "Go",
+      "Rust",
+      "Ruby",
+      "PHP",
+      "Swift",
+      "Kotlin"
+    ],
+    "Web Development": [
+      "web design",
+      "website building",
+      "frontend",
+      "backend",
+      "web apps",
+      "HTML",
+      "CSS"
+    ],
+    "Mobile Development": [
+      "mobile apps",
+      "app development",
+      "iOS development",
+      "Android development",
+      "phone apps",
+      "Swift apps"
+    ],
+    "Databases": [
+      "database design",
+      "SQL",
+      "data storage",
+      "relational databases",
+      "NoSQL",
+      "database administration"
+    ],
+    "APIs": [
+      "API development",
+      "web services",
+      "REST",
+      "GraphQL",
+      "service integration",
+      "endpoint design"
+    ],
+    "Cybersecurity": [
+      "information security",
+      "network security",
+      "application security",
+      "cyber defense",
+      "ethical hacking",
+      "infosec"
+    ],
+    "Cloud Computing": [
+      "cloud architecture",
+      "cloud services",
+      "AWS",
+      "Azure",
+      "Google Cloud",
+      "cloud infrastructure",
+      "DevOps"
+    ],
+    "Git": [
+      "version control",
+      "GitHub",
+      "source control",
+      "code collaboration",
+      "repository management"
+    ],
+    "CAD": [
+      "computer aided design",
+      "CAD modeling",
+      "digital drafting",
+      "technical CAD",
+      "3D CAD"
+    ],
+    "Prototyping": [
+      "rapid prototyping",
+      "prototype design",
+      "proof of concept",
+      "mockups",
+      "product prototypes",
+      "MVP building"
+    ],
+    "Robotics": [
+      "robot design",
+      "robot building",
+      "automation",
+      "robot programming",
+      "mechatronics",
+      "robotics engineering"
+    ],
+    "Electronics": [
+      "electronic design",
+      "circuits",
+      "circuit design",
+      "electrical components",
+      "PCB design",
+      "hardware electronics"
+    ],
+    "Mechanics": [
+      "mechanical design",
+      "mechanical engineering",
+      "machines",
+      "mechanical systems",
+      "motion systems"
+    ],
+    "3D Printing": [
+      "additive manufacturing",
+      "FDM printing",
+      "resin printing",
+      "rapid fabrication",
+      "3D fabrication",
+      "maker printing"
+    ],
+    "Systems Design": [
+      "system architecture",
+      "systems engineering",
+      "solution design",
+      "technical architecture",
+      "system planning"
+    ],
+    "Technical Drawing": [
+      "drafting",
+      "engineering drawings",
+      "blueprints",
+      "technical illustration",
+      "design drawings"
+    ],
+    "Statistics": [
+      "statistical analysis",
+      "data statistics",
+      "probability",
+      "quantitative analysis",
+      "statistical methods",
+      "biostatistics"
+    ],
+    "Data Analysis": [
+      "data analytics",
+      "data interpretation",
+      "data cleaning",
+      "business intelligence",
+      "quantitative research",
+      "analytics"
+    ],
+    "Data Visualization": [
+      "data charts",
+      "data dashboards",
+      "information visualization",
+      "visual analytics",
+      "graphs",
+      "data presentation"
+    ],
+    "Linear Algebra": [
+      "matrix algebra",
+      "vector math",
+      "linear equations",
+      "matrix theory",
+      "vector spaces"
+    ],
+    "Calculus": [
+      "differential calculus",
+      "integral calculus",
+      "derivatives",
+      "integrals",
+      "calculus math"
+    ],
+    "Modeling": [
+      "mathematical modeling",
+      "simulation",
+      "predictive modeling",
+      "systems modeling",
+      "model development",
+      "forecasting"
+    ],
+    "Data Mining": [
+      "data discovery",
+      "pattern mining",
+      "knowledge discovery",
+      "machine learning",
+      "predictive analytics",
+      "feature extraction"
+    ],
+    "Spreadsheets": [
+      "Excel",
+      "Google Sheets",
+      "spreadsheet modeling",
+      "worksheet formulas",
+      "tables",
+      "spreadsheet analysis"
+    ],
+    "Patient Care": [
+      "patient support",
+      "clinical care",
+      "caregiving",
+      "bedside care",
+      "patient services"
+    ],
+    "Clinical Research": [
+      "clinical trials",
+      "medical research",
+      "clinical studies",
+      "health research",
+      "trial coordination"
+    ],
+    "Public Health": [
+      "community health",
+      "population health",
+      "health promotion",
+      "public medicine",
+      "health programs"
+    ],
+    "Epidemiology": [
+      "disease tracking",
+      "outbreak investigation",
+      "population epidemiology",
+      "disease surveillance",
+      "health statistics"
+    ],
+    "Anatomy": [
+      "human anatomy",
+      "body systems",
+      "anatomical science",
+      "structural biology",
+      "anatomy study"
+    ],
+    "Medical Writing": [
+      "clinical writing",
+      "health writing",
+      "medical documentation",
+      "medical communication",
+      "patient education writing"
+    ],
+    "First Aid": [
+      "CPR",
+      "emergency care",
+      "basic life support",
+      "first response",
+      "emergency first aid"
+    ],
+    "Nutrition": [
+      "nutrition science",
+      "diet planning",
+      "food and health",
+      "dietetics",
+      "nutritional counseling"
+    ],
+    "Strategy": [
+      "business strategy",
+      "strategic planning",
+      "competitive strategy",
+      "organizational strategy",
+      "long term planning",
+      "strategic thinking"
+    ],
+    "Product Planning": [
+      "product management",
+      "product strategy",
+      "roadmapping",
+      "product development",
+      "product discovery"
+    ],
+    "Project Planning": [
+      "project management",
+      "project coordination",
+      "project scheduling",
+      "delivery planning",
+      "program management"
+    ],
+    "Operations": [
+      "business operations",
+      "process management",
+      "workflow design",
+      "operational planning",
+      "administration"
+    ],
+    "Market Research": [
+      "market analysis",
+      "customer research",
+      "competitive research",
+      "consumer insights",
+      "market study"
+    ],
+    "Sales": [
+      "selling",
+      "business development",
+      "sales strategy",
+      "client acquisition",
+      "account growth"
+    ],
+    "Customer Research": [
+      "user research",
+      "customer insights",
+      "user interviews",
+      "UX research",
+      "customer discovery"
+    ],
+    "Entrepreneurship": [
+      "startup building",
+      "founding",
+      "venture creation",
+      "business creation",
+      "new ventures",
+      "startup strategy"
+    ],
+    "Financial Modeling": [
+      "finance modeling",
+      "financial forecasting",
+      "valuation models",
+      "forecast models",
+      "investment modeling"
+    ],
+    "Accounting": [
+      "bookkeeping",
+      "financial accounting",
+      "ledger management",
+      "accounts",
+      "accounting systems"
+    ],
+    "Budgeting": [
+      "budget planning",
+      "financial planning",
+      "cost planning",
+      "expense tracking",
+      "budget management"
+    ],
+    "Investing": [
+      "investment analysis",
+      "portfolio management",
+      "stock analysis",
+      "asset allocation",
+      "capital investing"
+    ],
+    "Economics": [
+      "economic analysis",
+      "microeconomics",
+      "macroeconomics",
+      "economic research",
+      "market economics"
+    ],
+    "Risk Analysis": [
+      "risk assessment",
+      "risk management",
+      "threat analysis",
+      "financial risk",
+      "hazard analysis"
+    ],
+    "Bookkeeping": [
+      "accounts payable",
+      "accounts receivable",
+      "transaction records",
+      "financial records",
+      "ledger bookkeeping"
+    ],
+    "Auditing": [
+      "financial audit",
+      "internal audit",
+      "compliance audit",
+      "accounts audit",
+      "assurance"
+    ],
+    "Legal Research": [
+      "case research",
+      "law research",
+      "statute research",
+      "legal analysis",
+      "case law"
+    ],
+    "Policy Analysis": [
+      "policy research",
+      "public policy",
+      "legislative analysis",
+      "regulatory analysis",
+      "policy evaluation"
+    ],
+    "Advocacy": [
+      "activism",
+      "cause advocacy",
+      "public campaigning",
+      "rights advocacy",
+      "community advocacy"
+    ],
+    "Mediation": [
+      "conflict resolution",
+      "dispute resolution",
+      "facilitated negotiation",
+      "conciliation",
+      "settlement work"
+    ],
+    "Compliance": [
+      "regulatory compliance",
+      "risk compliance",
+      "standards compliance",
+      "governance",
+      "compliance review"
+    ],
+    "Civic Organizing": [
+      "community organizing",
+      "grassroots organizing",
+      "civic action",
+      "public mobilization",
+      "organizing campaigns"
+    ],
+    "Public Speaking": [
+      "presentations",
+      "oral communication",
+      "speechmaking",
+      "speaking",
+      "lecture delivery"
+    ],
+    "Ethics": [
+      "moral philosophy",
+      "applied ethics",
+      "professional ethics",
+      "ethical reasoning",
+      "moral reasoning"
+    ],
+    "Teaching": [
+      "instruction",
+      "educating",
+      "classroom teaching",
+      "lesson delivery",
+      "teacher training"
+    ],
+    "Curriculum Design": [
+      "curriculum development",
+      "course design",
+      "lesson planning",
+      "learning programs",
+      "syllabus design"
+    ],
+    "Facilitation": [
+      "group facilitation",
+      "workshop facilitation",
+      "meeting facilitation",
+      "discussion leading",
+      "collaboration sessions"
+    ],
+    "Tutoring": [
+      "academic tutoring",
+      "subject tutoring",
+      "one on one teaching",
+      "homework help",
+      "study coaching"
+    ],
+    "Mentoring": [
+      "coaching",
+      "career mentoring",
+      "peer mentoring",
+      "guidance",
+      "advising"
+    ],
+    "Instructional Design": [
+      "e-learning design",
+      "learning design",
+      "training design",
+      "course development",
+      "educational technology"
+    ],
+    "Education Research": [
+      "educational studies",
+      "learning research",
+      "pedagogy research",
+      "school research",
+      "education evaluation"
+    ],
+    "Assessment": [
+      "student assessment",
+      "testing",
+      "evaluation",
+      "grading",
+      "learning assessment"
+    ],
+    "Illustration": [
+      "drawing",
+      "digital illustration",
+      "concept art",
+      "sketching",
+      "visual drawing"
+    ],
+    "Graphic Design": [
+      "visual design",
+      "communication design",
+      "layout design",
+      "graphic arts",
+      "brand graphics"
+    ],
+    "Typography": [
+      "type design",
+      "lettering",
+      "font design",
+      "typographic layout",
+      "typeface selection"
+    ],
+    "Photography": [
+      "photo taking",
+      "digital photography",
+      "portrait photography",
+      "photo composition",
+      "camera work"
+    ],
+    "Video Editing": [
+      "film editing",
+      "post production",
+      "video cutting",
+      "Premiere editing",
+      "media editing"
+    ],
+    "Animation": [
+      "motion design",
+      "2D animation",
+      "3D animation",
+      "animated graphics",
+      "character animation"
+    ],
+    "Music Production": [
+      "music recording",
+      "audio production",
+      "beat making",
+      "song production",
+      "music engineering"
+    ],
+    "Art Direction": [
+      "creative direction",
+      "visual direction",
+      "art supervision",
+      "creative leadership",
+      "design direction"
+    ],
+    "Copywriting": [
+      "marketing writing",
+      "advertising writing",
+      "brand writing",
+      "sales copy",
+      "content copy"
+    ],
+    "Creative Writing": [
+      "fiction writing",
+      "poetry",
+      "screenwriting",
+      "creative nonfiction",
+      "story writing"
+    ],
+    "Storytelling": [
+      "narrative",
+      "story craft",
+      "oral storytelling",
+      "narrative communication",
+      "story development"
+    ],
+    "History Research": [
+      "historical research",
+      "history studies",
+      "historical analysis",
+      "past studies",
+      "archival history"
+    ],
+    "Philosophy": [
+      "philosophical studies",
+      "critical philosophy",
+      "logic",
+      "theory",
+      "philosophical analysis"
+    ],
+    "Cultural Analysis": [
+      "cultural studies",
+      "culture research",
+      "social analysis",
+      "cultural criticism",
+      "cross cultural analysis"
+    ],
+    "Linguistics": [
+      "language science",
+      "language analysis",
+      "phonetics",
+      "syntax",
+      "semantics"
+    ],
+    "Translation": [
+      "language translation",
+      "localization",
+      "interpreting",
+      "bilingual writing",
+      "translation services"
+    ],
+    "Archival Research": [
+      "archives",
+      "archival studies",
+      "document research",
+      "records research",
+      "historical archives"
+    ],
+    "Conservation": [
+      "conservation science",
+      "habitat conservation",
+      "wildlife protection",
+      "preservation",
+      "natural resource protection"
+    ],
+    "Climate Science": [
+      "climate research",
+      "climate studies",
+      "global warming science",
+      "climate analysis",
+      "atmospheric science"
+    ],
+    "Horticulture": [
+      "plant cultivation",
+      "garden design",
+      "plant science",
+      "gardening",
+      "nursery work"
+    ],
+    "Food Systems": [
+      "food supply",
+      "food production",
+      "food sustainability",
+      "agri-food",
+      "food networks"
+    ],
+    "Sports Coaching": [
+      "athletic coaching",
+      "team coaching",
+      "sports training",
+      "coach",
+      "athlete development"
+    ],
+    "Fitness Training": [
+      "personal training",
+      "exercise coaching",
+      "strength training",
+      "workout planning",
+      "physical training"
+    ],
+    "Wilderness Skills": [
+      "outdoor skills",
+      "survival skills",
+      "backcountry skills",
+      "bushcraft",
+      "wilderness survival"
+    ],
+    "Baking": [
+      "pastry",
+      "bread baking",
+      "cake baking",
+      "baked goods",
+      "baking skills"
+    ],
+    "3D Modeling": [
+      "three dimensional modeling",
+      "3D design",
+      "digital modeling",
+      "mesh modeling",
+      "CG modeling"
+    ],
+    "Catering": [
+      "event catering",
+      "food service",
+      "catered events",
+      "banquet service",
+      "catering work"
+    ],
+    "Client Relations": [
+      "client service",
+      "account management",
+      "customer relations",
+      "client support",
+      "relationship management"
+    ],
+    "Cooking": [
+      "culinary skills",
+      "food preparation",
+      "meal cooking",
+      "kitchen skills",
+      "cuisine"
+    ],
+    "Documentation": [
+      "document writing",
+      "technical documentation",
+      "process documentation",
+      "record keeping",
+      "documentation writing"
+    ],
+    "Flight Simulation": [
+      "flight simulator",
+      "aviation simulation",
+      "simulated flying",
+      "pilot simulation",
+      "flight training simulation"
+    ],
+    "French": [
+      "French language",
+      "français",
+      "speaking French",
+      "French translation",
+      "French fluency"
+    ],
+    "Japanese": [
+      "Japanese language",
+      "日本語",
+      "speaking Japanese",
+      "Japanese translation",
+      "Japanese fluency"
+    ],
+    "Mandarin": [
+      "Mandarin Chinese",
+      "Chinese language",
+      "中文",
+      "speaking Mandarin",
+      "Mandarin fluency"
+    ],
+    "Pitch Decks": [
+      "pitch presentations",
+      "investor decks",
+      "startup presentations",
+      "fundraising decks",
+      "pitch slides"
+    ],
+    "Quality Assurance": [
+      "QA",
+      "software testing",
+      "quality control",
+      "test engineering",
+      "testing"
+    ],
+    "SEO": [
+      "search engine optimization",
+      "organic search",
+      "search ranking",
+      "web optimization",
+      "SEO marketing"
+    ],
+    "Spanish": [
+      "Spanish language",
+      "español",
+      "speaking Spanish",
+      "Spanish translation",
+      "Spanish fluency"
+    ],
+    "Woodworking": [
+      "wood craft",
+      "carpentry",
+      "wood fabrication",
+      "wood shop",
+      "woodworking skills"
+    ],
+    "Agriculture": [
+      "gardening",
+      "farming",
+      "cultivation",
+      "horticulture",
+      "agronomy"
+    ]
+  }
+}

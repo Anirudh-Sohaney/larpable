@@ -1,156 +1,42 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>LARPABLE.</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
-
-  <style>
-    :root {
-      --bg-primary:    #f8f3ed;
-      --fg-primary:    #1e1b18;
-      --accent:        #ff6b6b;
-      --border:        #e4ded6;
-      --bg-secondary:  #ffffff;
-      --font-family:   'Space Grotesk', system-ui, sans-serif;
-      --radius-md:     10px;
-      --transition:    0.18s ease;
-    }
-
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-
-    body {
-      background: var(--bg-primary);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-      font-family: var(--font-family);
-      -webkit-font-smoothing: antialiased;
-      overflow-x: hidden;
-    }
-
-    .center {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-
-    .logo {
-      font-size: clamp(3rem, 8vw, 7rem);
-      font-weight: 700;
-      color: var(--accent);
-      letter-spacing: -0.04em;
-      transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
-    }
-
-    .logo.slide-up {
-      transform: translateY(-4vh);
-    }
-
-    .cursor {
-      display: inline-block;
-      width: 3px;
-      height: 1em;
-      background: var(--accent);
-      vertical-align: text-bottom;
-      margin-left: 2px;
-      animation: blink 0.6s step-end infinite;
-    }
-
-    .btn-wrap {
-      opacity: 0;
-      transform: translateY(20px);
-      transition: opacity 0.5s ease 0.2s,
-                  transform 0.5s ease 0.2s;
-    }
-
-    .btn-wrap.show {
-      opacity: 1;
-      transform: translateY(0);
-    }
-
-    .btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.4rem;
-      font-family: var(--font-family);
-      font-weight: 600;
-      font-size: 0.88rem;
-      letter-spacing: -0.01em;
-      border-radius: var(--radius-md);
-      border: 2px solid var(--border);
-      cursor: pointer;
-      transition: all var(--transition);
-      padding: 0.6rem 1.6rem;
-      text-decoration: none;
-      background: transparent;
-      color: var(--fg-primary);
-    }
-    .btn:hover { border-color: var(--fg-primary); background: var(--bg-secondary); }
-    .btn:active { transform: scale(0.97); }
-
-
-    @keyframes blink { 50% { opacity: 0; } }
-
-    
-  
-    @media (max-width: 480px) {
-      .logo { font-size: 1.7rem; }
-      .slogan { font-size: 0.65rem; }
-      .btn { padding: 9px 24px; font-size: 0.82rem; }
-    }
-    @media (max-width: 360px) {
-      .logo { font-size: 1.4rem; }
-      .btn { padding: 7px 20px; font-size: 0.78rem; }
-    }
-  </style>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LARPABLE. Find volunteering, passion projects &amp; college opportunities</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="/css/styles.css">
 </head>
-<body>
-  <div class="center">
-    <div class="logo">
-      <span id="typed"></span><span class="cursor" id="cursor"></span>
-    </div>
-    <div class="btn-wrap" id="btnWrap">
-      <a href="/login" class="btn">Log in</a>
-    </div>
-  </div>
+<body class="d-locked">
+  <div class="d-topbar" id="d-topbar"><nav class="d-topnav" id="d-topnav"><a href="/login" class="d-btn d-btn-sm">Log in</a><a href="/signup" class="d-btn d-btn-sm d-btn-accent">Sign up</a></nav></div>
+  <a href="#d-top" class="d-landing-logo" id="d-logo"><span id="typed"></span><span class="d-landing-cursor" id="cursor"></span></a>
+
+  <main class="d-hero" id="d-top">
+    <div class="d-hero-inner" id="d-hero"><h1 class="d-slogan">Find work<br>worth doing.</h1><p class="d-intro">Larpable connects students with student-led projects, nonprofits, and companies — so you graduate with a track record, not just a transcript.</p><div class="d-btn-wrap" id="d-btn-wrap"><a href="/signup" class="d-btn d-btn-accent">Sign up</a><a href="/login" class="d-btn">Log in</a></div></div>
+    <div class="d-cue" id="d-cue">Scroll<span>↓</span></div>
+    <figure class="d-hero-art" id="d-hero-art" aria-hidden="true" data-dot-src="/assets/hero-dots.png" data-dot-protect=".d-hero-inner" data-dot-min-width="200"><canvas id="d-dots" width="1375" height="1144"></canvas></figure>
+  </main>
+
+  <section class="d-sec d-sec--center d-sec--white"><div class="d-wrap"><div class="d-sec-head d-rise"><p class="d-eyebrow">How it works</p><h2 class="d-sec-title">Four steps, one afternoon.</h2></div><div class="d-steps"><div class="d-step d-rise"><div class="d-step-n">1</div><h3>Build a profile</h3><p>Skills, interests, and how much time you have. Roughly five minutes.</p></div><div class="d-step d-rise"><div class="d-step-n">2</div><h3>Post or browse</h3><p>List what you're building, or look through what needs building.</p></div><div class="d-step d-rise"><div class="d-step-n">3</div><h3>Get matched</h3><p>We rank fit on skills, interests, and how much time each side has.</p></div><div class="d-step d-rise"><div class="d-step-n">4</div><h3>Start the work</h3><p>Talk it through, agree on the scope, and get going.</p></div></div></div></section>
+
+  <section class="d-sec d-sec--left d-sec--has-art"><div class="d-wrap"><div class="d-sec-head d-rise"><p class="d-eyebrow">For students with initiatives</p><h2 class="d-sec-title">Post your passion project &amp; find student helpers</h2></div><div class="d-sec-sub"><p>Running a high school passion project, nonprofit, or startup? Post it on Larpable and get matched with fellow students ready to volunteer their skills.</p><div class="d-feature-list"><div class="d-feature-item"><span class="d-feature-icon">✓</span><strong>Find student volunteers fast</strong><p>Reach thousands of students actively seeking volunteering opportunities and passion projects.</p></div><hr class="d-feature-divider"><div class="d-feature-item"><span class="d-feature-icon">✓</span><strong>Specify needed skills</strong><p>Define what you need — programming, design, writing, research — get matched by expertise.</p></div><hr class="d-feature-divider"><div class="d-feature-item"><span class="d-feature-icon">✓</span><strong>Peer-to-peer matching</strong><p>Students with matching skills see your initiative first — no tutors, just peers helping peers.</p></div><hr class="d-feature-divider"><div class="d-feature-item"><span class="d-feature-icon">✓</span><strong>Build your college application</strong><p>Document real impact for college applications, resumes, and portfolios.</p></div></div></div></div><figure class="d-sec-art" id="d-init-art" aria-hidden="true" data-dot-src="/assets/initiative-dots.png" data-dot-protect=".d-sec-head, .d-sec-sub" data-dot-min-width="360"><canvas id="d-init-dots" width="1375" height="1144"></canvas></figure></section>
+
+  <section class="d-sec d-sec--right d-sec--white d-sec--has-art"><div class="d-wrap"><div class="d-sec-head d-rise"><p class="d-eyebrow">For students with skills</p><h2 class="d-sec-title">Find opportunities matching your expertise</h2></div><div class="d-sec-sub"><p>Looking for high school volunteering that builds your resume? Discover student-led initiatives and passion projects that need exactly what you bring.</p><div class="d-feature-list"><div class="d-feature-item"><span class="d-feature-icon">✓</span><strong>Match by skills &amp; interests</strong><p>Get connected with volunteering opportunities and high school internships aligned with your skills.</p></div><hr class="d-feature-divider"><div class="d-feature-item"><span class="d-feature-icon">✓</span><strong>Build your resume</strong><p>Contribute to real projects — build a high school resume that stands out to colleges and employers.</p></div><hr class="d-feature-divider"><div class="d-feature-item"><span class="d-feature-icon">✓</span><strong>Earn college application aid</strong><p>Expand your portfolio with verifiable impact for college applications.</p></div><hr class="d-feature-divider"><div class="d-feature-item"><span class="d-feature-icon">✓</span><strong>Explore diverse fields</strong><p>Tech, nonprofit, creative, business — find volunteering opportunities across every domain.</p></div></div></div></div><figure class="d-sec-art" id="d-skills-art" aria-hidden="true" data-dot-src="/assets/skills-dots.png" data-dot-protect=".d-sec-head, .d-sec-sub" data-dot-min-width="360"><canvas id="d-skills-dots" width="1375" height="1144"></canvas></figure></section>
+
+  <section class="d-sec d-cta d-band d-sec--pagebg"><div class="d-wrap d-rise"><h2 class="d-sec-title">Bring an idea, or bring a skill.</h2><p class="d-sec-sub">Either one is enough to start. The rest is just finding each other.</p><div class="d-btn-wrap"><a href="/signup" class="d-btn d-btn-accent">Create an account</a><a href="/login" class="d-btn">Log in</a></div></div></section>
+  <footer class="d-page-footer d-page-footer--landing">LARPABLE. &mdash; made for students, by students.</footer>
 
   <script>
-    const text = 'LARPABLE.';
-    const el = document.getElementById('typed');
-    const cursor = document.getElementById('cursor');
-    const logo = document.querySelector('.logo');
-    const btnWrap = document.getElementById('btnWrap');
-    let i = 0;
-
-    function type() {
-      if (i < text.length) {
-        el.textContent += text[i];
-        i++;
-        setTimeout(type, 60);
-      } else {
-        cursor.style.display = 'none';
-        setTimeout(() => {
-          logo.classList.add('slide-up');
-          btnWrap.classList.add('show');
-        }, 300);
-      }
-    }
-
-    // If already logged in, skip to feed
-    (async () => {
-      try {
-        const res = await fetch('/api/auth/me', { credentials: 'same-origin' });
-        if (res.ok) window.location.href = '/feed';
-      } catch (e) {}
-    })();
-
+    (async () => { try { const response = await fetch('/api/auth/me', { credentials: 'same-origin' }); if (response.ok) window.location.href = '/feed'; } catch (_) {} })();
+    if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+    scrollTo(0, 0); addEventListener('load', () => scrollTo(0, 0));
+    const text = 'LARPABLE.', typed = document.getElementById('typed'), cursor = document.getElementById('cursor'), logo = document.getElementById('d-logo'), hero = document.getElementById('d-hero'), cue = document.getElementById('d-cue'), topbar = document.getElementById('d-topbar'), topnav = document.getElementById('d-topnav'); let index = 0;
+    function type() { if (index < text.length) { typed.textContent += text[index++]; setTimeout(type, 100); } else { cursor.style.display = 'none'; setTimeout(() => { logo.classList.add('docked'); hero.classList.add('show'); document.body.classList.remove('d-locked'); window._dAnimDone = true; if (window._dHeroArtReady) document.getElementById('d-hero-art').classList.add('reveal'); setTimeout(() => cue.classList.add('show'), 900); }, 450); } }
     setTimeout(type, 400);
+    new IntersectionObserver(([entry]) => topnav.classList.toggle('show', !entry.isIntersecting && scrollY > 10), { threshold: 0 }).observe(document.getElementById('d-btn-wrap'));
+    addEventListener('scroll', () => { topbar.classList.toggle('solid', scrollY > 40); document.querySelector('.d-hero').classList.toggle('compact', scrollY > 10); if (scrollY > 10) cue.classList.add('hide'); }, { passive: true });
+    const observer = new IntersectionObserver(entries => entries.forEach(entry => { if (entry.isIntersecting) { entry.target.classList.add('in'); observer.unobserve(entry.target); } }), { rootMargin: '0px 0px -12% 0px' });
+    document.querySelectorAll('.d-rise').forEach((element, i) => { element.style.transitionDelay = (i % 4) * 60 + 'ms'; observer.observe(element); });
   </script>
+  <script src="/js/dot-art.js"></script>
 </body>
 </html>

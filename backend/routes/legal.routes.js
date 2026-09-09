@@ -14,6 +14,15 @@ const auth = require('../auth');
 const store = require('../store');
 
 const COOKIE_NAME = 'larpable_session';
+const DEFAULT_LEGAL_VERSIONS = {
+  terms: { version: '2026-08-27', active_date: '2026-08-27' },
+  privacy: { version: '2026-08-27', active_date: '2026-08-27' }
+};
+
+async function getLegalVersions() {
+  const versions = await store.read('legal_versions.json');
+  return versions.terms?.version && versions.privacy?.version ? versions : DEFAULT_LEGAL_VERSIONS;
+}
 
 // ── Middleware: require auth ──────────────────────────────────
 async function requireAuth(req, res, next) {
@@ -30,7 +39,7 @@ async function requireAuth(req, res, next) {
 // Returns current active versions (public, no auth needed for signup page)
 router.get('/versions', async (req, res) => {
   try {
-    const versions = await store.read('legal_versions.json');
+    const versions = await getLegalVersions();
     res.json(versions);
   } catch (e) {
     console.error('Legal versions read error:', e);
@@ -42,7 +51,7 @@ router.get('/versions', async (req, res) => {
 // Returns whether the current user has agreed to the latest versions
 router.get('/status', requireAuth, async (req, res) => {
   try {
-    const versions = await store.read('legal_versions.json');
+    const versions = await getLegalVersions();
     const user = req.user;
     
     // User's agreements (may be undefined for pre-update users)
@@ -77,7 +86,7 @@ router.get('/status', requireAuth, async (req, res) => {
 // Record user's agreement to current versions
 router.post('/agree', requireAuth, async (req, res) => {
   try {
-    const versions = await store.read('legal_versions.json');
+    const versions = await getLegalVersions();
     const userId = req.user.id;
     
     // Get raw encrypted user record
@@ -111,7 +120,7 @@ router.post('/agree-with-signup', async (req, res) => {
       return res.status(400).json({ error: 'userId required' });
     }
     
-    const versions = await store.read('legal_versions.json');
+    const versions = await getLegalVersions();
     
     const rawUser = await store.getRawUser(userId);
     if (!rawUser) {

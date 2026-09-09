@@ -3,493 +3,342 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>LARPABLE. — Staff Dashboard</title>
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
-
-    :root {
-      --bg: #F5F0E8;
-      --font: #2D2A26;
-      --accent: #E8734A;
-      --card: #FFFDF8;
-      --border: #D6D1C9;
-      --shadow: #C4BEB5;
-      --muted: #8A8580;
-      --green: #4CAF50;
-      --indigo: #5C6BC0;
-      --green-bg: rgba(76,175,80,0.08);
-      --indigo-bg: rgba(92,107,192,0.08);
-      --coral-bg: rgba(232,115,74,0.08);
-      --high-bg: rgba(220,53,69,0.08);
-      --high-color: #dc3545;
-      --medium-bg: rgba(255,193,7,0.08);
-      --medium-color: #ffc107;
-      --low-bg: rgba(40,167,69,0.08);
-      --low-color: #28a745;
-    }
-
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Space Grotesk', sans-serif; background: var(--bg); color: var(--font); min-height: 100vh; overflow-x: hidden; }
-
-    .page {
-      width: 600px;
-      margin: 0 auto;
-      padding: 0 20px 60px;
-    }
-
-    /* Header */
-    .header {
-      display: flex; justify-content: space-between; align-items: center;
-      padding: 16px 0 12px;
-    }
-    .logo {
-      font-size: 1.2rem; font-weight: 700; color: var(--accent); letter-spacing: 1px; text-decoration: none;
-    }
-    .header-actions { display: flex; align-items: center; gap: 10px; }
-    .btn-ghost {
-      background: none; border: 1px solid var(--border); color: var(--font);
-      padding: 5px 14px; border-radius: 6px; font-family: inherit; font-size: 0.8rem;
-      cursor: pointer; transition: all 0.15s;
-    }
-    .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
-    .user-badge {
-      font-size: 0.78rem; color: var(--muted); display: flex; align-items: center; gap: 5px;
-    }
-    .user-badge span { color: var(--font); font-weight: 500; }
-
-    /* Tabs */
-    .tabs-row {
-      display: flex; align-items: center; border-bottom: 1px solid var(--border);
-      margin-bottom: 16px;
-    }
-    .tabs { display: flex; gap: 0; flex: 1; }
-    .tab {
-      padding: 8px 16px; font-size: 0.85rem; font-weight: 500;
-      border: none; background: none; color: var(--muted);
-      cursor: pointer; border-bottom: 2px solid transparent;
-      transition: all 0.15s; font-family: inherit;
-    }
-    .tab:hover { color: var(--font); }
-    .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
-
-    /* Cards */
-    .card {
-      background: var(--card); border: 1px solid var(--border); border-radius: 8px;
-      padding: 14px 16px; margin-bottom: 10px; transition: all 0.15s;
-    }
-    .card:hover { border-color: var(--accent); box-shadow: 0 2px 8px var(--shadow); }
-
-    /* Stats Cards */
-    .stats-grid {
-      display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
-      margin-bottom: 20px;
-    }
-    .stat-card {
-      background: var(--card); border: 1px solid var(--border); border-radius: 8px;
-      padding: 16px; text-align: center;
-    }
-    .stat-number {
-      font-size: 3.2rem; font-weight: 700; color: var(--accent);
-      line-height: 1;
-    }
-    .stat-label {
-      font-size: 0.85rem; color: var(--muted); text-transform: uppercase;
-      letter-spacing: 0.5px; margin-top: 6px; font-weight: 500;
-    }
-    .stat-breakdown {
-      font-size: 0.75rem; color: var(--muted); margin-top: 8px;
-      text-align: left;
-    }
-    .stat-breakdown div {
-      display: flex; justify-content: space-between;
-      padding: 2px 0;
-    }
-
-    /* Goal Cards */
-    .goal-card {
-      background: var(--card); border: 1px solid var(--border); border-radius: 8px;
-      padding: 14px 16px; margin-bottom: 10px; position: relative;
-    }
-    .goal-card.completed {
-      opacity: 0.7;
-      border-style: dashed;
-    }
-    .goal-header {
-      display: flex; justify-content: space-between; align-items: flex-start;
-      margin-bottom: 8px;
-    }
-    .goal-title {
-      font-size: 0.95rem; font-weight: 600; color: var(--font);
-      flex: 1;
-    }
-    .goal-title.completed {
-      text-decoration: line-through;
-      color: var(--muted);
-    }
-    .goal-description {
-      font-size: 0.82rem; color: var(--font); line-height: 1.4;
-      margin-bottom: 8px;
-    }
-    .goal-meta {
-      display: flex; flex-wrap: wrap; gap: 10px; font-size: 0.72rem; color: var(--muted);
-    }
-    .goal-meta span {
-      display: flex; align-items: center; gap: 3px;
-    }
-    .goal-actions {
-      display: flex; gap: 6px; margin-top: 10px;
-    }
-    .goal-actions button {
-      padding: 4px 10px; border-radius: 4px; font-size: 0.72rem; font-family: inherit;
-      cursor: pointer; border: 1px solid var(--border); background: var(--card);
-      color: var(--muted); transition: all 0.15s;
-    }
-    .goal-actions .complete-btn:hover { border-color: var(--green); color: var(--green); }
-    .goal-actions .edit-btn:hover { border-color: var(--accent); color: var(--accent); }
-    .goal-actions .delete-btn:hover { border-color: #dc3545; color: #dc3545; }
-
-    /* Importance Badges */
-    .importance-badge {
-      font-size: 0.62rem; font-weight: 600; padding: 2px 7px; border-radius: 12px;
-      text-transform: uppercase; letter-spacing: 0.5px;
-    }
-    .importance-high { background: var(--high-bg); color: var(--high-color); }
-    .importance-medium { background: var(--medium-bg); color: var(--medium-color); }
-    .importance-low { background: var(--low-bg); color: var(--low-color); }
-
-    /* Timeline */
-    .timeline {
-      position: relative;
-      padding-left: 24px;
-    }
-    .timeline::before {
-      content: '';
-      position: absolute;
-      left: 8px;
-      top: 0;
-      bottom: 0;
-      width: 2px;
-      background: var(--border);
-    }
-    .timeline-item {
-      position: relative;
-      margin-bottom: 20px;
-    }
-    .timeline-item::before {
-      content: '';
-      position: absolute;
-      left: -20px;
-      top: 6px;
-      width: 12px;
-      height: 12px;
-      border-radius: 50%;
-      background: var(--card);
-      border: 2px solid var(--border);
-    }
-    .timeline-item.completed::before {
-      background: var(--green);
-      border-color: var(--green);
-    }
-
-    /* Log Cards */
-    .log-card {
-      background: var(--card); border: 1px solid var(--border); border-radius: 8px;
-      padding: 12px 14px; margin-bottom: 8px; font-family: monospace;
-      font-size: 0.78rem;
-    }
-    .log-header {
-      display: flex; justify-content: space-between; align-items: center;
-      margin-bottom: 6px;
-    }
-    .log-timestamp {
-      font-size: 0.72rem; color: var(--muted);
-    }
-    .log-type {
-      font-size: 0.62rem; font-weight: 600; padding: 2px 7px; border-radius: 12px;
-      text-transform: uppercase; letter-spacing: 0.5px;
-    }
-    .log-type.team_goal { background: var(--coral-bg); color: var(--accent); }
-    .log-type.user_goal { background: var(--indigo-bg); color: var(--indigo); }
-    .log-type.staff { background: var(--green-bg); color: var(--green); }
-    .log-type.git_push { background: rgba(138,133,128,0.15); color: var(--muted); }
-    .log-action {
-      font-size: 0.68rem; color: var(--muted); margin-bottom: 4px;
-    }
-    .log-details {
-      color: var(--font);
-    }
-
-    /* Search */
-    .search-input {
-      width: 100%;
-      padding: 10px 14px; border: 1px solid var(--border); border-radius: 6px;
-      font-family: inherit; font-size: 0.88rem; background: var(--card);
-      color: var(--font); outline: none; transition: border 0.15s;
-      margin-bottom: 12px;
-    }
-    .search-input:focus { border-color: var(--accent); }
-    .search-input::placeholder { color: var(--muted); }
-
-    /* Dropdown */
-    .dropdown-wrap { position: relative; margin-bottom: 12px; }
-    .dropdown-toggle {
-      width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: 6px;
-      font-family: inherit; font-size: 0.88rem; background: var(--card);
-      color: var(--font); cursor: pointer; text-align: left;
-      display: flex; justify-content: space-between; align-items: center;
-    }
-    .dropdown-toggle::after {
-      content: '\25BE'; font-size: 0.7rem; color: var(--muted); margin-left: auto;
-    }
-    .dropdown-toggle:hover { border-color: var(--accent); }
-    .dropdown-menu {
-      display: none; position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 100;
-      background: var(--card); border: 1px solid var(--border); border-radius: 6px;
-      max-height: 200px; overflow-y: auto;
-      box-shadow: 0 4px 12px var(--shadow);
-    }
-    .dropdown-menu.open { display: block; }
-    .dropdown-option {
-      display: block; width: 100%; padding: 8px 12px; border: none; background: none;
-      font-family: inherit; font-size: 0.8rem; color: var(--font);
-      cursor: pointer; text-align: left; transition: background 0.1s;
-    }
-    .dropdown-option:hover { background: rgba(232,115,74,0.06); }
-
-    /* Buttons */
-    .btn-primary {
-      background: var(--accent); border: none; color: #fff;
-      padding: 8px 16px; border-radius: 6px; font-size: 0.82rem; font-weight: 500;
-      cursor: pointer; font-family: inherit; transition: opacity 0.15s;
-    }
-    .btn-primary:hover { opacity: 0.9; }
-
-    .btn-secondary {
-      background: none; border: 1px solid var(--border); color: var(--font);
-      padding: 8px 16px; border-radius: 6px; font-size: 0.82rem; font-weight: 500;
-      cursor: pointer; font-family: inherit; transition: all 0.15s;
-    }
-    .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
-
-    /* Modal */
-    .modal-overlay {
-      display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;
-    }
-    .modal-overlay.open { display: flex; }
-    .modal {
-      background: var(--card); border-radius: 12px; padding: 24px;
-      width: 400px; max-width: 90%; max-height: 80vh; overflow-y: auto;
-    }
-    .modal-header {
-      display: flex; justify-content: space-between; align-items: center;
-      margin-bottom: 20px;
-    }
-    .modal-title {
-      font-size: 1.1rem; font-weight: 600;
-    }
-    .modal-close {
-      background: none; border: none; font-size: 1.2rem; cursor: pointer;
-      color: var(--muted); transition: color 0.15s;
-    }
-    .modal-close:hover { color: var(--font); }
-    .form-group {
-      margin-bottom: 16px;
-    }
-    .form-label {
-      display: block; font-size: 0.78rem; font-weight: 500; color: var(--muted);
-      margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;
-    }
-    .form-input {
-      width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: 6px;
-      font-family: inherit; font-size: 0.88rem; background: var(--card);
-      color: var(--font); outline: none; transition: border 0.15s;
-    }
-    .form-input:focus { border-color: var(--accent); }
-    .form-actions {
-      display: flex; gap: 10px; justify-content: flex-end;
-      margin-top: 24px;
-    }
-
-    /* Radio buttons */
-    .radio-group {
-      display: flex; gap: 12px;
-    }
-    .radio-label {
-      display: flex; align-items: center; gap: 6px;
-      font-size: 0.85rem; cursor: pointer;
-    }
-    .radio-label input[type="radio"] {
-      accent-color: var(--accent);
-    }
-
-    /* Empty state */
-    .empty-msg {
-      text-align: center; color: var(--muted); padding: 60px 20px; font-size: 0.9rem;
-    }
-
-    /* Section headers */
-    .section-header {
-      display: flex; justify-content: space-between; align-items: center;
-      margin-bottom: 16px;
-    }
-    .section-title {
-      font-size: 1rem; font-weight: 600;
-    }
-
-    /* Last updated */
-    .last-updated {
-      font-size: 0.72rem; color: var(--muted); text-align: center;
-      margin-top: 12px;
-    }
-
-    /* User goals section (for anisohaney) */
-    .staff-section {
-      margin-top: 24px;
-      padding-top: 24px;
-      border-top: 1px solid var(--border);
-    }
-    .staff-section-header {
-      display: flex; justify-content: space-between; align-items: center;
-      margin-bottom: 16px;
-    }
-    .staff-section-title {
-      font-size: 0.95rem; font-weight: 600; color: var(--accent);
-    }
-  </style>
+  <title>LARPABLE. — Staff Portal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="staff_styles.css">
+  <!--
+    INTEGRATION:
+    In the real app, this would be /app/staff/staff.html
+    Protected by server.js: requires authentication + staff role
+    CSS uses .sp- namespace to avoid conflicts with main app styles
+  -->
 </head>
 <body>
 
-  <div class="page" data-scale-target="600">
-    <div class="header">
-      <a href="/feed" class="logo">LARPABLE.</a>
-      <div id="header-actions"></div>
-    </div>
-
-    <div class="tabs-row">
-      <div class="tabs">
-        <button class="tab active" data-tab="home">Home</button>
-        <button class="tab" data-tab="team">Team</button>
-        <button class="tab" data-tab="me">Me</button>
-        <button class="tab" data-tab="logs">Logs</button>
+  <div class="sp-app">
+    <!-- ═══ HEADER ═══════════════════════════════════════════ -->
+    <header class="sp-header">
+      <div class="sp-header-left">
+        <a href="../feed.html" class="sp-logo">LARPABLE.</a>
+        <div class="sp-header-search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input type="text" placeholder="Search everything..." id="global-search" oninput="App.globalSearch(this.value)">
+        </div>
       </div>
-    </div>
+      <div class="sp-header-right">
+        <span class="sp-user-badge">
+          <span class="sp-admin-badge" id="admin-badge" style="display:none;">Admin</span>
+          <strong id="header-username">anisohaney</strong>
+        </span>
+        <span id="user-switcher" style="display:none;"></span>
+        <a href="../feed.html" class="sp-btn" style="text-decoration:none;">Main Site</a>
+      </div>
+    </header>
 
-    <div id="tab-content">
-      <!-- Content loaded dynamically -->
+    <!-- ═══ SIDEBAR ══════════════════════════════════════════ -->
+    <nav class="sp-sidebar" id="sidebar">
+      <div class="sp-nav-section-label">Overview</div>
+      <button class="sp-nav-item active" data-tab="home" onclick="App.navigate('home')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        <span class="sp-nav-label">Home</span>
+      </button>
+      <button class="sp-nav-item" data-tab="calendar" onclick="App.navigate('calendar')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        <span class="sp-nav-label">Calendar</span>
+      </button>
+
+      <div class="sp-nav-divider"></div>
+      <div class="sp-nav-section-label">Work</div>
+      <button class="sp-nav-item" data-tab="goals" onclick="App.navigate('goals')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+        <span class="sp-nav-label">Goals</span>
+      </button>
+      <button class="sp-nav-item" data-tab="tasks" onclick="App.navigate('tasks')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        <span class="sp-nav-label">Tasks</span>
+      </button>
+      <button class="sp-nav-item" data-tab="work" id="work-nav" style="display:none;" onclick="App.navigate('work')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+        <span class="sp-nav-label">Work</span>
+      </button>
+
+      <div class="sp-nav-divider"></div>
+      <div class="sp-nav-section-label">Insights</div>
+      <button class="sp-nav-item" data-tab="logs" onclick="App.navigate('logs')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        <span class="sp-nav-label">Logs</span>
+      </button>
+      <button class="sp-nav-item" data-tab="resources" onclick="App.navigate('resources')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        <span class="sp-nav-label">Resources</span>
+      </button>
+
+      <div class="sp-nav-divider" id="admin-divider" style="display:none;"></div>
+      <div class="sp-nav-section-label" id="admin-section-label" style="display:none;">Admin</div>
+      <button class="sp-nav-item" data-tab="admin" id="admin-nav" style="display:none;" onclick="App.navigate('admin')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        <span class="sp-nav-label">Admin</span>
+      </button>
+    </nav>
+
+    <!-- ═══ MAIN CONTENT ═════════════════════════════════════ -->
+    <main class="sp-content" id="main-content">
+      <!-- Content rendered by JS components -->
+    </main>
+
+    <!-- ═══ MOBILE BOTTOM NAV ════════════════════════════════ -->
+    <nav class="sp-bottom-nav" id="bottom-nav">
+      <button class="sp-bottom-nav-item active" data-tab="home" onclick="App.navigate('home')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        <span>Home</span>
+      </button>
+      <button class="sp-bottom-nav-item" data-tab="goals" onclick="App.navigate('goals')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+        <span>Goals</span>
+      </button>
+      <button class="sp-bottom-nav-item" data-tab="tasks" onclick="App.navigate('tasks')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        <span>Tasks</span>
+      </button>
+      <button class="sp-bottom-nav-item" data-tab="logs" onclick="App.navigate('logs')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        <span>Logs</span>
+      </button>
+      <button class="sp-bottom-nav-item" data-tab="more" onclick="App.toggleMobileMore()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+        <span>More</span>
+      </button>
+    </nav>
+  </div>
+
+  <!-- ═══ MODALS ═════════════════════════════════════════════ -->
+  <!-- Add/Edit Goal Modal -->
+  <div class="sp-modal-overlay" id="goal-modal">
+    <div class="sp-modal">
+      <div class="sp-modal-header">
+        <h3 class="sp-modal-title" id="goal-modal-title">Add Goal</h3>
+        <button class="sp-modal-close" onclick="App.closeModal('goal-modal')">&times;</button>
+      </div>
+      <form id="goal-form" onsubmit="App.handleGoalSubmit(event)">
+        <input type="hidden" id="goal-edit-id">
+        <input type="hidden" id="goal-type">
+        <input type="hidden" id="goal-user-id">
+        <div class="sp-form-group">
+          <label class="sp-form-label">Title</label>
+          <input type="text" class="sp-form-input" id="goal-title" required>
+        </div>
+        <div class="sp-form-group">
+          <label class="sp-form-label">Description</label>
+          <input type="text" class="sp-form-input" id="goal-description">
+        </div>
+        <div class="sp-form-group">
+          <label class="sp-form-label">Deadline</label>
+          <input type="date" class="sp-form-input" id="goal-deadline" required>
+        </div>
+        <div class="sp-form-group" id="goal-importance-group" style="display:none;">
+          <label class="sp-form-label">Importance</label>
+          <div class="sp-radio-group">
+            <label class="sp-radio-label"><input type="radio" name="goal-importance" value="high"> High</label>
+            <label class="sp-radio-label"><input type="radio" name="goal-importance" value="medium" checked> Medium</label>
+            <label class="sp-radio-label"><input type="radio" name="goal-importance" value="low"> Low</label>
+          </div>
+        </div>
+        <div class="sp-form-actions">
+          <button type="button" class="sp-btn" onclick="App.closeModal('goal-modal')">Cancel</button>
+          <button type="submit" class="sp-btn sp-btn-primary" id="goal-submit-btn">Add Goal</button>
+        </div>
+      </form>
     </div>
   </div>
 
-  <!-- Add Goal Modal -->
-  <div class="modal-overlay" id="add-goal-modal">
-    <div class="modal">
-      <div class="modal-header">
-        <h3 class="modal-title" id="goal-modal-title">Add Goal</h3>
-        <button class="modal-close" onclick="closeModal('add-goal-modal')">&times;</button>
+  <!-- Add Task Modal -->
+  <div class="sp-modal-overlay" id="task-modal">
+    <div class="sp-modal">
+      <div class="sp-modal-header">
+        <h3 class="sp-modal-title">Add Task</h3>
+        <button class="sp-modal-close" onclick="App.closeModal('task-modal')">&times;</button>
       </div>
-      <form id="goal-form">
-        <div class="form-group">
-          <label class="form-label">Title</label>
-          <input type="text" class="form-input" id="goal-title" required>
+      <form id="task-form" onsubmit="App.handleTaskSubmit(event)">
+        <div class="sp-form-group">
+          <label class="sp-form-label">Title</label>
+          <input type="text" class="sp-form-input" id="task-title" required>
         </div>
-        <div class="form-group">
-          <label class="form-label">Description</label>
-          <input type="text" class="form-input" id="goal-description">
+        <div class="sp-form-group">
+          <label class="sp-form-label">Description</label>
+          <input type="text" class="sp-form-input" id="task-description">
         </div>
-        <div class="form-group">
-          <label class="form-label">Deadline</label>
-          <input type="date" class="form-input" id="goal-deadline" required>
+        <div class="sp-form-group">
+          <label class="sp-form-label">Assign To <span style="color:var(--sp-muted);font-weight:400;">(select one or more)</span></label>
+          <select class="sp-form-select" id="task-assignee" multiple size="4"></select>
         </div>
-        <div class="form-group" id="importance-group" style="display: none;">
-          <label class="form-label">Importance</label>
-          <div class="radio-group">
-            <label class="radio-label">
-              <input type="radio" name="importance" value="high"> High
-            </label>
-            <label class="radio-label">
-              <input type="radio" name="importance" value="medium" checked> Medium
-            </label>
-            <label class="radio-label">
-              <input type="radio" name="importance" value="low"> Low
-            </label>
+        <div class="sp-form-group">
+          <label class="sp-form-label">Priority</label>
+          <div class="sp-radio-group">
+            <label class="sp-radio-label"><input type="radio" name="task-priority" value="high"> High</label>
+            <label class="sp-radio-label"><input type="radio" name="task-priority" value="medium" checked> Medium</label>
+            <label class="sp-radio-label"><input type="radio" name="task-priority" value="low"> Low</label>
           </div>
         </div>
-        <div class="form-actions">
-          <button type="button" class="btn-secondary" onclick="closeModal('add-goal-modal')">Cancel</button>
-          <button type="submit" class="btn-primary" id="goal-submit-btn">Add Goal</button>
+        <div class="sp-form-group">
+          <label class="sp-form-label">Due Date</label>
+          <input type="date" class="sp-form-input" id="task-due-date" required>
+        </div>
+        <div class="sp-form-actions">
+          <button type="button" class="sp-btn" onclick="App.closeModal('task-modal')">Cancel</button>
+          <button type="submit" class="sp-btn sp-btn-primary">Add Task</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Add Event Modal -->
+  <div class="sp-modal-overlay" id="event-modal">
+    <div class="sp-modal">
+      <div class="sp-modal-header">
+        <h3 class="sp-modal-title">Add Event</h3>
+        <button class="sp-modal-close" onclick="App.closeModal('event-modal')">&times;</button>
+      </div>
+      <form id="event-form" onsubmit="App.handleEventSubmit(event)">
+        <div class="sp-form-group">
+          <label class="sp-form-label">Title</label>
+          <input type="text" class="sp-form-input" id="event-title" required>
+        </div>
+        <div class="sp-form-group">
+          <label class="sp-form-label">Date</label>
+          <input type="date" class="sp-form-input" id="event-date" required>
+        </div>
+        <div class="sp-form-group">
+          <label class="sp-form-label">Time</label>
+          <input type="time" class="sp-form-input" id="event-time" required>
+        </div>
+        <div class="sp-form-group">
+          <label class="sp-form-label">Duration (minutes, 0 = all day)</label>
+          <input type="number" class="sp-form-input" id="event-duration" value="60" min="0">
+        </div>
+        <div class="sp-form-group">
+          <label class="sp-form-label">Type</label>
+          <select class="sp-form-select" id="event-type">
+            <option value="meeting">Meeting</option>
+            <option value="milestone">Milestone</option>
+            <option value="deadline">Deadline</option>
+          </select>
+        </div>
+        <div class="sp-form-group">
+          <label class="sp-form-label">Description</label>
+          <input type="text" class="sp-form-input" id="event-description">
+        </div>
+        <div class="sp-form-actions">
+          <button type="button" class="sp-btn" onclick="App.closeModal('event-modal')">Cancel</button>
+          <button type="submit" class="sp-btn sp-btn-primary">Add Event</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Add Resource Modal -->
+  <div class="sp-modal-overlay" id="resource-modal">
+    <div class="sp-modal">
+      <div class="sp-modal-header">
+        <h3 class="sp-modal-title">Add Resource</h3>
+        <button class="sp-modal-close" onclick="App.closeModal('resource-modal')">&times;</button>
+      </div>
+      <form id="resource-form" onsubmit="App.handleResourceSubmit(event)">
+        <div class="sp-form-group">
+          <label class="sp-form-label">Title</label>
+          <input type="text" class="sp-form-input" id="resource-title" required>
+        </div>
+        <div class="sp-form-group">
+          <label class="sp-form-label">URL</label>
+          <input type="url" class="sp-form-input" id="resource-url" required>
+        </div>
+        <div class="sp-form-group">
+          <label class="sp-form-label">Description</label>
+          <input type="text" class="sp-form-input" id="resource-description">
+        </div>
+        <div class="sp-form-group">
+          <label class="sp-form-label">Label</label>
+          <select class="sp-form-select" id="resource-label">
+            <option>Tech</option><option>Backend</option><option>Frontend</option><option>Design</option><option>Operations</option><option>Marketing</option><option>Research</option><option>People &amp; Culture</option>
+          </select>
+        </div>
+        <div class="sp-form-actions">
+          <button type="button" class="sp-btn" onclick="App.closeModal('resource-modal')">Cancel</button>
+          <button type="submit" class="sp-btn sp-btn-primary">Add Resource</button>
         </div>
       </form>
     </div>
   </div>
 
   <!-- Add Staff Member Modal -->
-  <div class="modal-overlay" id="add-staff-modal">
-    <div class="modal">
-      <div class="modal-header">
-        <h3 class="modal-title">Add Staff Member</h3>
-        <button class="modal-close" onclick="closeModal('add-staff-modal')">&times;</button>
+  <div class="sp-modal-overlay" id="staff-modal">
+    <div class="sp-modal">
+      <div class="sp-modal-header">
+        <h3 class="sp-modal-title">Add Staff Member</h3>
+        <button class="sp-modal-close" onclick="App.closeModal('staff-modal')">&times;</button>
       </div>
-      <div class="form-group">
-        <label class="form-label">Search Users</label>
-        <input type="text" class="form-input" id="staff-search-input" placeholder="Search by username or name...">
+      <div class="sp-form-group">
+        <label class="sp-form-label">Username</label>
+        <input type="text" class="sp-form-input" id="staff-username-input" placeholder="Enter username...">
       </div>
-      <div id="staff-search-results" style="max-height: 200px; overflow-y: auto; margin-bottom: 16px;">
-        <!-- Results loaded dynamically -->
+      <div class="sp-form-group">
+        <label class="sp-form-label">First Name</label>
+        <input type="text" class="sp-form-input" id="staff-firstname-input">
       </div>
-      <div class="form-actions">
-        <button type="button" class="btn-secondary" onclick="closeModal('add-staff-modal')">Cancel</button>
-        <button type="button" class="btn-primary" id="add-staff-submit-btn" disabled>Add Member</button>
+      <div class="sp-form-actions">
+        <button type="button" class="sp-btn" onclick="App.closeModal('staff-modal')">Cancel</button>
+        <button type="button" class="sp-btn sp-btn-primary" onclick="App.handleAddStaff()">Add Member</button>
       </div>
     </div>
   </div>
 
-  <!-- Edit Goal Modal -->
-  <div class="modal-overlay" id="edit-goal-modal">
-    <div class="modal">
-      <div class="modal-header">
-        <h3 class="modal-title">Edit Goal</h3>
-        <button class="modal-close" onclick="closeModal('edit-goal-modal')">&times;</button>
+  <!-- Day Detail Slide Panel (Calendar) -->
+  <div class="sp-modal-overlay" id="day-modal">
+    <div class="sp-modal">
+      <div class="sp-modal-header">
+        <h3 class="sp-modal-title" id="day-modal-title">Events</h3>
+        <button class="sp-modal-close" onclick="App.closeModal('day-modal')">&times;</button>
       </div>
-      <form id="edit-goal-form">
-        <input type="hidden" id="edit-goal-id">
-        <input type="hidden" id="edit-goal-type">
-        <input type="hidden" id="edit-goal-user-id">
-        <div class="form-group">
-          <label class="form-label">Title</label>
-          <input type="text" class="form-input" id="edit-goal-title" required>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Description</label>
-          <input type="text" class="form-input" id="edit-goal-description">
-        </div>
-        <div class="form-group">
-          <label class="form-label">Deadline</label>
-          <input type="date" class="form-input" id="edit-goal-deadline" required>
-        </div>
-        <div class="form-group" id="edit-importance-group" style="display: none;">
-          <label class="form-label">Importance</label>
-          <div class="radio-group">
-            <label class="radio-label">
-              <input type="radio" name="edit-importance" value="high"> High
-            </label>
-            <label class="radio-label">
-              <input type="radio" name="edit-importance" value="medium" checked> Medium
-            </label>
-            <label class="radio-label">
-              <input type="radio" name="edit-importance" value="low"> Low
-            </label>
-          </div>
-        </div>
-        <div class="form-actions">
-          <button type="button" class="btn-secondary" onclick="closeModal('edit-goal-modal')">Cancel</button>
-          <button type="submit" class="btn-primary">Save Changes</button>
-        </div>
-      </form>
+      <div id="day-modal-content"></div>
     </div>
   </div>
 
-  <script src="/user-dropdown.js"></script>
-  <script src="/scaling.js"></script>
-  <script src="/staff/staff.js"></script>
+  <!-- Mobile More Menu -->
+  <div class="sp-modal-overlay" id="more-modal">
+    <div class="sp-modal" style="padding:0;">
+      <div style="padding:16px 20px; border-bottom:1px solid var(--sp-border);">
+        <strong>More</strong>
+      </div>
+      <button class="sp-nav-item" data-tab="calendar" onclick="App.navigate('calendar'); App.closeModal('more-modal');">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        <span class="sp-nav-label">Calendar</span>
+      </button>
+      <button class="sp-nav-item" data-tab="resources" onclick="App.navigate('resources'); App.closeModal('more-modal');">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        <span class="sp-nav-label">Resources</span>
+      </button>
+      <button class="sp-nav-item" id="more-work-nav" style="display:none;" data-tab="work" onclick="App.navigate('work'); App.closeModal('more-modal');">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+        <span class="sp-nav-label">Work</span>
+      </button>
+      <button class="sp-nav-item" id="more-admin-nav" style="display:none;" data-tab="admin" onclick="App.navigate('admin'); App.closeModal('more-modal');">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        <span class="sp-nav-label">Admin</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="staff_utils.js"></script>
+  <script src="staff_data.js"></script>
+  <script src="components/home.js"></script>
+  <script src="components/calendar.js"></script>
+  <script src="components/goals.js"></script>
+  <script src="components/tasks.js"></script>
+  <script src="components/work.js"></script>
+  <script src="components/logs.js"></script>
+  <script src="components/resources.js"></script>
+  <script src="components/admin.js"></script>
+  <script src="staff_app.js"></script>
 </body>
 </html>

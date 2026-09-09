@@ -7,346 +7,473 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
-
+  <link rel="stylesheet" href="css/styles.css">
   <style>
-    :root {
-      --bg-primary:    #f8f3ed;
-      --bg-secondary:  #ffffff;
-      --fg-primary:    #1e1b18;
-      --fg-secondary:  #6b635d;
-      --fg-tertiary:   #a09992;
-      --accent:        #ff6b6b;
-      --accent-hover:  #e55a5a;
-      --border:        #e4ded6;
-      --shadow:        rgba(30, 27, 24, 0.06);
-      --font-family:   'Space Grotesk', system-ui, sans-serif;
-      --radius-md:     10px;
-      --transition:    0.18s ease;
-    }
-
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-
-    body {
-      background: var(--bg-primary);
-      font-family: var(--font-family);
-      -webkit-font-smoothing: antialiased;
-      color: var(--fg-primary);
-      min-height: 100vh;
-      overflow-x: hidden;
-    }
-
-    .page {
+    .d-steps {
       display: flex;
-      flex-direction: column;
-      align-items: center;
       justify-content: center;
-      min-height: 100vh;
-      padding: 2rem 1.5rem;
-    }
-
-    .logo {
-      font-size: clamp(2rem, 5vw, 3.2rem);
-      font-weight: 700;
-      color: var(--accent);
-      letter-spacing: -0.04em;
-      text-align: center;
-      margin-bottom: 0.3rem;
-    }
-
-    .subtitle {
-      font-size: 0.88rem;
-      color: var(--fg-secondary);
-      text-align: center;
-      margin-bottom: 2.5rem;
-    }
-
-    .steps {
-      display: flex;
-      gap: 0.5rem;
+      gap: 12px;
       margin-bottom: 2rem;
     }
-    .step-dot {
-      width: 8px; height: 8px;
+    .d-step-dot {
+      width: 36px;
+      height: 36px;
       border-radius: 50%;
-      background: var(--border);
-      transition: background var(--transition);
-    }
-    .step-dot.active { background: var(--accent); }
-    .step-dot.done   { background: var(--fg-secondary); }
-
-    .container { width: 100%; max-width: 420px; }
-
-    .form-panel { display: none; animation: fadeSlideIn 0.25s ease; }
-    .form-panel.active { display: block; }
-
-    @keyframes fadeSlideIn {
-      from { opacity: 0; transform: translateY(8px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-
-    .section-header { text-align: center; margin-bottom: 1.5rem; }
-    .section-header h2 { font-size: 1.1rem; font-weight: 600; margin-bottom: 0.25rem; }
-    .section-header p { font-size: 0.8rem; color: var(--fg-secondary); }
-
-    form { display: flex; flex-direction: column; gap: 1rem; }
-
-    .field { display: flex; flex-direction: column; gap: 0.35rem; }
-    .field label { font-size: 0.8rem; font-weight: 600; color: var(--fg-secondary); }
-
-    .field input, .field select, .field textarea {
-      font-family: var(--font-family);
+      border: 2px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
       font-size: 0.85rem;
+      color: var(--fg-tertiary);
+      background: var(--bg-secondary);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .d-step-dot.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+    .d-step-dot.completed {
+      background: var(--bg-primary);
+      border-color: var(--fg-primary);
       color: var(--fg-primary);
+    }
+    .d-step-panel { display: none; }
+    .d-step-panel.active { display: block; }
+
+    /* Email Verification Styles */
+    .d-verify-email {
+      text-align: center;
+      padding: 20px 0;
+    }
+    .d-verify-email .d-input {
+      text-align: center;
+      font-size: 1.1rem;
+      padding: 14px 20px;
+      max-width: 320px;
+      margin: 0 auto 16px;
+    }
+    .d-verify-btn {
+      display: inline-block;
+      padding: 12px 24px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .d-verify-btn:hover {
+      opacity: 0.9;
+      transform: translateY(-1px);
+    }
+    .d-verify-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+    .d-verify-code-input {
+      text-align: center;
+      font-size: 2rem;
+      letter-spacing: 12px;
+      font-weight: 700;
+      padding: 16px 24px;
+      max-width: 280px;
+      margin: 0 auto 16px;
+    }
+    .d-verify-timer {
+      font-size: 0.82rem;
+      color: var(--fg-tertiary);
+      margin-bottom: 16px;
+    }
+    .d-verify-timer.warning {
+      color: #dc2626;
+    }
+    .d-verify-resend {
+      font-size: 0.82rem;
+      color: var(--fg-secondary);
+      margin-top: 12px;
+    }
+    .d-verify-resend a {
+      color: var(--accent);
+      cursor: pointer;
+      text-decoration: none;
+      font-weight: 600;
+    }
+    .d-verify-resend a:hover {
+      text-decoration: underline;
+    }
+    .d-verify-success {
+      color: #16a34a;
+      font-size: 0.82rem;
+      margin-top: 8px;
+    }
+    .d-verify-error-inline {
+      color: #dc2626;
+      font-size: 0.82rem;
+      margin-top: 8px;
+    }
+    .d-form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .d-chipgrid-wrap {
       background: var(--bg-secondary);
       border: 1.5px solid var(--border);
-      border-radius: var(--radius-md);
-      padding: 0.6rem 0.85rem;
-      outline: none;
-      transition: border-color var(--transition), box-shadow var(--transition);
-      width: 100%;
-      box-sizing: border-box;
+      border-radius: 12px;
+      padding: 16px;
+      max-height: 260px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
     }
-    .field input::placeholder, .field textarea::placeholder { color: var(--fg-tertiary); }
-    .field input:focus, .field select:focus, .field textarea:focus {
+    .d-chipgrid-wrap:focus-within {
       border-color: var(--accent);
       box-shadow: 0 0 0 3px rgba(255, 107, 107, 0.1);
     }
-    .field select {
-      appearance: none;
-      -webkit-appearance: none;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b635d' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
-      background-repeat: no-repeat;
-      background-position: right 0.75rem center;
-      padding-right: 2rem;
-      cursor: pointer;
-    }
-    .field textarea { resize: vertical; min-height: 80px; }
-
-    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
-    .hint { font-size: 0.72rem; color: var(--fg-tertiary); }
-    .chip-count { font-size: 0.72rem; color: var(--fg-tertiary); font-weight: 500; }
-    .chip-count.at-limit { color: var(--accent); }
-    .chip-count.at-min { color: #dc2626; }
-    .chip-min-hint { font-size: 0.7rem; color: #dc2626; margin-top: 0.15rem; display: none; }
-    .chip-min-hint.show { display: block; }
-
-    .chip-search {
-      font-family: var(--font-family);
-      font-size: 0.78rem;
-      color: var(--fg-primary);
-      background: var(--bg-primary);
-      border: 1.5px solid var(--border);
-      border-radius: var(--radius-md);
-      padding: 0.45rem 0.7rem;
-      outline: none;
-      transition: border-color var(--transition);
-      margin-bottom: 0.5rem;
+    .d-chipgrid-search {
       width: 100%;
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.85rem;
+      margin-bottom: 12px;
+      background: var(--bg-primary);
+      color: var(--fg-primary);
+      outline: none;
     }
-    .chip-search:focus { border-color: var(--accent); }
-    .chip-search::placeholder { color: var(--fg-tertiary); }
-
-    .chip-grid-wrapper {
-      max-height: 220px;
-      overflow-y: auto;
-      padding: 0.2rem 0;
-    }
-    .chip-grid-wrapper::-webkit-scrollbar { width: 4px; }
-    .chip-grid-wrapper::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
-
-    .chip-category {
-      font-size: 0.65rem;
+    .d-chipgrid-search::placeholder { color: var(--fg-tertiary); }
+    .d-chipgrid-scroll { flex: 1; overflow-y: auto; }
+    .d-chipcategory { margin-bottom: 12px; }
+    .d-chipcategory-title {
+      font-size: 0.72rem;
       font-weight: 700;
       color: var(--fg-tertiary);
       text-transform: uppercase;
-      letter-spacing: 0.08em;
-      padding: 0.5rem 0 0.25rem;
-      display: block;
+      letter-spacing: 0.05em;
+      margin-bottom: 8px;
     }
-    .chip-category:first-child { padding-top: 0; }
-
-    .chip-grid { display: flex; flex-wrap: wrap; gap: 0.35rem; padding: 0 0 0.15rem; }
-    .chip-option { display: none; }
-    .chip-label {
-      display: inline-block; font-size: 0.7rem; font-weight: 500;
-      padding: 0.25rem 0.6rem; border-radius: 20px;
-      border: 1.5px solid var(--border); background: var(--bg-secondary);
-      color: var(--fg-secondary); cursor: pointer;
-      transition: all var(--transition); user-select: none;
+    .d-chipgrid { display: flex; flex-wrap: wrap; gap: 6px; }
+    .d-chip {
+      padding: 6px 12px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: var(--bg-primary);
+      font-size: 0.78rem;
+      color: var(--fg-secondary);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      white-space: nowrap;
     }
-    .chip-label:hover { border-color: var(--fg-tertiary); }
-    .chip-option:checked + .chip-label { background: var(--accent); border-color: var(--accent); color: #fff; }
-    .chip-option:disabled + .chip-label { opacity: 0.4; cursor: not-allowed; }
-    .chip-label.hidden { display: none; }
-    .chip-category.hidden { display: none; }
-    .no-results { font-size: 0.75rem; color: var(--fg-tertiary); padding: 0.5rem 0; display: none; }
-    .no-results.show { display: block; }
-
-    .btn {
-      font-family: var(--font-family); font-weight: 600; font-size: 0.88rem;
-      letter-spacing: -0.01em; border-radius: var(--radius-md);
-      cursor: pointer; transition: all var(--transition);
-      padding: 0.65rem 1.3rem; margin-top: 0.5rem;
+    .d-chip:hover { border-color: var(--accent); }
+    .d-chip.selected {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
     }
-    .btn:active { transform: scale(0.97); }
-    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
-    .btn--filled { background: var(--fg-primary); color: var(--bg-primary); border: 2px solid var(--fg-primary); }
-    .btn--filled:hover { opacity: 0.88; }
-    .btn--ghost { background: transparent; color: var(--fg-secondary); border: 2px solid transparent; }
-    .btn--ghost:hover { color: var(--fg-primary); border-color: var(--border); }
-
-    .btn-row { display: flex; gap: 0.6rem; margin-top: 0.75rem; }
-    .btn-row .btn { flex: 1; margin-top: 0; }
-
-    .error {
-      background: #fef2f2; border: 1px solid #fecaca;
-      border-radius: var(--radius-md); padding: 0.5rem 0.75rem;
-      font-size: 0.78rem; color: #dc2626; display: none;
-      text-align: center; margin-bottom: 0.75rem;
+    .d-chip-count {
+      font-size: 0.82rem;
+      color: var(--fg-secondary);
+      margin-top: 12px;
+      text-align: right;
     }
-    .error.show { display: block; }
-
-    .login-link { text-align: center; margin-top: 1.5rem; font-size: 0.82rem; color: var(--fg-secondary); }
-    .login-link a { color: var(--accent); text-decoration: none; font-weight: 600; transition: color var(--transition); }
-    .login-link a:hover { color: var(--accent-hover); }
-
-    /* Legal checkbox */
-    .legal-check {
-      display: flex; align-items: flex-start; gap: 8px;
-      margin: 16px 0 4px; font-size: 0.78rem; color: var(--fg-secondary);
+    .d-btn-row { display: flex; gap: 12px; margin-top: 1.5rem; }
+    .d-btn-secondary {
+      background: transparent;
+      border: 1.5px solid var(--border);
+      color: var(--fg-primary);
+      font-weight: 600;
+    }
+    .d-btn-secondary:hover { border-color: var(--fg-primary); }
+    .d-legal-check {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      margin-top: 1.5rem;
+      font-size: 0.82rem;
+      color: var(--fg-secondary);
       line-height: 1.4;
     }
-    .legal-check input[type="checkbox"] {
-      margin-top: 2px; accent-color: var(--accent); width: 14px; height: 14px; cursor: pointer; flex-shrink: 0;
+    .d-legal-check input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      accent-color: var(--accent);
+      margin-top: 2px;
+      cursor: pointer;
+      flex-shrink: 0;
     }
-    .legal-check a { color: var(--accent); text-decoration: none; font-weight: 600; cursor: pointer; }
-    .legal-check a:hover { text-decoration: underline; }
-    .legal-error { font-size: 0.72rem; color: #dc2626; margin-top: 4px; display: none; }
-    .legal-error.show { display: block; }
+    .d-legal-check a {
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .d-legal-check a:hover { text-decoration: underline; }
+    .d-legal-error {
+      font-size: 0.72rem;
+      color: #dc2626;
+      margin-top: 4px;
+      display: none;
+    }
+    .d-legal-error.show { display: block; }
 
-    /* Legal popup modal */
-    .legal-modal-overlay {
-      display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.45); z-index: 1000; justify-content: center; align-items: center;
+    .d-location-wrap { position: relative; }
+    .d-location-dropdown {
+      display: none;
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: var(--bg-secondary);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-md);
+      margin-top: 2px;
+      max-height: 180px;
+      overflow-y: auto;
+      z-index: 10;
+      box-shadow: 0 4px 12px rgba(30, 27, 24, 0.06);
+    }
+    .d-location-option {
+      padding: 8px 12px;
+      font-size: 0.82rem;
+      cursor: pointer;
+      border-bottom: 1px solid var(--border);
+    }
+    .d-location-option:last-child { border-bottom: none; }
+    .d-location-option:hover { background: var(--bg-primary); }
+    .d-location-hint {
+      font-size: 0.72rem;
+      color: var(--fg-tertiary);
+      margin-top: 4px;
+      display: none;
+    }
+    .d-location-hint.show { display: block; }
+
+    .d-legal-modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.45);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
       padding: 20px;
     }
-    .legal-modal-overlay.show { display: flex; }
-    .legal-modal {
-      background: var(--bg-primary); border: 1px solid var(--border); border-radius: 12px;
-      max-width: 640px; width: 100%; max-height: 80vh; display: flex; flex-direction: column;
+    .d-legal-modal-overlay.show { display: flex; }
+    .d-legal-modal {
+      background: var(--bg-primary);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      max-width: 640px;
+      width: 100%;
+      max-height: 80vh;
+      display: flex;
+      flex-direction: column;
       box-shadow: 0 8px 32px rgba(0,0,0,0.15);
     }
-    .legal-modal-header {
-      display: flex; justify-content: space-between; align-items: center;
-      padding: 16px 20px; border-bottom: 1px solid var(--border);
+    .d-legal-modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
     }
-    .legal-modal-header h3 { font-size: 1rem; font-weight: 700; }
-    .legal-modal-close {
-      background: none; border: none; font-size: 1.2rem; cursor: pointer;
-      color: var(--fg-secondary); padding: 4px 8px; border-radius: 4px;
+    .d-legal-modal-header h3 { font-size: 1rem; font-weight: 700; }
+    .d-legal-modal-close {
+      background: none;
+      border: none;
+      font-size: 1.2rem;
+      cursor: pointer;
+      color: var(--fg-secondary);
+      padding: 4px 8px;
+      border-radius: 4px;
     }
-    .legal-modal-close:hover { background: rgba(0,0,0,0.05); }
-    .legal-modal-body {
-      padding: 20px; overflow-y: auto; font-size: 0.82rem; line-height: 1.6;
+    .d-legal-modal-close:hover { background: rgba(0,0,0,0.05); }
+    .d-legal-modal-body {
+      padding: 20px;
+      overflow-y: auto;
+      font-size: 0.82rem;
+      line-height: 1.6;
       color: var(--fg-primary);
     }
-    .legal-modal-body h1 { font-size: 1.1rem; margin-bottom: 8px; }
-    .legal-modal-body h2 { font-size: 0.92rem; margin-top: 16px; margin-bottom: 6px; font-weight: 700; }
-    .legal-modal-body p { margin-bottom: 8px; }
-    .legal-modal-body ul { margin: 6px 0 10px 20px; }
-    .legal-modal-body li { margin-bottom: 4px; }
-    .legal-modal-body hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
-    .legal-modal-body em { color: var(--fg-tertiary); }
-
+    .d-legal-modal-body h1 { font-size: 1.1rem; margin-bottom: 8px; }
+    .d-legal-modal-body h2 { font-size: 0.92rem; margin-top: 16px; margin-bottom: 6px; font-weight: 700; }
+    .d-legal-modal-body p { margin-bottom: 8px; }
+    .d-legal-modal-body ul { margin: 6px 0 10px 20px; }
+    .d-legal-modal-body li { margin-bottom: 4px; }
+    .d-legal-modal-body hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+    .d-legal-modal-body em { color: var(--fg-tertiary); }
   </style>
 </head>
 <body>
-  <div class="page">
-    <div class="logo">LARPABLE.</div>
-    <p class="subtitle">Create your account</p>
-
-    <div class="steps" id="steps">
-      <div class="step-dot active" data-step="0"></div>
-      <div class="step-dot" data-step="1"></div>
-    </div>     <div class="container">
-      <div class="error" id="globalError"></div>
-
-      <!-- STEP 0: TEXT INPUTS -->
-      <div class="form-panel active" id="panel-0">
-        <form id="form-main" onsubmit="return false;">
-          <div class="field">
-            <label for="username">Username</label>
-            <input id="username" type="text" placeholder="Choose a username" autocomplete="username" required>
-          </div>
-          <div class="field">
-            <label for="password">Password</label>
-            <input id="password" type="password" placeholder="At least 6 characters" autocomplete="new-password" required>
-          </div>
-          <hr style="border:none;border-top:1px solid var(--border);margin:0.25rem 0;">
-          <div class="row">
-            <div class="field"><label for="first">First name</label><input id="first" type="text" placeholder="First" autocomplete="given-name"></div>
-            <div class="field"><label for="last">Last name</label><input id="last" type="text" placeholder="Last" autocomplete="family-name"></div>
-          </div>
-          <div class="field"><label for="email">Email</label><input id="email" type="email" placeholder="you@school.edu" autocomplete="email"></div>
-          <div class="row">
-            <div class="field">
-              <label for="age">Age</label>
-              <select id="age"><option value="" disabled selected>Select</option><option>13</option><option>14</option><option>15</option><option>16</option><option>17</option><option>18</option><option>19</option><option>20</option></select>
-            </div>
-            <div class="field">
-              <label for="grade">Grade</label>
-              <select id="grade"><option value="" disabled selected>Select</option><option>9th — Freshman</option><option>10th — Sophomore</option><option>11th — Junior</option><option>12th — Senior</option><option>Undergrad</option></select>
-            </div>
-          </div>
-          <div class="field" style="position:relative;">
-            <label for="location">Location</label>
-            <input id="location" type="text" placeholder="Start typing a city..." autocomplete="off">
-            <div id="location-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--bg-secondary);border:1.5px solid var(--border);border-radius:var(--radius-md);margin-top:2px;max-height:180px;overflow-y:auto;z-index:10;box-shadow:0 4px 12px var(--shadow);"></div>
-            <input type="hidden" id="location-value" value="">
-            <div class="hint" id="location-hint">Select a location from the list</div>
-          </div>
-          <div class="btn-row">
-            <button class="btn btn--ghost" type="button" onclick="goBack()">Back</button>
-            <button class="btn btn--filled" type="button" onclick="nextStep()">Next</button>
-          </div>
-        </form>
-        <p class="login-link">Already have an account? <a href="/login">Log in</a></p>
+  <div class="d-auth">
+    <div class="d-auth-card">
+      <div class="d-steps">
+        <div class="d-step-dot active" data-step="0">1</div>
+        <div class="d-step-dot" data-step="1">2</div>
+        <div class="d-step-dot" data-step="2">3</div>
       </div>
 
-      <!-- STEP 1: INTERESTS & SKILLS -->
-      <div class="form-panel" id="panel-1">
-        <div class="section-header"><h2>Your interests & skills</h2><p>Select at least 3 interests and 3 skills</p></div>
-        <form onsubmit="return false;">
-          <div class="field">
-            <label>Areas of interest <span class="chip-count" id="int-count">0 / 5</span></label>
-            <input class="chip-search" type="text" placeholder="Search interests..." id="int-search">
-            <div class="chip-grid-wrapper" id="int-wrapper"></div>
-            <div class="chip-min-hint" id="int-min-hint">Select at least 3 interests</div>
+      <div class="d-auth-title">Create account</div>
+      <div class="d-auth-sub">Join LARPABLE. and find your match</div>
+
+      <div id="signup-error" style="color:var(--error); font-size:0.82rem; margin-bottom:12px; display:none;"></div>
+
+      <form id="signup-form">
+        <!-- Step 0: Email Verification -->
+        <div class="d-step-panel active" data-step="0">
+          <div class="d-verify-email">
+            <div class="d-form-group">
+              <label class="d-label">Email address</label>
+              <input type="email" class="d-input" id="su-email" placeholder="your@email.com" required autocomplete="email">
+            </div>
+            <div id="email-error" class="d-verify-error-inline" style="display:none;"></div>
+            <button type="button" class="d-verify-btn" id="send-code-btn">Send Verification Code</button>
           </div>
-          <div class="field">
-            <label>Skills <span class="chip-count" id="sk-count">0 / 15</span></label>
-            <input class="chip-search" type="text" placeholder="Search skills..." id="sk-search">
-            <div class="chip-grid-wrapper" id="sk-wrapper"></div>
-            <div class="chip-min-hint" id="sk-min-hint">Select at least 3 skills</div>
+        </div>
+
+        <!-- Step 1: Enter Verification Code -->
+        <div class="d-step-panel" data-step="1">
+          <div class="d-verify-email">
+            <p style="margin-bottom: 16px; color: var(--fg-secondary);">We sent a 6-digit code to</p>
+            <p style="font-weight: 600; margin-bottom: 20px;" id="verify-email-display"></p>
+            <input type="text" class="d-input d-verify-code-input" id="su-code" placeholder="000000" maxlength="6" pattern="[0-9]{6}" inputmode="numeric" autocomplete="one-time-code">
+            <div class="d-verify-timer" id="verify-timer">Code expires in 3:00</div>
+            <div id="code-error" class="d-verify-error-inline" style="display:none;"></div>
+            <div id="code-success" class="d-verify-success" style="display:none;">Email verified successfully!</div>
+            <button type="button" class="d-verify-btn" id="verify-code-btn">Verify Code</button>
+            <div class="d-verify-resend">
+              Didn't receive the code? <a id="resend-code-link">Resend</a>
+            </div>
           </div>
-          <div class="legal-check">
-            <input type="checkbox" id="legal-agree" >
-            <label for="legal-agree">I agree to the <a onclick="openLegal('terms')">Terms of Service</a> and acknowledge the <a onclick="openLegal('privacy')">Privacy Policy</a>.</label>
+        </div>
+
+        <!-- Step 2: Basic Info -->
+        <div class="d-step-panel" data-step="2">
+          <div class="d-form-group">
+            <label class="d-label">Username</label>
+            <input type="text" class="d-input" id="su-username" placeholder="Enter your username" required autocomplete="username">
           </div>
-          <div class="legal-error" id="legal-error">You must agree to the Terms of Service and Privacy Policy to sign up.</div>
-          <div class="btn-row">
-            <button class="btn btn--ghost" type="button" onclick="prevStep()">Back</button>
-            <button class="btn btn--filled" type="button" id="submitBtn" onclick="submitSignup()">Sign up</button>
+          <div class="d-form-group">
+            <label class="d-label">Password</label>
+            <input type="password" class="d-input" id="su-password" placeholder="Choose a password" required autocomplete="new-password">
           </div>
-        </form>
+          <div class="d-form-row">
+            <div class="d-form-group">
+              <label class="d-label">First name</label>
+              <input type="text" class="d-input" id="su-first" placeholder="First name" required>
+            </div>
+            <div class="d-form-group">
+              <label class="d-label">Last name</label>
+              <input type="text" class="d-input" id="su-last" placeholder="Last name" required>
+            </div>
+          </div>
+          <div class="d-form-row">
+            <div class="d-form-group">
+              <label class="d-label">Age</label>
+              <select class="d-input" id="su-age" required>
+                <option value="" disabled selected>Select</option>
+                <option value="13">13</option><option value="14">14</option><option value="15">15</option>
+                <option value="16">16</option><option value="17">17</option><option value="18">18</option>
+                <option value="19">19</option><option value="20">20</option>
+              </select>
+            </div>
+            <div class="d-form-group">
+              <label class="d-label">Grade</label>
+              <select class="d-input" id="su-grade" required>
+                <option value="" disabled selected>Select</option>
+                <option value="9th — Freshman">9th — Freshman</option>
+                <option value="10th — Sophomore">10th — Sophomore</option>
+                <option value="11th — Junior">11th — Junior</option>
+                <option value="12th — Senior">12th — Senior</option>
+                <option value="Undergrad">Undergrad</option>
+              </select>
+            </div>
+          </div>
+          <div class="d-form-group d-location-wrap">
+            <label class="d-label">Location</label>
+            <input type="text" class="d-input" id="su-location" placeholder="Start typing a city..." autocomplete="off" required>
+            <div class="d-location-dropdown" id="su-location-dropdown"></div>
+            <input type="hidden" id="su-location-value" value="">
+            <div class="d-location-hint" id="su-location-hint">Select a location from the list</div>
+          </div>
+          <div class="d-btn-row">
+            <button type="button" class="d-btn d-btn-secondary" id="back-btn">Back</button>
+            <button type="button" class="d-btn d-btn-accent d-btn--full" id="next-btn">Next</button>
+          </div>
+        </div>
+
+        <!-- Step 3: Interests & Skills -->
+        <div class="d-step-panel" data-step="3">
+          <div class="d-form-group" style="margin-bottom: 1rem;">
+            <label class="d-label" style="margin-bottom: 4px;">Your Interests</label>
+            <div style="font-size: 0.78rem; color: var(--fg-tertiary); margin-bottom: 8px;">Pick 3–5 interests</div>
+            <div class="d-chipgrid-wrap">
+              <input type="text" class="d-chipgrid-search" id="interest-search" placeholder="Search interests...">
+              <div class="d-chipgrid-scroll" id="interest-chips"></div>
+            </div>
+            <div class="d-chip-count"><span id="interest-count">0</span>/5 selected</div>
+          </div>
+
+          <div class="d-form-group">
+            <label class="d-label" style="margin-bottom: 4px;">Your Skills</label>
+            <div style="font-size: 0.78rem; color: var(--fg-tertiary); margin-bottom: 8px;">Pick 3–15 skills</div>
+            <div class="d-chipgrid-wrap">
+              <input type="text" class="d-chipgrid-search" id="skill-search" placeholder="Search skills...">
+              <div class="d-chipgrid-scroll" id="skill-chips"></div>
+            </div>
+            <div class="d-chip-count"><span id="skill-count">0</span>/15 selected</div>
+          </div>
+
+          <div class="d-legal-check">
+            <input type="checkbox" id="su-legal">
+            <label for="su-legal">I agree to the <a onclick="openLegal('terms')">Terms of Service</a> and acknowledge the <a onclick="openLegal('privacy')">Privacy Policy</a>.</label>
+          </div>
+          <div class="d-legal-error" id="su-legal-error">You must agree to the Terms of Service and Privacy Policy to sign up.</div>
+
+          <div class="d-btn-row">
+            <button type="button" class="d-btn d-btn-secondary" id="back-btn-step3">Back</button>
+            <button type="submit" class="d-btn d-btn-accent d-btn--full">Sign up</button>
+          </div>
+        </div>
+      </form>
+
+      <div class="d-auth-footer">
+        Already have an account? <a href="/login">Log in</a>
       </div>
     </div>
   </div>
 
-  <script src="/synonyms.js"></script>
+  <!-- Legal Modals -->
+  <div class="d-legal-modal-overlay" id="terms-modal">
+    <div class="d-legal-modal">
+      <div class="d-legal-modal-header">
+        <h3>Terms of Service</h3>
+        <button class="d-legal-modal-close" onclick="closeLegal('terms')">&times;</button>
+      </div>
+      <div class="d-legal-modal-body" id="terms-body">Loading...</div>
+    </div>
+  </div>
+  <div class="d-legal-modal-overlay" id="privacy-modal">
+    <div class="d-legal-modal">
+      <div class="d-legal-modal-header">
+        <h3>Privacy Policy</h3>
+        <button class="d-legal-modal-close" onclick="closeLegal('privacy')">&times;</button>
+      </div>
+      <div class="d-legal-modal-body" id="privacy-body">Loading...</div>
+    </div>
+  </div>
+
   <script src="/legal-filter.js"></script>
   <script>
-    // ── Redirect if already logged in ──
+    // Already logged in → straight to the feed
     (async () => {
       try {
         const res = await fetch('/api/auth/me', { credentials: 'same-origin' });
@@ -354,449 +481,480 @@
       } catch (e) {}
     })();
 
-    // ── INTERESTS DATA (85+) ──
-    const interests = {
-      'Computer Science & Tech': [
-        'AI / Machine Learning', 'Web Development', 'Mobile Development', 'Game Development',
-        'Cybersecurity', 'Data Science', 'Cloud Computing', 'DevOps / Infrastructure',
-        'Blockchain / Web3', 'AR / VR Development', 'IoT / Embedded Systems', 'Natural Language Processing',
-        'Computer Vision', 'Quantum Computing', 'Operating Systems', 'Distributed Systems'
-      ],
-      'Engineering & Design': [
-        'Robotics', 'Aerospace', 'Biomedical Engineering', 'Civil Engineering',
-        'Mechanical Engineering', 'Electrical Engineering', 'Industrial Design', 'UI/UX Design',
-        'Product Design', '3D Printing / Fabrication', 'CAD / Engineering Design', 'Nanotechnology'
-      ],
-      'Science & Research': [
-        'Biology', 'Chemistry', 'Physics', 'Mathematics',
-        'Environmental Science', 'Neuroscience', 'Genetics', 'Astrophysics',
-        'Geology', 'Microbiology', 'Ecology', 'Materials Science', 'Data Analytics'
-      ],
-      'Business & Entrepreneurship': [
-        'Entrepreneurship', 'Venture Capital', 'Marketing', 'Finance / Fintech',
-        'Accounting', 'Supply Chain / Logistics', 'Real Estate', 'Consulting',
-        'Sales', 'Business Strategy', 'E-Commerce', 'Nonprofit Management', 'Digital Marketing'
-      ],
-      'Health & Medicine': [
-        'Health Tech', 'Public Health', 'Biotech', 'Pharmacology',
-        'Nutrition Science', 'Sports Medicine', 'Mental Health', 'Epidemiology',
-        'Medical Devices', 'Nursing', 'Healthcare Policy'
-      ],
-      'Creative & Arts': [
-        'Creative Writing', 'Graphic Design', 'Music Production', 'Photography',
-        'Film / Media', 'Animation', 'Fashion Design', 'Interior Design',
-        'Architecture', 'Digital Art', 'Content Creation'
-      ],
-      'Culinary & Hospitality': [
-        'Culinary Arts', 'Food Science', 'Restaurant Management', 'Pastry & Baking',
-        'Sustainable Food Systems', 'Wine & Beverage Studies', 'Hospitality Management',
-        'Event Planning', 'Nutrition & Dietetics'
-      ],
-      'Aviation & Transportation': [
-        'Aviation / Piloting', 'Drone Technology', 'Autonomous Vehicles', 'Marine Engineering',
-        'Space Exploration', 'Urban Planning / Transit', 'Logistics Technology'
-      ],
-      'Environment & Sustainability': [
-        'Climate / Sustainability', 'Renewable Energy', 'Conservation Biology', 'Environmental Policy',
-        'Agriculture / Agritech', 'Water Resource Management', 'Sustainable Architecture', 'Zero Waste'
-      ],
-      'Social Sciences & Humanities': [
-        'Psychology', 'Sociology', 'Political Science', 'Economics',
-        'Philosophy', 'Linguistics', 'Anthropology', 'International Relations',
-        'Criminal Justice', 'Education Tech', 'Social Impact', 'Human Rights',
-        'Community Outreach', 'Volunteer Coordination'
-      ],
-      'Trades & Hands-On': [
-        'Automotive Repair', 'Woodworking', 'Electrical Wiring', 'Plumbing Basics',
-        'Metalworking', 'Textile / Sewing', 'Gardening / Horticulture', 'Home Renovation'
-      ]
-    };
+    let currentStep = 0;
+    let verifiedEmail = null;
+    let verificationTimer = null;
+    let verificationExpiresAt = null;
+    const selectedInterests = new Set();
+    const selectedSkills = new Set();
 
-    // ── SKILLS DATA (85+) ──
-    const skills = {
-      'Programming Languages': [
-        'Python', 'JavaScript', 'TypeScript', 'Java', 'C / C++', 'C#',
-        'Swift', 'Kotlin', 'Rust', 'Go', 'Ruby', 'PHP',
-        'Dart', 'Scala', 'R', 'MATLAB', 'Assembly', 'Lua'
-      ],
-      'Web & Frontend': [
-        'HTML / CSS', 'React', 'Vue.js', 'Angular', 'Svelte',
-        'Next.js', 'Tailwind CSS', 'SASS / LESS', 'Web Accessibility', 'Web Design'
-      ],
-      'Backend & Infrastructure': [
-        'Node.js', 'Express.js', 'Django', 'Flask', 'Spring Boot',
-        'GraphQL', 'REST APIs', 'Docker', 'Kubernetes', 'AWS / Cloud',
-        'Firebase', 'MongoDB', 'SQL / Databases', 'Redis', 'Cloud Architecture'
-      ],
-      'Data & AI': [
-        'Data Analysis', 'Machine Learning', 'TensorFlow', 'Pandas / NumPy',
-        'Data Visualization', 'Statistical Modeling', 'NLP', 'SQL / Database Design',
-        'Data Engineering', 'Quality Assurance'
-      ],
-      'Design & Creative': [
-        'Figma', 'Photoshop / Illustrator', 'Canva', 'Adobe Premiere / After Effects',
-        'Video Editing', '3D Modeling', 'Blender', 'UI/UX Design',
-        'Logo Design', 'Brand Identity', 'Motion Graphics', 'Graphic Design'
-      ],
-      'Writing & Communication': [
-        'Public Speaking', 'Technical Writing', 'Copywriting', 'Grant Writing',
-        'Blogging', 'Newsletter Writing', 'Storytelling', 'Debate',
-        'Communication', 'Public Relations'
-      ],
-      'Business & Leadership': [
-        'Project Management', 'Product Management', 'Marketing', 'SEO / SEM',
-        'Social Media Management', 'Market Research', 'Financial Modeling',
-        'Pitch Deck Creation', 'Fundraising', 'Team Leadership', 'Negotiation',
-        'Critical Thinking', 'Problem Solving', 'Time Management',
-        'Client Relations', 'Business Analysis', 'Excel / Spreadsheets'
-      ],
-      'Science & Math': [
-        'Math / Statistics', 'Lab Research', 'Scientific Writing', 'Experimental Design',
-        'Calculus', 'Linear Algebra', 'Physics Modeling', 'Chemistry Lab Skills', 'Research'
-      ],
-      'Culinary & Food': [
-        'Cooking / Cuisine', 'Baking / Pastry', 'Food Photography', 'Menu Planning',
-        'Food Safety', 'Meal Prep & Nutrition', 'Sous Vide', 'Fermentation'
-      ],
-      'Mechanical & Trades': [
-        'Soldering', '3D Printing', 'CAD / SolidWorks', 'Arduino / Raspberry Pi',
-        'Woodworking', 'Basic Carpentry', 'Automotive Basics', 'Drone Operation',
-        'Robotics Programming'
-      ],
-      'Aviation & Marine': [
-        'Flight Simulation', 'Aircraft Maintenance Basics', 'Navigation / Cartography',
-        'Sailing', 'Scuba Diving', 'Meteorology Basics'
-      ],
-      'Languages & Culture': [
-        'Spanish', 'Mandarin', 'French', 'Japanese', 'German',
-        'ASL (Sign Language)', 'Portuguese', 'Arabic', 'Korean'
-      ],
-      'Fitness & Outdoors': [
-        'First Aid / CPR', 'Wilderness Survival', 'Yoga', 'Strength Training',
-        'Swimming', 'Rock Climbing', 'Trail Running'
-      ]
-    };
+    const stepDots = document.querySelectorAll('.d-step-dot');
+    const panels = document.querySelectorAll('.d-step-panel');
 
-    // ── BUILD CHIP GRIDS ──
-    function buildGrid(data, wrapperId, searchId, groupName, countId, minHintId, max, min) {
-      const wrapper = document.getElementById(wrapperId);
-      const search = document.getElementById(searchId);
-      let html = '';
-      for (const [cat, items] of Object.entries(data)) {
-        html += `<span class="chip-category" data-cat="${cat}">${cat}</span>`;
-        html += '<div class="chip-grid">';
-        items.forEach((item, i) => {
-          const id = `${groupName}-${cat.replace(/[^a-z0-9]/gi,'')}-${i}`;
-          html += `<input type="checkbox" class="chip-option" id="${id}" value="${item}"><label class="chip-label" for="${id}">${item}</label>`;
-        });
-        html += '</div>';
-      }
-      html += `<div class="no-results" id="${groupName}-no-results">No matches found</div>`;
-      wrapper.innerHTML = html;
-
-      // Chip limits + min validation
-      const allChips = wrapper.querySelectorAll('.chip-option');
-      const countEl = document.getElementById(countId);
-      const minHint = document.getElementById(minHintId);
-
-      allChips.forEach(chip => {
-        chip.addEventListener('change', () => {
-          const checked = wrapper.querySelectorAll('.chip-option:checked').length;
-          if (checked > max) { chip.checked = false; return; }
-          countEl.textContent = checked + ' / ' + max;
-          countEl.classList.toggle('at-limit', checked === max);
-          countEl.classList.toggle('at-min', checked < min);
-          minHint.classList.toggle('show', checked < min);
-          allChips.forEach(c => { if (!c.checked) c.disabled = (checked >= max); });
-        });
+    function updateSteps() {
+      stepDots.forEach((dot, i) => {
+        dot.classList.toggle('active', i === currentStep);
+        dot.classList.toggle('completed', i < currentStep);
       });
-
-      // Search (with synonym matching)
-      search.addEventListener('input', () => {
-        const q = search.value.trim().toLowerCase();
-        const categories = wrapper.querySelectorAll('.chip-category');
-        let anyVisible = false;
-
-        categories.forEach(catEl => {
-          const grid = catEl.nextElementSibling;
-          if (!grid || !grid.classList.contains('chip-grid')) return;
-          const chips = grid.querySelectorAll('.chip-label');
-          let catVisible = false;
-
-          chips.forEach(label => {
-            const itemValue = label.previousElementSibling ? label.previousElementSibling.value : label.textContent;
-            const matched = typeof matchesSynonym === 'function'
-              ? matchesSynonym(q, itemValue)
-              : label.textContent.toLowerCase().includes(q);
-            if (!q || matched) {
-              label.classList.remove('hidden');
-              catVisible = true;
-              anyVisible = true;
-            } else {
-              label.classList.add('hidden');
-            }
-          });
-
-          catEl.classList.toggle('hidden', !catVisible);
-        });
-
-        document.getElementById(`${groupName}-no-results`).classList.toggle('show', !anyVisible);
+      panels.forEach((panel, i) => {
+        panel.classList.toggle('active', i === currentStep);
       });
     }
 
-    buildGrid(interests, 'int-wrapper', 'int-search', 'int', 'int-count', 'int-min-hint', 5, 3);
-    buildGrid(skills, 'sk-wrapper', 'sk-search', 'sk', 'sk-count', 'sk-min-hint', 15, 3);
+    // Navigate steps by clicking dots
+    document.querySelectorAll('.d-step-dot').forEach(dot => {
+      dot.addEventListener('click', () => {
+        const target = parseInt(dot.dataset.step);
+        if (target < currentStep) {
+          currentStep = target;
+          updateSteps();
+        }
+      });
+    });
+
+    // ── Step 0: Send Verification Code ──
+    document.getElementById('send-code-btn').addEventListener('click', async () => {
+      const email = document.getElementById('su-email').value.trim();
+      const errorEl = document.getElementById('email-error');
+      errorEl.style.display = 'none';
+
+      if (!email || !email.includes('@')) {
+        errorEl.textContent = 'Please enter a valid email address.';
+        errorEl.style.display = 'block';
+        return;
+      }
+
+      const btn = document.getElementById('send-code-btn');
+      btn.disabled = true;
+      btn.textContent = 'Sending...';
+
+      try {
+        const response = await fetch('/api/verify/email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          if (data.error === 'Verification already pending') {
+            // Code was already sent, move to verification step
+            verifiedEmail = email;
+            document.getElementById('verify-email-display').textContent = email;
+            startVerificationTimer(data.expiresAt);
+            currentStep = 1;
+            updateSteps();
+            return;
+          }
+          throw new Error(data.error || 'Failed to send verification code');
+        }
+
+        verifiedEmail = email;
+        document.getElementById('verify-email-display').textContent = email;
+        startVerificationTimer(Date.now() + (data.expiresIn * 1000));
+        currentStep = 1;
+        updateSteps();
+      } catch (error) {
+        errorEl.textContent = error.message || 'Failed to send verification code. Please try again.';
+        errorEl.style.display = 'block';
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Send Verification Code';
+      }
+    });
+
+    // ── Step 1: Verify Code ──
+    document.getElementById('verify-code-btn').addEventListener('click', async () => {
+      const code = document.getElementById('su-code').value.trim();
+      const errorEl = document.getElementById('code-error');
+      const successEl = document.getElementById('code-success');
+      errorEl.style.display = 'none';
+      successEl.style.display = 'none';
+
+      if (!code || code.length !== 6) {
+        errorEl.textContent = 'Please enter the 6-digit code.';
+        errorEl.style.display = 'block';
+        return;
+      }
+
+      const btn = document.getElementById('verify-code-btn');
+      btn.disabled = true;
+      btn.textContent = 'Verifying...';
+
+      try {
+        const response = await fetch('/api/verify/code', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: verifiedEmail, code })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          if (data.attemptsLeft !== undefined && data.attemptsLeft <= 0) {
+            throw new Error('Too many failed attempts. Please request a new code.');
+          }
+          if (data.error === 'code_expired') {
+            throw new Error('Code expired. Please request a new code.');
+          }
+          throw new Error(data.error || 'Invalid code');
+        }
+
+        successEl.style.display = 'block';
+        clearInterval(verificationTimer);
+
+        // Move to next step after brief delay
+        setTimeout(() => {
+          currentStep = 2;
+          updateSteps();
+        }, 500);
+      } catch (error) {
+        errorEl.textContent = error.message || 'Verification failed. Please try again.';
+        errorEl.style.display = 'block';
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Verify Code';
+      }
+    });
+
+    // Resend code
+    document.getElementById('resend-code-link').addEventListener('click', async () => {
+      const errorEl = document.getElementById('code-error');
+      errorEl.style.display = 'none';
+
+      try {
+        const response = await fetch('/api/verify/resend', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: verifiedEmail })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to resend code');
+        }
+
+        startVerificationTimer(Date.now() + (data.expiresIn * 1000));
+        document.getElementById('su-code').value = '';
+        document.getElementById('code-success').textContent = 'New code sent!';
+        document.getElementById('code-success').style.display = 'block';
+        setTimeout(() => {
+          document.getElementById('code-success').style.display = 'none';
+        }, 2000);
+      } catch (error) {
+        errorEl.textContent = error.message || 'Failed to resend code.';
+        errorEl.style.display = 'block';
+      }
+    });
+
+    function startVerificationTimer(expiresAt) {
+      verificationExpiresAt = expiresAt;
+      clearInterval(verificationTimer);
+
+      updateTimerDisplay();
+      verificationTimer = setInterval(updateTimerDisplay, 1000);
+    }
+
+    function updateTimerDisplay() {
+      const timerEl = document.getElementById('verify-timer');
+      const remaining = Math.max(0, verificationExpiresAt - Date.now());
+      const minutes = Math.floor(remaining / 60000);
+      const seconds = Math.floor((remaining % 60000) / 1000);
+
+      timerEl.textContent = `Code expires in ${minutes}:${seconds.toString().padStart(2, '0')}`;
+      timerEl.classList.toggle('warning', remaining < 60000);
+
+      if (remaining <= 0) {
+        clearInterval(verificationTimer);
+        timerEl.textContent = 'Code expired. Please request a new one.';
+      }
+    }
+
+    // Auto-submit code when 6 digits entered
+    document.getElementById('su-code').addEventListener('input', (e) => {
+      if (e.target.value.length === 6) {
+        document.getElementById('verify-code-btn').click();
+      }
+    });
+
+    // ── Step 2: Basic Info ──
+    document.getElementById('next-btn').addEventListener('click', async () => {
+      document.getElementById('signup-error').style.display = 'none';
+      const username = document.getElementById('su-username').value.trim();
+      const password = document.getElementById('su-password').value;
+      const firstName = document.getElementById('su-first').value.trim();
+      const lastName = document.getElementById('su-last').value.trim();
+      const age = document.getElementById('su-age').value;
+      const grade = document.getElementById('su-grade').value;
+      const location = document.getElementById('su-location-value').value;
+
+      if (!username || !password || !firstName || !lastName || !age || !grade) {
+        showError('Please fill in all fields.');
+        return;
+      }
+      if (username.length < 3) {
+        showError('Username must be at least 3 characters.');
+        return;
+      }
+      if (password.length < 6) {
+        showError('Password must be at least 6 characters.');
+        return;
+      }
+      if (!location) {
+        showError('Please select a location from the list.');
+        document.getElementById('su-location-hint').classList.add('show');
+        return;
+      }
+
+      // Check username availability
+      try {
+        const resp = await fetch(`/api/validate/username/${encodeURIComponent(username)}`);
+        const data = await resp.json();
+        if (!data.available) {
+          showError('Username is already taken.');
+          return;
+        }
+      } catch (err) {
+        showError('Could not validate username. Please try again.');
+        return;
+      }
+
+      currentStep = 3;
+      updateSteps();
+    });
+
+    // Back buttons
+    document.getElementById('back-btn').addEventListener('click', () => {
+      currentStep = 1;
+      updateSteps();
+    });
+
+    document.getElementById('back-btn-step3').addEventListener('click', () => {
+      currentStep = 2;
+      updateSteps();
+    });
+
+    // ── Step 3: Submit ──
+    document.getElementById('signup-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const legal = document.getElementById('su-legal').checked;
+      if (!legal) {
+        document.getElementById('su-legal-error').classList.add('show');
+        return;
+      }
+      document.getElementById('su-legal-error').classList.remove('show');
+
+      if (selectedInterests.size < 3 || selectedInterests.size > 5) {
+        showError('Please select between 3 and 5 interests.');
+        return;
+      }
+      if (selectedSkills.size < 3 || selectedSkills.size > 15) {
+        showError('Please select between 3 and 15 skills.');
+        return;
+      }
+
+      const username = document.getElementById('su-username').value.trim();
+      const password = document.getElementById('su-password').value;
+      const firstName = document.getElementById('su-first').value.trim();
+      const lastName = document.getElementById('su-last').value.trim();
+      const age = document.getElementById('su-age').value;
+      const grade = document.getElementById('su-grade').value;
+      const locationValue = document.getElementById('su-location-value').value;
+      const locData = locationValue ? JSON.parse(locationValue) : null;
+
+      const btn = e.target.querySelector('button[type="submit"]');
+      btn.disabled = true;
+      btn.textContent = 'Creating account...';
+
+      try {
+        const response = await fetch('/api/auth/signup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({
+            type: 'student',
+            username,
+            password,
+            email: verifiedEmail,
+            first_name: firstName,
+            last_name: lastName,
+            age,
+            grade,
+            location: locData ? locData.display : document.getElementById('su-location').value.trim(),
+            city: locData ? locData.city : '',
+            state: locData ? locData.state : '',
+            country: locData ? locData.country : '',
+            latitude: locData ? locData.lat : null,
+            longitude: locData ? locData.lon : null,
+            skills: [...selectedSkills],
+            interests: [...selectedInterests],
+            legal_agreed: true
+          })
+        });
+
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.error || 'Signup failed');
+        }
+
+        window.location.href = '/profile';
+      } catch (err) {
+        showError(err.message || 'Signup failed. Please try again.');
+        btn.disabled = false;
+        btn.textContent = 'Sign up';
+      }
+    });
+
+    function showError(msg) {
+      const el = document.getElementById('signup-error');
+      el.textContent = msg;
+      el.style.display = 'block';
+    }
 
     // ── LOCATION AUTOCOMPLETE (Photon API) ──
-    const locationInput = document.getElementById('location');
-    const locationDropdown = document.getElementById('location-dropdown');
-    const locationValue = document.getElementById('location-value');
-    const locationHint = document.getElementById('location-hint');
-    let locationTimeout = null;
-    let activeLocationIndex = -1;
+    const locInput = document.getElementById('su-location');
+    const locDropdown = document.getElementById('su-location-dropdown');
+    const locValue = document.getElementById('su-location-value');
+    const locHint = document.getElementById('su-location-hint');
+    let locTimeout = null;
+    let activeLocIndex = -1;
 
-    function formatLocation(props) {
+    function formatLoc(props) {
       const city = props.name || props.city || '';
       const state = props.state || '';
       const country = props.country || '';
-      const parts = [city, state, country].filter(Boolean);
-      return parts.join(', ');
+      return [city, state, country].filter(Boolean).join(', ');
     }
 
-    function formatLocationShort(props) {
-      const city = props.name || props.city || '';
-      const state = props.state || '';
-      const country = props.country || '';
-      if (state && country) return `${city}, ${state}, ${country}`;
-      if (country) return `${city}, ${country}`;
-      return city;
-    }
+    locInput.addEventListener('input', () => {
+      locValue.value = '';
+      locHint.classList.remove('show');
+      const q = locInput.value.trim();
+      if (q.length < 2) { locDropdown.style.display = 'none'; return; }
 
-    locationInput.addEventListener('input', () => {
-      locationValue.value = '';
-      locationHint.classList.remove('show');
-      const q = locationInput.value.trim();
-      if (q.length < 2) { locationDropdown.style.display = 'none'; return; }
-
-      clearTimeout(locationTimeout);
-      locationTimeout = setTimeout(async () => {
+      clearTimeout(locTimeout);
+      locTimeout = setTimeout(async () => {
         try {
           const res = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=8&lang=en`);
           const data = await res.json();
           if (!data.features || data.features.length === 0) {
-            locationDropdown.style.display = 'none';
+            locDropdown.style.display = 'none';
             return;
           }
-          // Filter to only city-level results (place, city, town, village)
           const cities = data.features.filter(f => {
-            const type = f.properties.osm_key || f.properties.type || '';
             const cls = f.properties.osm_value || '';
             return ['place', 'city', 'town', 'village', 'hamlet', 'municipality', 'suburb', 'neighbourhood'].includes(cls) ||
                    f.properties.type === 'city' || f.properties.type === 'town' || f.properties.type === 'village';
           });
-          if (cities.length === 0) {
-            // Fall back to all results if no city-level matches
-            locationDropdown.innerHTML = data.features.map((f, i) =>
-              `<div class="loc-option" data-index="${i}" data-props='${JSON.stringify(f.properties).replace(/'/g, "&#39;")}' style="padding:8px 12px;font-size:0.82rem;cursor:pointer;border-bottom:1px solid var(--border);" onmouseenter="this.style.background='var(--bg-primary)'" onmouseleave="this.style.background='none'">${formatLocation(f.properties)}</div>`
-            ).join('');
-          } else {
-            locationDropdown.innerHTML = cities.map((f, i) =>
-              `<div class="loc-option" data-index="${i}" data-props='${JSON.stringify(f.properties).replace(/'/g, "&#39;")}' style="padding:8px 12px;font-size:0.82rem;cursor:pointer;border-bottom:1px solid var(--border);" onmouseenter="this.style.background='var(--bg-primary)'" onmouseleave="this.style.background='none'">${formatLocation(f.properties)}</div>`
-            ).join('');
-          }
-          locationDropdown.style.display = 'block';
-          activeLocationIndex = -1;
-        } catch (e) {
-          locationDropdown.style.display = 'none';
+          const features = cities.length > 0 ? cities : data.features;
+          locDropdown.innerHTML = features.map((f, i) =>
+            `<div class="d-location-option" data-index="${i}" data-props='${JSON.stringify(f.properties).replace(/'/g, "&#39;")}'>${formatLoc(f.properties)}</div>`
+          ).join('');
+          locDropdown.style.display = 'block';
+          activeLocIndex = -1;
+
+          locDropdown.querySelectorAll('.d-location-option').forEach(opt => {
+            opt.addEventListener('click', () => {
+              const idx = parseInt(opt.dataset.index, 10);
+              const feature = features[idx];
+              const props = JSON.parse(opt.dataset.props);
+              const coords = feature?.geometry?.coordinates || [];
+              locInput.value = formatLoc(props);
+              locValue.value = JSON.stringify({
+                city: props.name || props.city || '',
+                state: props.state || '',
+                country: props.country || '',
+                display: formatLoc(props),
+                lat: coords[1] || null,
+                lon: coords[0] || null
+              });
+              locDropdown.style.display = 'none';
+              locHint.classList.remove('show');
+            });
+          });
+        } catch (err) {
+          locDropdown.style.display = 'none';
         }
       }, 300);
     });
 
-    locationInput.addEventListener('keydown', (e) => {
-      const options = locationDropdown.querySelectorAll('.loc-option');
+    locInput.addEventListener('keydown', (e) => {
+      const options = locDropdown.querySelectorAll('.d-location-option');
       if (!options.length) return;
       if (e.key === 'ArrowDown') {
         e.preventDefault();
-        activeLocationIndex = Math.min(activeLocationIndex + 1, options.length - 1);
-        highlightOption(options);
+        activeLocIndex = Math.min(activeLocIndex + 1, options.length - 1);
+        options.forEach((opt, i) => { opt.style.background = i === activeLocIndex ? 'var(--bg-primary)' : 'none'; });
       } else if (e.key === 'ArrowUp') {
         e.preventDefault();
-        activeLocationIndex = Math.max(activeLocationIndex - 1, 0);
-        highlightOption(options);
-      } else if (e.key === 'Enter') {
+        activeLocIndex = Math.max(activeLocIndex - 1, 0);
+        options.forEach((opt, i) => { opt.style.background = i === activeLocIndex ? 'var(--bg-primary)' : 'none'; });
+      } else if (e.key === 'Enter' && activeLocIndex >= 0) {
         e.preventDefault();
-        if (activeLocationIndex >= 0) selectLocation(options[activeLocationIndex]);
+        options[activeLocIndex].click();
       } else if (e.key === 'Escape') {
-        locationDropdown.style.display = 'none';
+        locDropdown.style.display = 'none';
       }
     });
 
-    function highlightOption(options) {
-      options.forEach((opt, i) => {
-        opt.style.background = i === activeLocationIndex ? 'var(--bg-primary)' : 'none';
-      });
-    }
-
-    locationDropdown.addEventListener('click', (e) => {
-      const opt = e.target.closest('.loc-option');
-      if (opt) selectLocation(opt);
-    });
-
-    function selectLocation(opt) {
-      const props = JSON.parse(opt.dataset.props);
-      locationInput.value = formatLocation(props);
-      locationValue.value = JSON.stringify({
-        city: props.name || props.city || '',
-        state: props.state || '',
-        country: props.country || '',
-        display: formatLocation(props),
-        lat: props.lat,
-        lon: props.lon
-      });
-      locationDropdown.style.display = 'none';
-      locationHint.classList.remove('show');
-    }
-
-    // Close dropdown when clicking outside
     document.addEventListener('click', (e) => {
-      if (!e.target.closest('#location') && !e.target.closest('#location-dropdown')) {
-        locationDropdown.style.display = 'none';
-      }
+      if (!e.target.closest('.d-location-wrap')) locDropdown.style.display = 'none';
     });
 
-    // ── AUTO-CLEAR ERRORS ON INPUT ──
-    const errEl = document.getElementById('globalError');
-    function clearError() { errEl.classList.remove('show'); }
-    document.querySelectorAll('.form-panel input, .form-panel select').forEach(el => {
-      el.addEventListener('input', clearError);
-      el.addEventListener('change', clearError);
-    });
-    // Also clear when a chip is toggled
-    document.querySelectorAll('.chip-option').forEach(chip => {
-      chip.addEventListener('change', clearError);
-    });
-    // Also clear when a location is selected
-    locationInput.addEventListener('input', clearError);
+    // ── CHIP GRIDS ──
+    function renderChips(categories, container, search, selected, maxCount, countEl, synonyms = {}) {
+      const containerEl = document.getElementById(container);
+      const searchEl = document.getElementById(search);
+      const countElEl = document.getElementById(countEl);
 
-    // ── STEP NAVIGATION ──
-    let currentStep = 0;
-
-    function nextStep() {
-      currentStep = 1;
-      showPanel(1);
-      updateSteps(1);
-    }
-
-    function prevStep() {
-      currentStep = 0;
-      showPanel(0);
-      updateSteps(0);
-    }
-
-    function goBack() {
-      window.location.href = '/loading_page';
-    }
-
-    function showPanel(step) {
-      document.querySelectorAll('.form-panel').forEach(p => p.classList.remove('active'));
-      document.getElementById('panel-' + step).classList.add('active');
-    }
-
-    function updateSteps(step) {
-      document.querySelectorAll('.step-dot').forEach((d, i) => {
-        d.classList.remove('active', 'done');
-        if (i < step) d.classList.add('done');
-        if (i === step) d.classList.add('active');
-      });
-    }
-
-    // ── SIGNUP ──
-    async function submitSignup() {
-      const errEl = document.getElementById('globalError');
-      errEl.classList.remove('show');
-
-      const interests = Array.from(document.querySelectorAll('#int-wrapper .chip-option:checked')).map(c => c.value);
-      const skills = Array.from(document.querySelectorAll('#sk-wrapper .chip-option:checked')).map(c => c.value);
-
-      if (!document.getElementById('username').value.trim() || document.getElementById('username').value.trim().length < 3) {
-        errEl.textContent = 'Username must be at least 3 characters';
-        errEl.classList.add('show');
-        return;
-      }
-      if (!document.getElementById('password').value || document.getElementById('password').value.length < 6) {
-        errEl.textContent = 'Password must be at least 6 characters';
-        errEl.classList.add('show');
-        return;
-      }
-      if (!locationValue.value) {
-        errEl.textContent = 'Please select a location from the list';
-        errEl.classList.add('show');
-        locationHint.classList.add('show');
-        return;
-      }
-      if (interests.length < 3) {
-        errEl.textContent = 'Select at least 3 interests';
-        errEl.classList.add('show');
-        document.getElementById('int-min-hint').classList.add('show');
-        return;
-      }
-      if (skills.length < 3) {
-        errEl.textContent = 'Select at least 3 skills';
-        errEl.classList.add('show');
-        document.getElementById('sk-min-hint').classList.add('show');
-        return;
-      }
-      if (!document.getElementById('legal-agree').checked) {
-        document.getElementById('legal-error').classList.add('show');
-        return;
-      }
-      document.getElementById('legal-error').classList.remove('show');
-
-      const locData = JSON.parse(locationValue.value);
-      const body = {
-        type: 'student',
-        username: document.getElementById('username').value.trim(),
-        password: document.getElementById('password').value,
-        first_name: document.getElementById('first').value.trim(),
-        last_name: document.getElementById('last').value.trim(),
-        email: document.getElementById('email').value.trim(),
-        age: document.getElementById('age').value,
-        grade: document.getElementById('grade').value,
-        location: locData.display,
-        city: locData.city,
-        state: locData.state,
-        country: locData.country,
-        interests,
-        skills,
-        legal_agreed: true
-      };
-
-      const btn = document.getElementById('submitBtn');
-      if (btn) { btn.disabled = true; btn.textContent = 'Creating account...'; }
-
-      try {
-        const res = await fetch('/api/auth/signup', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'same-origin',
-          body: JSON.stringify(body)
+      function render(filter = '') {
+        containerEl.innerHTML = '';
+        const lf = filter.toLowerCase();
+        Object.entries(categories).forEach(([cat, items]) => {
+          const filtered = items.filter(i => i.toLowerCase().includes(lf) || (synonyms[i] || []).some(s => s.toLowerCase().includes(lf))).sort((a, b) => a.localeCompare(b));
+          if (filtered.length === 0) return;
+          const catDiv = document.createElement('div');
+          catDiv.className = 'd-chipcategory';
+          catDiv.innerHTML = '<div class="d-chipcategory-title">' + cat + '</div>';
+          const grid = document.createElement('div');
+          grid.className = 'd-chipgrid';
+          filtered.forEach(item => {
+            const chip = document.createElement('div');
+            chip.className = 'd-chip' + (selected.has(item) ? ' selected' : '');
+            chip.textContent = item;
+            chip.addEventListener('click', () => {
+              if (selected.has(item)) {
+                selected.delete(item);
+              } else if (selected.size < maxCount) {
+                selected.add(item);
+              }
+              render(searchEl.value);
+              countElEl.textContent = selected.size;
+            });
+            grid.appendChild(chip);
+          });
+          catDiv.appendChild(grid);
+          containerEl.appendChild(catDiv);
         });
-
-        const data = await res.json();
-        if (!res.ok) {
-          errEl.textContent = data.error || 'Signup failed';
-          errEl.classList.add('show');
-          if (btn) { btn.disabled = false; btn.textContent = 'Sign up'; }
-          return;
-        }
-
-        window.location.href = '/feed';
-      } catch (err) {
-        errEl.textContent = 'Connection error. Please try again.';
-        errEl.classList.add('show');
-        if (btn) { btn.disabled = false; btn.textContent = 'Sign up'; }
       }
+
+      searchEl.addEventListener('input', () => render(searchEl.value));
+      render();
     }
+
+    fetch('/api/match/entities').then(r => {
+      if (!r.ok) throw new Error('Could not load the latest options.');
+      return r.json();
+    }).then(taxonomy => {
+      if (!Array.isArray(taxonomy.interests) || !Array.isArray(taxonomy.skills)) throw new Error('Invalid taxonomy response.');
+      renderChips({ 'Interests': taxonomy.interests }, 'interest-chips', 'interest-search', selectedInterests, 5, 'interest-count', taxonomy.taxonomy_synonyms?.synonyms?.interests || {});
+      renderChips({ 'Skills': taxonomy.skills }, 'skill-chips', 'skill-search', selectedSkills, 15, 'skill-count', taxonomy.skill_synonyms || {});
+    }).catch(error => {
+      document.getElementById('interest-chips').textContent = error.message;
+      document.getElementById('skill-chips').textContent = error.message;
+    });
 
     // ── LEGAL MODALS ──
     const legalCache = {};
@@ -807,7 +965,7 @@
         const res = await fetch('/legal/' + type + '.html');
         if (!res.ok) throw new Error('Failed to load');
         let html = await res.text();
-        html = legalFilterClean(html);
+        if (typeof legalFilterClean === 'function') html = legalFilterClean(html);
         legalCache[type] = html;
         return html;
       } catch {
@@ -816,6 +974,7 @@
     }
 
     async function openLegal(type) {
+      event.preventDefault();
       const modal = document.getElementById(type + '-modal');
       const body = document.getElementById(type + '-body');
       body.innerHTML = 'Loading...';
@@ -827,32 +986,12 @@
       document.getElementById(type + '-modal').classList.remove('show');
     }
 
-    // Close modal on overlay click
-    document.querySelectorAll('.legal-modal-overlay').forEach(overlay => {
+    document.querySelectorAll('.d-legal-modal-overlay').forEach(overlay => {
       overlay.addEventListener('click', (e) => {
         if (e.target === overlay) overlay.classList.remove('show');
       });
     });
   </script>
-  <!-- Legal modals -->
-  <div class="legal-modal-overlay" id="terms-modal">
-    <div class="legal-modal">
-      <div class="legal-modal-header">
-        <h3>Terms of Service</h3>
-        <button class="legal-modal-close" onclick="closeLegal('terms')">&times;</button>
-      </div>
-      <div class="legal-modal-body" id="terms-body">Loading...</div>
-    </div>
-  </div>
-  <div class="legal-modal-overlay" id="privacy-modal">
-    <div class="legal-modal">
-      <div class="legal-modal-header">
-        <h3>Privacy Policy</h3>
-        <button class="legal-modal-close" onclick="closeLegal('privacy')">&times;</button>
-      </div>
-      <div class="legal-modal-body" id="privacy-body">Loading...</div>
-    </div>
-  </div>
   <script src="/scaling.js"></script>
 </body>
 </html>

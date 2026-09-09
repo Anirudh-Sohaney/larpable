@@ -32,10 +32,36 @@ async function requireAuth(req, res, next) {
 // ── GET /api/users/me — full profile ─────────────────────────
 router.get('/me', requireAuth, async (req, res) => {
   const fields = req.user.encrypted_fields || {};
+
+  // Derive latitude/longitude if missing
+  let latitude = fields.latitude || null;
+  let longitude = fields.longitude || null;
+  if (!latitude && !longitude && (fields.city || fields.state || fields.country)) {
+    try {
+      const { geocodeStructured } = require('../geocode');
+      const coords = await geocodeStructured(fields.city, fields.state, fields.country);
+      if (coords) {
+        latitude = coords.lat;
+        longitude = coords.lon;
+        const rawUser = await store.getRawUser(req.user.id);
+        if (rawUser) {
+          const currentFields = decryptObject(rawUser.encrypted_fields || {});
+          currentFields.latitude = latitude;
+          currentFields.longitude = longitude;
+          rawUser.encrypted_fields = encryptObject(currentFields);
+          await store.saveUser(req.user.id, rawUser);
+        }
+      }
+    } catch (e) {
+      console.error('Geocode on profile fetch failed:', e.message);
+    }
+  }
+
   // Support both old camelCase and new snake_case field names
   res.json({
     id: req.user.id,
     type: req.user.type,
+    staff_access: !!req.user.staff_access,
     created_at: req.user.created_at,
     username: fields.username || '',
     first_name: fields.first_name || fields.firstName || '',
@@ -47,6 +73,8 @@ router.get('/me', requireAuth, async (req, res) => {
     city: fields.city || '',
     state: fields.state || '',
     country: fields.country || '',
+    latitude,
+    longitude,
     skills: fields.skills || [],
     interests: fields.interests || []
   });
@@ -62,7 +90,7 @@ router.patch('/me', requireAuth, async (req, res) => {
     }
 
     // Allowed fields (username, type, created_at are NEVER overwritable)
-    const allowed = ['first_name', 'last_name', 'email', 'age', 'grade', 'location', 'city', 'state', 'country', 'skills', 'interests'];
+    const allowed = ['first_name', 'last_name', 'email', 'age', 'grade', 'location', 'city', 'state', 'country', 'latitude', 'longitude', 'skills', 'interests'];
     const currentFields = decryptObject(rawUser.encrypted_fields || {});
     const updates = {};
     for (const key of allowed) {

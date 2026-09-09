@@ -186,7 +186,7 @@ router.post('/:id/publish', requireAuth, async (req, res) => {
       ? require('../crypto').decryptObject(userRaw.encrypted_fields || {})
       : {};
     const issuerName = [userDecrypted.firstName || userDecrypted.first_name, userDecrypted.lastName || userDecrypted.last_name].filter(Boolean).join(' ') || 'Student';
-    const issuerContext = [userDecrypted.grade, userDecrypted.school].filter(Boolean).join(', ');
+    const issuerContext = [userDecrypted.grade].filter(Boolean).join(', ');
 
     const oppData = {
       type,
