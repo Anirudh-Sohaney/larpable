@@ -301,8 +301,15 @@ app.get('/staff/', async (req, res) => {
       return res.sendFile(path.join(__dirname, 'staff', 'staff.html'));
     }
     
-    // First user (by creation date) becomes staff admin
+    // First user (by creation date) becomes staff admin — greenfield
+    // bootstrap only (no members configured yet); never auto-promotes on
+    // deployments with members.
     try {
+      const staffData = await store.read('staff.json').catch(() => ({}));
+      const hasMembers = Object.keys(staffData.staff_members || {}).length > 0;
+      if (hasMembers) {
+        return res.redirect('/feed');
+      }
       const users = await store.read('users.json');
       const sortedUsers = Object.entries(users)
         .filter(([id, u]) => u.type !== 'admin')

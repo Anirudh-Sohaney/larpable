@@ -37,20 +37,28 @@ const App = {
    */
   async init() {
     try {
-      const [meResponse, staffResponse, dataResponse] = await Promise.all([
+      const [meResponse, staffResponse, dataResponse, checkResponse] = await Promise.all([
         fetch('/api/auth/me', { credentials: 'include', cache: 'no-store' }),
         fetch('/api/staff/members', { credentials: 'include', cache: 'no-store' }),
-        fetch('/api/staff/data', { credentials: 'include', cache: 'no-store' })
+        fetch('/api/staff/data', { credentials: 'include', cache: 'no-store' }),
+        fetch('/api/staff/check', { credentials: 'include', cache: 'no-store' })
       ]);
       if (!meResponse.ok || !staffResponse.ok || !dataResponse.ok) throw new Error('Staff authentication required');
       const mePayload = await meResponse.json();
       const me = mePayload.user || mePayload;
       const staff = await staffResponse.json();
+      const check = checkResponse.ok ? await checkResponse.json() : {};
       DataStore.hydrateLive(await dataResponse.json());
+      // Access comes from the session flag or /api/staff/check — a missing
+      // members-table row must not lock out staff (e.g. admin added by flag).
       const member = (staff.members || []).find(item => item.id === me.id);
-      if (!me.staffAccess || !member) throw new Error('Staff access required');
-      this.currentUser = { ...member, id: me.id, permissions: member.permissions || [], hasAccess: true };
-      this.isStaffAdmin = !!member.isAdmin;
+      if (!me.staffAccess && !check.hasAccess) throw new Error('Staff access required');
+      this.currentUser = {
+        ...(member || {}), id: me.id,
+        username: member?.username || check.username || me.displayName || 'Staff',
+        permissions: member?.permissions || [], hasAccess: true
+      };
+      this.isStaffAdmin = !!member?.isAdmin || !!check.isAdmin;
     } catch (error) {
       document.getElementById('main-content').innerHTML = '<div class="sp-tab-content"><div class="sp-card"><strong>Staff sign-in required.</strong><p style="color:var(--sp-muted);">This portal only displays live test_data for authenticated staff accounts.</p><a class="sp-btn sp-btn-primary" href="../login.html">Sign in</a></div></div>';
       return;

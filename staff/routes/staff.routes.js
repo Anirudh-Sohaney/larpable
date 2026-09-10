@@ -37,6 +37,21 @@ const COOKIE_NAME = 'larpable_session';
 const STAFF_FILE = 'staff.json';
 const STAFF_ADMIN_USERNAME = 'anisohaney';
 
+/**
+ * Greenfield bootstrap check: true only when no staff members exist yet.
+ * The "first user becomes admin" fallback below is gated on this so that on
+ * any real deployment (members configured) the oldest account can never
+ * auto-promote itself to staff/admin. Fail-closed on read errors.
+ */
+async function hasNoStaffMembers() {
+  try {
+    const staffData = await store.read(STAFF_FILE);
+    return Object.keys(staffData.staff_members || {}).length === 0;
+  } catch {
+    return false;
+  }
+}
+
 // ── Middleware: require auth ──────────────────────────────────
 async function requireAuth(req, res, next) {
   const token = req.cookies?.[COOKIE_NAME];
@@ -62,14 +77,15 @@ async function requireStaff(req, res, next) {
     return next();
   }
   
-  // Check if this is the first user (by creation date)
+  // Check if this is the first user (by creation date) — greenfield
+  // bootstrap only; never auto-promotes on deployments with members.
   try {
     const users = await store.read('users.json');
     const sortedUsers = Object.entries(users)
-      .filter(([id, user]) => user.type !== 'admin')
+      .filter(([id, user]) => user.type !== 'admin') // Exclude admin
       .sort((a, b) => new Date(a[1].created_at) - new Date(b[1].created_at));
     
-    if (sortedUsers.length > 0 && sortedUsers[0][0] === req.user.id) {
+    if (sortedUsers.length > 0 && sortedUsers[0][0] === req.user.id && await hasNoStaffMembers()) {
       const rawUser = await store.getRawUser(req.user.id);
       if (rawUser) {
         rawUser.staff_access = true;
@@ -98,14 +114,15 @@ async function requireStaffAdmin(req, res, next) {
     return next();
   }
   
-  // Check if this is the first user (by creation date)
+  // Check if this is the first user (by creation date) — greenfield
+  // bootstrap only; never auto-promotes on deployments with members.
   try {
     const users = await store.read('users.json');
     const sortedUsers = Object.entries(users)
       .filter(([id, user]) => user.type !== 'admin') // Exclude admin
       .sort((a, b) => new Date(a[1].created_at) - new Date(b[1].created_at));
     
-    if (sortedUsers.length > 0 && sortedUsers[0][0] === req.user.id) {
+    if (sortedUsers.length > 0 && sortedUsers[0][0] === req.user.id && await hasNoStaffMembers()) {
       return next();
     }
   } catch (e) {
@@ -143,14 +160,15 @@ router.get('/check', requireAuth, async (req, res) => {
     }
     
     // If no staff access yet, check if this is the first user (by creation date)
-    // First user becomes staff admin
+    // First user becomes staff admin — greenfield bootstrap only; never
+    // auto-promotes on deployments with members.
     if (!hasAccess && !isAdmin) {
       const users = await store.read('users.json');
       const sortedUsers = Object.entries(users)
         .filter(([id, user]) => user.type !== 'admin') // Exclude admin
         .sort((a, b) => new Date(a[1].created_at) - new Date(b[1].created_at));
       
-      if (sortedUsers.length > 0 && sortedUsers[0][0] === req.user.id) {
+      if (sortedUsers.length > 0 && sortedUsers[0][0] === req.user.id && await hasNoStaffMembers()) {
         hasAccess = true;
         isAdmin = true;
         
