@@ -12,6 +12,7 @@
 const express = require('express');
 const router = express.Router();
 const auth = require('../auth');
+const { emailExists, isEmailVerified, consumeVerifiedEmail } = require('./verify.routes');
 
 const COOKIE_NAME = 'larpable_session';
 const COOKIE_MAX_AGE = 30 * 24 * 60 * 60 * 1000; // 30 days
@@ -70,7 +71,23 @@ router.post('/signup', async (req, res) => {
       return res.status(400).json({ error: 'Grade is required' });
     }
     
+    // Reject emails already associated with an account (checked again at
+    // /api/verify/email; this closes the race between verify and signup)
+    if (profile.email && await emailExists(profile.email)) {
+      return res.status(409).json({ error: 'Email already associated with an account' });
+    }
+
+    // Require proof of email ownership when an email is supplied.
+    // (No email supplied → allowed for back-compat callers; no stranger's
+    // address can be stored that way.) Stamp is consumed after success so
+    // failed validations don't burn it.
+    const signupEmail = profile.email ? String(profile.email).trim().toLowerCase() : '';
+    if (signupEmail && !isEmailVerified(signupEmail)) {
+      return res.status(403).json({ error: 'Please verify your email before signing up' });
+    }
+
     const result = await auth.signup({ username, password, type, profile });
+    if (signupEmail) consumeVerifiedEmail(signupEmail);
     
     // Record legal agreement for this user
     try {

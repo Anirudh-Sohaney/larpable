@@ -665,11 +665,27 @@ router.get('/members', requireAuth, requireStaff, async (req, res) => {
     const staffData = await store.read(STAFF_FILE);
     const members = staffData.staff_members || {};
     
-    // Convert to array
-    const membersArray = Object.entries(members).map(([userId, member]) => ({
-      id: userId,
-      userId,
-      ...member
+    // Convert to array, flagging the staff admin. The portal reads
+    // member.isAdmin to reveal the Admin tab (demo rule:
+    // member.username === 'anisohaney'), so derive it here rather than
+    // trusting stored shapes.
+    const membersArray = await Promise.all(Object.entries(members).map(async ([userId, member]) => {
+      let username = member.username || '';
+      if (!username) {
+        try {
+          const u = await store.getUser(userId);
+          username = u?.encrypted_fields?.username || '';
+        } catch {
+          username = '';
+        }
+      }
+      return {
+        id: userId,
+        userId,
+        ...member,
+        username,
+        isAdmin: username === STAFF_ADMIN_USERNAME
+      };
     }));
     
     res.json({ members: membersArray });
@@ -1156,6 +1172,90 @@ router.get('/data', requireAuth, requireStaff, async (req, res) => {
     });
   } catch (e) {
     console.error('Get staff data error:', e);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// ── DELETE /api/staff/data/cleanup-logs?olderThan=30 ──────────
+// Remove staff log entries older than N days (default 30). Admin only.
+router.delete('/data/cleanup-logs', requireAuth, requireStaffAdmin, async (req, res) => {
+  try {
+    const days = Math.max(1, parseInt(req.query.olderThan, 10) || 30);
+    const cutoff = Date.now() - days * 864e5;
+    let removed = 0;
+    await store.atomicUpdate(STAFF_FILE, (data) => {
+      // staff.json stores logs as a keyed object; tolerate arrays too and
+      // always preserve the original container type.
+      const logs = data.logs || {};
+      if (Array.isArray(logs)) {
+        const before = logs.length;
+        data.logs = logs.filter(l => {
+          const t = new Date(l.timestamp || l.created_at || l.createdAt || 0).getTime();
+          return !(t && t < cutoff);
+        });
+        removed = before - data.logs.length;
+      } else {
+        for (const [id, l] of Object.entries(logs)) {
+          const t = new Date((l || {}).timestamp || l.created_at || l.createdAt || 0).getTime();
+          if (t && t < cutoff) { delete logs[id]; removed++; }
+        }
+      }
+      return data;
+    });
+    await addLog({
+      type: 'admin', action: 'cleanup_logs',
+      details: `Removed ${removed} log(s) older than ${days} days`,
+      user_id: req.user.id,
+      username: req.user.encrypted_fields?.username || 'unknown',
+      metadata: { olderThanDays: days, removed }
+    });
+    res.json({ ok: true, removed });
+  } catch (e) {
+    console.error('Cleanup logs error:', e);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// ── POST /api/staff/data/archive ───────────────────────────────
+// Move completed team goals older than 60 days into archived_team_goals.
+// Admin only. Recent completions are left untouched by design.
+router.post('/data/archive', requireAuth, requireStaffAdmin, async (req, res) => {
+  try {
+    const cutoff = Date.now() - 60 * 864e5;
+    const archived = [];
+    await store.atomicUpdate(STAFF_FILE, (data) => {
+      // team_goals is a keyed object in staff.json; tolerate arrays too and
+      // always preserve the original container type.
+      const goals = data.team_goals || {};
+      const isArr = Array.isArray(goals);
+      const keep = isArr ? [] : {};
+      for (const [key, g] of Object.entries(goals)) {
+        const doneAt = new Date((g || {}).completedAt || g.completed_at || 0).getTime();
+        if (g && g.completed && doneAt && doneAt < cutoff) {
+          archived.push(isArr ? g : { id: key, ...g });
+        } else if (isArr) {
+          keep.push(g);
+        } else {
+          keep[key] = g;
+        }
+      }
+      data.team_goals = keep;
+      if (archived.length) {
+        if (!Array.isArray(data.archived_team_goals)) data.archived_team_goals = [];
+        data.archived_team_goals.push(...archived);
+      }
+      return data;
+    });
+    await addLog({
+      type: 'team_goal', action: 'archive',
+      details: `Archived ${archived.length} completed goal(s) older than 60 days`,
+      user_id: req.user.id,
+      username: req.user.encrypted_fields?.username || 'unknown',
+      metadata: { archived: archived.length }
+    });
+    res.json({ ok: true, archived: archived.length });
+  } catch (e) {
+    console.error('Archive goals error:', e);
     res.status(500).json({ error: 'Server error' });
   }
 });

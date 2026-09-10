@@ -85,8 +85,6 @@ const Feed = {
 
   renderCard(o) {
     const selected = Filters.selectedTotal();
-    const score = this.matchScores[o.id];
-    const showMatch = this.currentSort === 'foryou' && !selected && score !== undefined && score > 0;
     const showDist = this.currentSort === 'closest' && this.distanceMap[o.id] != null && this.distanceMap[o.id] !== Infinity;
     const hits = Filters.matchCounts[o.id] || 0;
     const loc = Utils.locText(o.location);
@@ -99,7 +97,7 @@ const Feed = {
     const TYPE = { project: 'Project', nonprofit: 'Nonprofit', company: 'Company' };
 
     const bits = [
-      o.looking_for ? Utils.meta('◦', 'Looking for', Utils.escapeHtml(o.looking_for)) : '',
+      o.looking_for ? Utils.meta('◦', 'Looking for', '<strong>' + Utils.escapeHtml(o.looking_for) + '</strong>') : '',
       loc ? Utils.meta('⌖', 'Location', Utils.escapeHtml(loc) + (isRemote ? ' · remote ok' : ''))
           : (isRemote ? Utils.meta('⌖', 'Location', 'Remote') : ''),
       Utils.fieldOf(o) ? Utils.meta('▪', o.type === 'nonprofit' ? 'Field' : 'Industry', Utils.escapeHtml(Utils.fieldOf(o))) : '',
@@ -111,7 +109,6 @@ const Feed = {
         <div class="d-opp-title">${Utils.escapeHtml(o.title || 'Untitled')}</div>
         <div style="display:flex;gap:0.35rem;align-items:center;">
           ${selected ? `<span class="d-badge d-badge--match">${hits}/${selected} matched</span>` : ''}
-          ${showMatch ? `<span class="d-badge d-badge--match">${Math.round(score * 100)}% fit</span>` : ''}
           ${showDist ? `<span class="d-badge d-badge--match">${this.distanceMap[o.id] === 0 ? 'Remote' : Math.round(this.distanceMap[o.id]) + ' mi'}</span>` : ''}
           <span class="d-badge d-badge--${o.type || 'project'}">${TYPE[o.type] || 'Project'}</span>
         </div>

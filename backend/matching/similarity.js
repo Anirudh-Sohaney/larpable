@@ -18,7 +18,10 @@ const aliases = {
   'food & beverage': 'Environment, Agriculture & Sports', 'marketing / advertising': 'Business & Entrepreneurship',
   'non-profit / social enterprise': 'Humanities & Social Sciences', 'education tech': 'Education & Learning',
   'health & medicine': 'Medicine & Public Health', 'environment & sustainability': 'Environment, Agriculture & Sports',
-  'social sciences & humanities': 'Humanities & Social Sciences', 'stem education': 'Education & Learning'
+  'social sciences & humanities': 'Humanities & Social Sciences', 'stem education': 'Education & Learning',
+  'community development': 'Humanities & Social Sciences', 'education': 'Education & Learning',
+  'human rights': 'Law & Public Policy', 'hunger / food security': 'Environment, Agriculture & Sports',
+  'youth development': 'Education & Learning'
 };
 
 function canonicalField(value) { return aliases[String(value || '').toLowerCase()] || value; }
@@ -127,6 +130,9 @@ const CONFIG = { WEIGHTS: { skillMatch: 0.70, industryFit: 0.10, interestFit: 0.
 
 module.exports = {
   entitySimilarity,
+  canonicalField,
+  canonicalSkill,
+  canonicalInterest,
   matchScore: score,
   rankOpportunities: (user, opps) => {
     const scores = rank(user, opps);

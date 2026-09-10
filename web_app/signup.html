@@ -539,10 +539,22 @@
 
         if (!response.ok) {
           if (data.error === 'Verification already pending') {
-            // Code was already sent, move to verification step
+            // A code is already pending for this email (e.g. an earlier
+            // click). Advancing silently would strand the user at the code
+            // step with no fresh email, so issue a new code via resend and
+            // continue with its expiry.
+            const resendResp = await fetch('/api/verify/resend', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ email })
+            });
+            const resendData = await resendResp.json();
+            if (!resendResp.ok) {
+              throw new Error(resendData.error || 'Failed to send verification code');
+            }
             verifiedEmail = email;
             document.getElementById('verify-email-display').textContent = email;
-            startVerificationTimer(data.expiresAt);
+            startVerificationTimer(Date.now() + (resendData.expiresIn * 1000));
             currentStep = 1;
             updateSteps();
             return;

@@ -179,36 +179,39 @@ const Admin = {
     }
   },
 
-  cleanupLogs() {
-    // INTEGRATION: DELETE /api/staff/data/cleanup-logs?olderThan=30
-    //   Would remove all log entries older than 30 days from data/staff.json -> logs
-    //   Confirm before executing
-    if (!confirm('Remove all logs older than 30 days? This cannot be undone.')) return;
-
-    const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - 30);
-    const cutoffStr = cutoff.toISOString();
-
-    // Demo: filter logs in-memory
-    DEMO_DATA.logs = DEMO_DATA.logs.filter(l => new Date(l.timestamp) > cutoff);
-    alert('Old logs cleaned up.');
-    this.render(document.getElementById('main-content'));
+  async refreshLive() {
+    const res = await fetch('/api/staff/data', { credentials: 'include', cache: 'no-store' });
+    if (!res.ok) throw new Error('Could not refresh data');
+    DataStore.hydrateLive(await res.json());
   },
 
-  archiveCompleted() {
-    // INTEGRATION: POST /api/staff/data/archive
-    //   Would move completed goals older than 60 days to an archive file
+  async cleanupLogs() {
+    if (!confirm('Remove all logs older than 30 days? This cannot be undone.')) return;
+    try {
+      const res = await fetch('/api/staff/data/cleanup-logs?olderThan=30', { method: 'DELETE', credentials: 'include' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Cleanup failed');
+      alert(`Removed ${data.removed} old log${data.removed === 1 ? '' : 's'}.`);
+      await this.refreshLive();
+      this.render(document.getElementById('main-content'));
+    } catch (error) {
+      alert(error.message);
+    }
+  },
+
+  async archiveCompleted() {
     if (!confirm('Archive completed goals older than 60 days?')) return;
-
-    const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - 60);
-    const cutoffStr = cutoff.toISOString();
-
-    // Demo: remove old completed goals in-memory
-    DEMO_DATA.companyGoals = DEMO_DATA.companyGoals.filter(g =>
-      !(g.completed && g.completedAt && new Date(g.completedAt) < cutoff)
-    );
-    alert('Completed goals archived.');
-    this.render(document.getElementById('main-content'));
+    try {
+      const res = await fetch('/api/staff/data/archive', { method: 'POST', credentials: 'include' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Archive failed');
+      alert(data.archived
+        ? `Archived ${data.archived} completed goal${data.archived === 1 ? '' : 's'}.`
+        : 'No completed goals older than 60 days.');
+      await this.refreshLive();
+      this.render(document.getElementById('main-content'));
+    } catch (error) {
+      alert(error.message);
+    }
   }
 };

@@ -13,6 +13,7 @@ const router = express.Router();
 const auth = require('../auth');
 const store = require('../store');
 const { encryptObject, decryptObject } = require('../crypto');
+const { isEmailVerified, consumeVerifiedEmail } = require('./verify.routes');
 
 const COOKIE_NAME = 'larpable_session';
 
@@ -92,6 +93,16 @@ router.patch('/me', requireAuth, async (req, res) => {
     // Allowed fields (username, type, created_at are NEVER overwritable)
     const allowed = ['first_name', 'last_name', 'email', 'age', 'grade', 'location', 'city', 'state', 'country', 'latitude', 'longitude', 'skills', 'interests'];
     const currentFields = decryptObject(rawUser.encrypted_fields || {});
+
+    // Changing to a new email requires proof of ownership (same stamp as
+    // signup). Re-saving the unchanged address needs no verification.
+    const currentEmail = String(currentFields.email || '').trim().toLowerCase();
+    const newEmail = req.body.email !== undefined ? String(req.body.email).trim().toLowerCase() : '';
+    const emailChanged = !!newEmail && newEmail !== currentEmail;
+    if (emailChanged && !isEmailVerified(newEmail)) {
+      return res.status(403).json({ error: 'Please verify the new email address first' });
+    }
+
     const updates = {};
     for (const key of allowed) {
       if (req.body[key] !== undefined) {
@@ -102,6 +113,7 @@ router.patch('/me', requireAuth, async (req, res) => {
     const merged = { ...currentFields, ...updates };
     rawUser.encrypted_fields = encryptObject(merged);
     await store.saveUser(req.user.id, rawUser);
+    if (emailChanged) consumeVerifiedEmail(newEmail);
 
     res.json({ ok: true });
   } catch (e) {
