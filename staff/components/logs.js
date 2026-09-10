@@ -13,6 +13,37 @@
  */
 
 const Logs = {
+  gitCommits: null, // null = not loaded yet; [] = none available
+
+  async loadGitHistory() {
+    if (this.gitCommits !== null) return;
+    try {
+      const res = await fetch('/api/staff/git-logs', { credentials: 'include', cache: 'no-store' });
+      this.gitCommits = res.ok ? ((await res.json()).commits || []) : [];
+    } catch {
+      this.gitCommits = [];
+    }
+    if (App.currentTab === 'logs') this.render(document.getElementById('main-content'));
+  },
+
+  renderGitHistory() {
+    if (App.logsFilter !== 'all' && App.logsFilter !== 'git_push') return '';
+    if (this.gitCommits === null) {
+      this.loadGitHistory();
+      return `<div class="sp-admin-section"><div class="sp-admin-section-title">DEPLOY HISTORY</div><div class="sp-empty">Loading deploy history…</div></div>`;
+    }
+    if (!this.gitCommits.length) return '';
+    return `<div class="sp-admin-section"><div class="sp-admin-section-title">DEPLOY HISTORY</div>` +
+      this.gitCommits.map(c => `
+        <div class="sp-log-card">
+          <div class="sp-log-header">
+            <span class="sp-log-timestamp">${Utils.escapeHtml(c.date || '')}</span>
+            <span style="font-size:0.72rem; color:var(--sp-muted); font-family:monospace;">${Utils.escapeHtml(c.hash || '')}</span>
+          </div>
+          <div class="sp-log-details">${Utils.escapeHtml(c.message || '')}</div>
+        </div>`).join('') + `</div>`;
+  },
+
   render(container) {
     const logs = DataStore.getLogs(App.logsFilter, App.logsSearch);
 
@@ -85,6 +116,7 @@ const Logs = {
     }
 
     html += `</div>`;
+    html += this.renderGitHistory();
     container.innerHTML = html;
   },
 

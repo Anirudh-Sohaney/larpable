@@ -344,3 +344,47 @@ app.listen(PORT, HOST, () => {
   console.log(`  │  Env:       ${IS_PRODUCTION ? 'production' : 'development'}              │`);
   console.log(`  └─────────────────────────────────────┘\n`);
 });
+
+// ── Production deploy recorder ───────────────────────────────
+// After each auto-deploy the restarted server records the deployed SHA as a
+// git_push activity entry (once per SHA — manual restarts don't duplicate).
+// Production-only: local dev checkouts change SHAs constantly.
+if (IS_PRODUCTION) {
+  recordDeploy().catch(err => console.error('Deploy record error:', err.message));
+}
+
+async function recordDeploy() {
+  const { execSync } = require('child_process');
+  let sha = '';
+  try {
+    sha = execSync('git rev-parse HEAD', { cwd: __dirname, encoding: 'utf8', timeout: 5000 }).trim();
+  } catch {
+    return;
+  }
+  if (!sha) return;
+  let message = '';
+  try {
+    message = execSync('git log -1 --format=%s', { cwd: __dirname, encoding: 'utf8', timeout: 5000 }).trim();
+  } catch {}
+  const store = require('./backend/store');
+  await store.atomicUpdate('staff.json', (data) => {
+    if (data.last_deploy_sha === sha) return data;
+    data.last_deploy_sha = sha;
+    if (Array.isArray(data.logs)) {
+      // Legacy array shape → keyed object (never drop entries)
+      const obj = {};
+      data.logs.forEach((l, i) => { obj['log_legacy_' + i] = l; });
+      data.logs = obj;
+    }
+    if (!data.logs) data.logs = {};
+    const id = 'log_' + require('./backend/crypto').sha256(Date.now() + sha).hash.substring(0, 12);
+    data.logs[id] = {
+      type: 'git_push', action: 'deploy',
+      details: 'Deployed ' + sha.substring(0, 7) + (message ? ': ' + message : ''),
+      timestamp: new Date().toISOString(),
+      user_id: 'system', username: 'deploy',
+      metadata: { hash: sha.substring(0, 7), branch: 'main' }
+    };
+    return data;
+  });
+}
