@@ -14,15 +14,33 @@
     .d-detail-section-heading{display:flex;align-items:center;gap:12px;margin-bottom:15px}.d-detail-eyebrow{color:var(--fg-tertiary);font-size:.68rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase}.d-detail-rule{width:40px;height:1px;background:var(--accent)}
     .d-detail-facts{display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
     .d-detail-fact{padding:15px 16px 16px 0;min-width:0}.d-detail-fact+.d-detail-fact{padding-left:16px;border-left:1px solid var(--border)}.d-detail-fact .d-detail-info-label{margin-bottom:5px}.d-detail-fact .d-detail-info-value{line-height:1.45}
-    .d-detail-contact{padding:20px;border-radius:var(--radius-lg);background:var(--fg-primary);color:var(--bg-secondary)}.d-detail-contact h2{margin-bottom:8px;font-size:.86rem}.d-detail-contact p{margin-bottom:14px;color:#aaa39d;font-size:.78rem}.d-detail-contact a{display:block;padding:9px 11px;margin-top:5px;border-radius:var(--radius-sm);background:rgba(255,255,255,.1);color:#fff;font-size:.82rem;word-break:break-all}.d-detail-contact a:hover{background:rgba(255,255,255,.18)}
+    .d-detail-contact{padding:20px;border-radius:var(--radius-lg);background:var(--bg-tertiary);color:var(--fg-primary)}.d-detail-contact h2{margin-bottom:8px;font-size:.86rem;color:var(--fg-primary)}.d-detail-contact p{margin-bottom:14px;color:var(--fg-secondary);font-size:.78rem}.d-detail-contact a{display:block;padding:9px 11px;margin-top:5px;border-radius:var(--radius-sm);background:var(--accent);color:#fff;font-size:.82rem;word-break:break-all}.d-detail-contact a:hover{background:var(--accent-hover)}
     .d-admin{display:none;padding:18px;border:1px solid #fecaca;border-radius:var(--radius-md);background:#fff5f5}.d-admin h2{margin-bottom:8px;color:#dc3545;font-size:.86rem}.d-admin p{margin-bottom:12px;color:var(--fg-secondary);font-size:.78rem}.d-admin-row{display:flex;gap:8px;flex-wrap:wrap}.d-admin button{padding:7px 13px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-secondary);font:600 .78rem var(--font-family);cursor:pointer}.d-admin button:hover{border-color:var(--accent);color:var(--accent)}.d-admin .danger{border-color:#dc3545;color:#dc3545}
     @media(max-width:640px){.d-detail-facts{display:block}.d-detail-fact{padding:13px 0}.d-detail-fact+.d-detail-fact{padding-left:0;border-top:1px solid var(--border);border-left:0}}
   </style>
 </head>
 <body>
-  <header class="d-header"><a href="/feed" class="d-logo">LARPABLE.</a><div class="d-header-right"><a href="/create_student" class="d-btn d-btn-sm d-btn-accent">+ Create</a><div id="header-actions"></div></div></header>
+  <header class="d-header">
+    <a href="/feed" class="d-logo">LARPABLE.</a>
+    <div class="d-header-right">
+      <a href="/create_student" class="d-btn d-btn-sm" style="font-size:0.82rem;">+ Create</a>
+      <div class="d-user-menu">
+        <button class="d-user-btn" type="button">
+          <span class="d-user-avatar" id="header-avatar"></span>
+          <span class="d-user-name" id="header-username"></span>
+        </button>
+        <div class="d-user-dropdown">
+          <a href="/profile">My Profile</a>
+          <a href="/staff" id="staff-portal-link" style="display:none;">Staff Portal</a>
+          <hr>
+          <button onclick="App.logout()">Log out</button>
+        </div>
+      </div>
+    </div>
+  </header>
   <main class="d-detail" id="detail"><div class="d-empty">Loading opportunity...</div></main>
-  <script src="/user-dropdown.js"></script>
+  <script src="/js/utils.js"></script><script src="/js/data.js"></script><script src="/js/app.js"></script>
+  <script>(async () => { await App.init(); App.setupUserMenu(); })();</script>
   <script>
     const esc = value => { const d = document.createElement('div'); d.textContent = value == null ? '' : String(value); return d.innerHTML; };
     const text = value => value == null ? '' : String(value);
@@ -61,14 +79,21 @@
           ${fields.details ? `<section class="d-detail-story"><div class="d-detail-section-heading"><span class="d-detail-eyebrow">Additional details</span><span class="d-detail-rule"></span></div><p class="d-detail-desc">${esc(fields.details)}</p></section>` : ''}
           <section class="d-detail-story"><div class="d-detail-section-heading"><span class="d-detail-eyebrow">Details</span><span class="d-detail-rule"></span></div><div class="d-detail-facts"><div class="d-detail-fact"><div class="d-detail-info-label">Location</div><div class="d-detail-info-value">${esc(location || 'Remote')}${fields.remote ? '<span class="d-detail-fact-note">Remote OK</span>' : ''}</div></div><div class="d-detail-fact"><div class="d-detail-info-label">${kind === 'nonprofit' ? 'Field' : 'Industry'}</div><div class="d-detail-info-value">${esc(field || '—')}</div></div><div class="d-detail-fact"><div class="d-detail-info-label">Posted</div><div class="d-detail-info-value">${esc(posted(data.created_at).replace(/^Posted /, '') || '—')}</div></div></div></section>
           <section class="d-detail-story"><div class="d-detail-contact"><h2>Contact / sign-up</h2><p>Reach out to the person behind this opportunity.</p><div>${links.length ? links.map(link => /^https?:\/\//i.test(link) ? `<a href="${esc(link)}" target="_blank" rel="noopener">${esc(link)}</a>` : `<a href="mailto:${esc(link)}">${esc(link)}</a>`).join('') : '<span>No contact link provided.</span>'}</div></div></section>
-          <section class="d-admin" id="admin-controls"><h2>Admin controls</h2><p>This opportunity can be managed from here.</p><div class="d-admin-row"><button id="admin-edit">Edit</button><button class="danger" id="admin-delete">Delete</button><button id="admin-user">View user</button></div></section>`;
+          <section class="d-admin" id="admin-controls"><h2 id="admin-title">Admin controls</h2><p id="admin-desc">This opportunity can be managed from here.</p><div class="d-admin-row"><button id="admin-edit">Edit</button><button class="danger" id="admin-delete">Delete</button><button id="admin-user">View user</button></div></section>`;
         const auth = await fetch('/api/auth/me', { credentials: 'include' });
         const authData = auth.ok ? await auth.json() : {};
-        if (authData.user?.role === 'admin') {
+        const isAdmin = authData.user?.role === 'admin';
+        const isOwner = authData.user?.id && data.created_by && authData.user.id === data.created_by;
+        if (isAdmin || isOwner) {
           document.getElementById('admin-controls').style.display = 'block';
+          if (isOwner && !isAdmin) {
+            document.getElementById('admin-title').textContent = 'Manage your project';
+            document.getElementById('admin-desc').textContent = 'You posted this opportunity. Edit or delete it here.';
+            document.getElementById('admin-user').style.display = 'none';
+          }
           document.getElementById('admin-edit').onclick = () => { location.href = `/create_student?type=${encodeURIComponent(kind)}&edit=${encodeURIComponent(data.id)}`; };
           document.getElementById('admin-user').onclick = () => { if (data.created_by) location.href = `/admin_user?id=${encodeURIComponent(data.created_by)}`; };
-          document.getElementById('admin-delete').onclick = async () => { if (!confirm('Delete this opportunity?')) return; const result = await fetch('/api/opportunities/' + encodeURIComponent(data.id), { method: 'DELETE', credentials: 'include' }); if (result.ok) location.href = '/feed'; else alert('Failed to delete opportunity.'); };
+          document.getElementById('admin-delete').onclick = async () => { if (!confirm('Delete this opportunity? This cannot be undone.')) return; const result = await fetch('/api/opportunities/' + encodeURIComponent(data.id), { method: 'DELETE', credentials: 'include' }); if (result.ok) location.href = '/feed?mine=1'; else alert('Failed to delete opportunity.'); };
         }
       } catch (error) { console.error('Failed to load opportunity:', error); root.innerHTML = '<div class="d-empty">Could not load this opportunity.</div>'; }
     })();

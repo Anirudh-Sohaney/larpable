@@ -13,9 +13,7 @@
     :root {
       --bg: var(--bg-primary);
       --font: var(--fg-primary);
-      --accent: var(--accent);
       --card: var(--bg-secondary);
-      --border: var(--border);
       --shadow: var(--shadow-md);
       --muted: var(--fg-secondary);
       --green: var(--success);
@@ -30,12 +28,6 @@
     body { font-family: 'Space Grotesk', sans-serif; background: var(--bg); color: var(--font); min-height: 100vh; overflow-x: hidden; }
 
     .page { width: 600px; margin: 0 auto; padding: 0 20px 60px; }
-
-    /* Header */
-    .header { display: flex; justify-content: space-between; align-items: center; padding: 16px 0 12px; }
-    .logo { font-size: 1.2rem; font-weight: 700; color: var(--accent); letter-spacing: 1px; text-decoration: none; }
-    .back-link { font-size: 0.82rem; font-weight: 600; color: var(--muted); text-decoration: none; transition: color 0.15s; }
-    .back-link:hover { color: var(--accent); }
 
     /* Type selector */
     .type-selector { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 24px; }
@@ -165,8 +157,8 @@
       padding: 10px 16px; text-decoration: none;
     }
     .btn:active { transform: scale(0.97); }
-    .btn--filled { background: var(--accent); color: #fff; }
-    .btn--filled:hover { opacity: 0.9; }
+    .btn--filled { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .btn--filled:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
     .btn--filled:disabled { opacity: 0.5; cursor: not-allowed; }
     .btn--ghost { background: none; border: 1px solid var(--border); color: var(--muted); }
     .btn--ghost:hover { border-color: var(--accent); color: var(--accent); }
@@ -178,13 +170,25 @@
 </head>
 <body>
 
-  <div class="page" data-scale-target="600">
-    <div class="header">
-      <a href="/feed" class="back-link">← Back to feed</a>
-      <a href="/feed" class="logo">LARPABLE.</a>
-      <div id="header-actions"></div>
+  <header class="d-header">
+    <a href="/feed" class="d-logo">LARPABLE.</a>
+    <div class="d-header-right">
+      <div class="d-user-menu">
+        <button class="d-user-btn" type="button">
+          <span class="d-user-avatar" id="header-avatar"></span>
+          <span class="d-user-name" id="header-username"></span>
+        </button>
+        <div class="d-user-dropdown">
+          <a href="/profile">My Profile</a>
+          <a href="/staff" id="staff-portal-link" style="display:none;">Staff Portal</a>
+          <hr>
+          <button onclick="App.logout()">Log out</button>
+        </div>
+      </div>
     </div>
+  </header>
 
+  <div class="page" data-scale-target="600">
     <h1 style="font-size:1.3rem; font-weight:700; margin-bottom:4px;">Create an opportunity</h1>
     <p style="font-size:0.85rem; color:var(--muted); margin-bottom:20px;">What are you posting?</p>
 
@@ -986,7 +990,8 @@
       }
     }
   </script>
-  <script src="/user-dropdown.js"></script>
+  <script src="/js/utils.js"></script><script src="/js/data.js"></script><script src="/js/app.js"></script>
+  <script>(async () => { await App.init(); App.setupUserMenu(); })();</script>
   <script src="/scaling.js"></script>
 </body>
 </html>
