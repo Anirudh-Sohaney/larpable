@@ -509,20 +509,43 @@ const DataStore = {
     return newResource;
   },
 
-  addStaffMember(member) {
-    // INTEGRATION: POST /api/staff/members { userId }
+  async addStaffMember(userId) {
+    // POST /api/staff/members { userId }
     // Auth: requireStaffAdmin
     // Also: updates user record with staff_access: true in data/users.json
     // Also: POST /api/staff/logs to record the action
-    DEMO_DATA.staffMembers.push(member);
-    return member;
+    const res = await fetch('/api/staff/members', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || 'Could not add staff member');
+    const member = data.member || {};
+    DEMO_DATA.staffMembers.push({
+      userId: member.userId || userId,
+      username: member.username || '',
+      firstName: member.first_name || member.firstName || '',
+      lastNameInitial: member.last_name_initial || member.lastNameInitial || '',
+      permissions: [],
+      addedAt: new Date().toISOString(),
+      addedBy: DEMO_DATA.currentUser?.id || ''
+    });
+    return data.member;
   },
 
-  removeStaffMember(userId) {
-    // INTEGRATION: DELETE /api/staff/members/:userId
+  async removeStaffMember(userId) {
+    // DELETE /api/staff/members/:userId
     // Auth: requireStaffAdmin
     // Also: updates user record with staff_access: false in data/users.json
     // Also: POST /api/staff/logs to record the action
+    const res = await fetch(`/api/staff/members/${encodeURIComponent(userId)}`, {
+      method: 'DELETE',
+      credentials: 'include'
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || 'Could not remove staff member');
     DEMO_DATA.staffMembers = DEMO_DATA.staffMembers.filter(m => m.userId !== userId);
   }
 };

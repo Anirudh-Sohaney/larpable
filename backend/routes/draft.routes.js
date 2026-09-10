@@ -10,6 +10,10 @@
  * updated) draft is automatically deleted.
  *
  * Drafts are stored in data/drafts.json (plaintext fields — private to user).
+ *
+ * Publishing a draft goes through the same profanity gate as creating a post:
+ * if any field contains prohibited language the new post is stored flagged and
+ * held from the public feed until a staff member approves it.
  */
 
 const express = require('express');
@@ -18,6 +22,7 @@ const auth = require('../auth');
 const store = require('../store');
 const { encryptObject } = require('../crypto');
 const { sanitizeObject } = require('../sanitize');
+const { scanFields, applyFlag, flagNotice } = require('../profanity');
 
 const DRAFTS_FILE = 'drafts.json';
 const MAX_DRAFTS = 5;
@@ -192,7 +197,7 @@ router.post('/:id/publish', requireAuth, async (req, res) => {
       type,
       created_by: req.user.id,
       created_at: new Date().toISOString(),
-      encrypted_fields: encryptObject({
+      encrypted_fields: {
         title: fields.title || '',
         description: fields.description || '',
         issuer_name: issuerName,
@@ -205,8 +210,16 @@ router.post('/:id/publish', requireAuth, async (req, res) => {
         details: fields.details || '',
         ...(type === 'nonprofit' && { nonprofit_field: fields.nonprofit_field || '' }),
         ...(type === 'company' && { industry: fields.industry || '' })
-      })
+      }
     };
+
+    // Same moderation gate applied by POST /api/opportunities — published
+    // drafts are "new posts" too and are scanned the moment they publish.
+    const scan = scanFields(oppData.encrypted_fields);
+    applyFlag(oppData, scan, oppData.created_at);
+    const flagged = scan.flagged;
+
+    oppData.encrypted_fields = encryptObject(oppData.encrypted_fields);
 
     // Save opportunity and delete draft atomically
     await store.saveOpportunity(oppId, oppData);
@@ -215,7 +228,9 @@ router.post('/:id/publish', requireAuth, async (req, res) => {
       return data;
     });
 
-    res.json({ id: oppId, published: true });
+    res.json(flagged
+      ? { id: oppId, published: true, flagged: true, message: flagNotice(scan.terms) }
+      : { id: oppId, published: true });
   } catch (e) {
     console.error('Publish draft error:', e);
     res.status(500).json({ error: 'Server error' });

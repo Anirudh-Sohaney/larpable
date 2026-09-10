@@ -49,7 +49,7 @@
     const initials = name => text(name).trim().split(/\s+/).map(part => part[0]).join('').slice(0, 2).toUpperCase() || '?';
 
     (async () => {
-      const id = new URLSearchParams(location.search).get('id');
+      const id = new URLSearchParams(window.location.search).get('id');
       const root = document.getElementById('detail');
       if (!id) { root.innerHTML = '<div class="d-empty">Opportunity not found.</div>'; return; }
       try {
@@ -61,7 +61,7 @@
         const kind = data.type || 'project';
         const name = issuer.name || fields.issuer_name || 'Unknown';
         const field = fields.industry || fields.nonprofit_field || fields.field || '';
-        const location = typeof fields.location === 'object' ? (fields.location.display || [fields.location.city, fields.location.state, fields.location.country].filter(Boolean).join(', ')) : fields.location;
+        const loc = typeof fields.location === 'object' ? (fields.location.display || [fields.location.city, fields.location.state, fields.location.country].filter(Boolean).join(', ')) : fields.location;
         const links = (Array.isArray(fields.contact_links) ? fields.contact_links : (fields.contact ? [fields.contact] : [])).map(linkValue).filter(Boolean);
         const typeLabel = { project: 'Project', nonprofit: 'Nonprofit', company: 'Company' }[kind] || kind;
         const skills = Array.isArray(fields.skills) ? fields.skills : [];
@@ -77,13 +77,14 @@
           ${fields.looking_for ? `<section class="d-detail-looking-for"><div class="d-detail-looking-for-label">◉ &nbsp;Looking for</div><div class="d-detail-looking-for-value">${esc(fields.looking_for)}</div></section>` : ''}
           ${skills.length ? `<section class="d-detail-story"><div class="d-detail-section-heading"><span class="d-detail-eyebrow">Skills needed</span><span class="d-detail-rule"></span></div><div class="d-detail-skills">${skills.map(skill => `<span class="d-chip">${esc(skill)}</span>`).join('')}</div></section>` : ''}
           ${fields.details ? `<section class="d-detail-story"><div class="d-detail-section-heading"><span class="d-detail-eyebrow">Additional details</span><span class="d-detail-rule"></span></div><p class="d-detail-desc">${esc(fields.details)}</p></section>` : ''}
-          <section class="d-detail-story"><div class="d-detail-section-heading"><span class="d-detail-eyebrow">Details</span><span class="d-detail-rule"></span></div><div class="d-detail-facts"><div class="d-detail-fact"><div class="d-detail-info-label">Location</div><div class="d-detail-info-value">${esc(location || 'Remote')}${fields.remote ? '<span class="d-detail-fact-note">Remote OK</span>' : ''}</div></div><div class="d-detail-fact"><div class="d-detail-info-label">${kind === 'nonprofit' ? 'Field' : 'Industry'}</div><div class="d-detail-info-value">${esc(field || '—')}</div></div><div class="d-detail-fact"><div class="d-detail-info-label">Posted</div><div class="d-detail-info-value">${esc(posted(data.created_at).replace(/^Posted /, '') || '—')}</div></div></div></section>
+          <section class="d-detail-story"><div class="d-detail-section-heading"><span class="d-detail-eyebrow">Details</span><span class="d-detail-rule"></span></div><div class="d-detail-facts"><div class="d-detail-fact"><div class="d-detail-info-label">Location</div><div class="d-detail-info-value">${esc(loc || 'Remote')}${fields.remote ? '<span class="d-detail-fact-note">Remote OK</span>' : ''}</div></div><div class="d-detail-fact"><div class="d-detail-info-label">${kind === 'nonprofit' ? 'Field' : 'Industry'}</div><div class="d-detail-info-value">${esc(field || '—')}</div></div><div class="d-detail-fact"><div class="d-detail-info-label">Posted</div><div class="d-detail-info-value">${esc(posted(data.created_at).replace(/^Posted /, '') || '—')}</div></div></div></section>
           <section class="d-detail-story"><div class="d-detail-contact"><h2>Contact / sign-up</h2><p>Reach out to the person behind this opportunity.</p><div>${links.length ? links.map(link => /^https?:\/\//i.test(link) ? `<a href="${esc(link)}" target="_blank" rel="noopener">${esc(link)}</a>` : `<a href="mailto:${esc(link)}">${esc(link)}</a>`).join('') : '<span>No contact link provided.</span>'}</div></div></section>
           <section class="d-admin" id="admin-controls"><h2 id="admin-title">Admin controls</h2><p id="admin-desc">This opportunity can be managed from here.</p><div class="d-admin-row"><button id="admin-edit">Edit</button><button class="danger" id="admin-delete">Delete</button><button id="admin-user">View user</button></div></section>`;
         const auth = await fetch('/api/auth/me', { credentials: 'include' });
         const authData = auth.ok ? await auth.json() : {};
         const isAdmin = authData.user?.role === 'admin';
-        const isOwner = authData.user?.id && data.created_by && authData.user.id === data.created_by;
+        const currentUserId = authData.user?.id || App.currentUser?.id;
+        const isOwner = currentUserId && data.created_by && currentUserId === data.created_by;
         if (isAdmin || isOwner) {
           document.getElementById('admin-controls').style.display = 'block';
           if (isOwner && !isAdmin) {
@@ -91,9 +92,22 @@
             document.getElementById('admin-desc').textContent = 'You posted this opportunity. Edit or delete it here.';
             document.getElementById('admin-user').style.display = 'none';
           }
-          document.getElementById('admin-edit').onclick = () => { location.href = `/create_student?type=${encodeURIComponent(kind)}&edit=${encodeURIComponent(data.id)}`; };
-          document.getElementById('admin-user').onclick = () => { if (data.created_by) location.href = `/admin_user?id=${encodeURIComponent(data.created_by)}`; };
-          document.getElementById('admin-delete').onclick = async () => { if (!confirm('Delete this opportunity? This cannot be undone.')) return; const result = await fetch('/api/opportunities/' + encodeURIComponent(data.id), { method: 'DELETE', credentials: 'include' }); if (result.ok) location.href = '/feed?mine=1'; else alert('Failed to delete opportunity.'); };
+          document.getElementById('admin-edit').onclick = () => { window.location.href = `/create_student?type=${encodeURIComponent(kind)}&edit=${encodeURIComponent(data.id)}`; };
+          document.getElementById('admin-user').onclick = () => { if (data.created_by) window.location.href = `/admin_user?id=${encodeURIComponent(data.created_by)}`; };
+          document.getElementById('admin-delete').onclick = async () => {
+            if (!confirm('Delete this opportunity? This cannot be undone.')) return;
+            try {
+              const result = await fetch('/api/opportunities/' + encodeURIComponent(data.id), { method: 'DELETE', credentials: 'include' });
+              if (result.ok) {
+                window.location.href = '/feed?mine=1';
+              } else {
+                const err = await result.json().catch(() => ({}));
+                alert(err.error || 'Failed to delete opportunity.');
+              }
+            } catch {
+              alert('Network error while deleting opportunity.');
+            }
+          };
         }
       } catch (error) { console.error('Failed to load opportunity:', error); root.innerHTML = '<div class="d-empty">Could not load this opportunity.</div>'; }
     })();

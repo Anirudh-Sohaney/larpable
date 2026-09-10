@@ -278,16 +278,13 @@
         <button class="sp-modal-close" onclick="App.closeModal('staff-modal')">&times;</button>
       </div>
       <div class="sp-form-group">
-        <label class="sp-form-label">Username</label>
-        <input type="text" class="sp-form-input" id="staff-username-input" placeholder="Enter username...">
-      </div>
-      <div class="sp-form-group">
-        <label class="sp-form-label">First Name</label>
-        <input type="text" class="sp-form-input" id="staff-firstname-input">
+        <label class="sp-form-label">Search user</label>
+        <input type="text" class="sp-form-input" id="staff-username-input" placeholder="Type to search usernames..." autocomplete="off">
+        <div class="sp-search-results" id="staff-search-results"></div>
       </div>
       <div class="sp-form-actions">
         <button type="button" class="sp-btn" onclick="App.closeModal('staff-modal')">Cancel</button>
-        <button type="button" class="sp-btn sp-btn-primary" onclick="App.handleAddStaff()">Add Member</button>
+        <button type="button" class="sp-btn sp-btn-primary" id="staff-add-btn" onclick="App.handleAddStaff()" disabled>Add Member</button>
       </div>
     </div>
   </div>

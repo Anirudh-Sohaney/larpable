@@ -21,7 +21,9 @@ const PERMISSIONS = [
   { id: 'assign_tasks', label: 'Tasks', desc: 'Create and edit tasks' },
   { id: 'manage_staff', label: 'Manage staff', desc: 'Add/remove staff and edit their permissions' },
   { id: 'skills_control', label: 'Skills control', desc: 'Access the Work tab and manage skills, interests and fields' },
-  { id: 'user_control', label: 'User control', desc: 'Browse users and remove accounts from the Work tab' }
+  { id: 'user_control', label: 'User control', desc: 'Browse users and remove accounts from the Work tab' },
+  { id: 'opportunities_control', label: 'Opportunity posts', desc: 'Browse and remove opportunity posts from the Work tab' },
+  { id: 'flagged_control', label: 'Flagged posts', desc: 'Access the flagged posts section in the Work tab' }
 ];
 
 const Admin = {

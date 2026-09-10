@@ -66,19 +66,26 @@
     return tiers.map(function (tier) { return new Float32Array(tier); });
   }
 
-  function drawTiers(context, tiers, ink) {
+  function drawTiers(context, tiers, ink, done) {
+    // One tier per task so intro-animation timers can interleave on weak
+    // CPUs. Pixel output is identical to a single-pass draw.
     context.fillStyle = 'rgb(' + ink.join(',') + ')';
-    for (var tier = 0; tier < TIER_COUNT; tier++) {
+    var tier = 0;
+    (function next() {
+      if (tier >= TIER_COUNT) { if (done) done(); return; }
       var dots = tiers[tier], count = dots.length / 2;
-      if (!count) continue;
       var radius = TIER_RADII[tier];
-      context.beginPath();
-      for (var index = 0; index < count; index++) {
-        context.moveTo(dots[index * 2] + radius, dots[index * 2 + 1]);
-        context.arc(dots[index * 2], dots[index * 2 + 1], radius, 0, TAU);
+      if (count) {
+        context.beginPath();
+        for (var index = 0; index < count; index++) {
+          context.moveTo(dots[index * 2] + radius, dots[index * 2 + 1]);
+          context.arc(dots[index * 2], dots[index * 2 + 1], radius, 0, TAU);
+        }
+        context.fill();
       }
-      context.fill();
-    }
+      tier++;
+      setTimeout(next, 0);
+    })();
   }
 
   function loadImage(source, callback) {
@@ -150,8 +157,43 @@
     return contact;
   }
 
-  function runGuard(state, options) {
+  // Section art must never appear before the intro typing finishes, even
+  // if its image loads first. queueSectionShow holds it until
+  // window._dAnimDone, with a self-clearing backstop.
+  var pendingShows = [];
+  var showFlushTimer = null;
+  function queueSectionShow(figure) {
+    if (window._dAnimDone) { figure.classList.add('show'); return; }
+    if (pendingShows.indexOf(figure) === -1) pendingShows.push(figure);
+    if (showFlushTimer) return;
+    var waited = 0;
+    showFlushTimer = setInterval(function () {
+      waited += 250;
+      if (window._dAnimDone || waited > 10000) {
+        clearInterval(showFlushTimer); showFlushTimer = null;
+        pendingShows.forEach(function (f) { f.classList.add('show'); });
+        pendingShows = [];
+      }
+    }, 250);
+  }
+
+  // Guard measurement forces layout; never run it mid-scroll or the hero
+  // height snap renders as a pop instead of a slide.
+  var scrollQuiet = true, scrollTimer = null;
+  addEventListener('scroll', function () {
+    scrollQuiet = false;
+    clearTimeout(scrollTimer);
+    scrollTimer = setTimeout(function () { scrollQuiet = true; }, 180);
+  }, { passive: true });
+
+  function runGuard(state, options, tries) {
     if (!state.tiers || !state.figure.isConnected) return;
+    if (!scrollQuiet && (tries || 0) < 25) {
+      // Measuring mid-scroll would snap the hero height without its slide
+      // transition — retry shortly instead (caps at ~5s, then proceeds).
+      setTimeout(function () { runGuard(state, options, (tries || 0) + 1); }, 200);
+      return;
+    }
     state.figure.classList.remove('d-art--hidden');
     state.figure.style.width = '';
     if (!worstCaseContact(state, options)) return;
@@ -177,23 +219,60 @@
     var state = { figure: figure, canvas: canvas, tiers: null };
     var context = canvas.getContext('2d'), ink = hexRGB(getComputedStyle(document.documentElement).getPropertyValue('--fg-secondary'));
     loadImage(source, function (image) {
-      state.tiers = buildTiers(image, canvas.width, canvas.height);
-      drawTiers(context, state.tiers, ink);
-      if (figure.classList.contains('d-hero-art')) {
-        window._dHeroArtReady = true;
-        if (window._dAnimDone || matchMedia('(prefers-reduced-motion: reduce)').matches) figure.classList.add('reveal');
-      } else figure.classList.add('show');
-      runGuard(state, options);
+      // Phased tasks let the intro-typing timers interleave on weak CPUs
+      // instead of one long main-thread block.
+      setTimeout(function () {
+        state.tiers = buildTiers(image, canvas.width, canvas.height);
+        drawTiers(context, state.tiers, ink, function () {
+          if (figure.classList.contains('d-hero-art')) {
+            window._dHeroArtReady = true;
+            // Strict gate: hero art appears only after the intro typing
+            // finishes, on every device and under every setting.
+            if (window._dAnimDone) figure.classList.add('reveal');
+          } else queueSectionShow(figure);
+          setTimeout(function () { runGuard(state, options, 0); }, 0);
+        });
+      }, 0);
     });
     return { state: state, options: options };
   }
 
   function init() {
+    // Hero art processes immediately (needed for the intro reveal moment).
+    // Below-fold section art waits until it nears the viewport, so the
+    // typing animation's 100ms ticks never compete with it on weak CPUs.
+    var lazyFigures = [];
     document.querySelectorAll('figure[data-dot-src]').forEach(function (figure) {
-      var guard = setupFigure(figure);
-      if (guard) guards.push(guard);
+      if (figure.classList.contains('d-hero-art')) {
+        var guard = setupFigure(figure);
+        if (guard) guards.push(guard);
+      } else lazyFigures.push(figure);
     });
-    if (!guards.length) return;
+    function observeLazy() {
+      if (!('IntersectionObserver' in window)) {
+        lazyFigures.forEach(function (figure) {
+          var guard = setupFigure(figure);
+          if (guard) guards.push(guard);
+        });
+        lazyFigures = [];
+        return;
+      }
+      var observer = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+          if (!entry.isIntersecting) return;
+          observer.unobserve(entry.target);
+          var guard = setupFigure(entry.target);
+          if (guard) guards.push(guard);
+        });
+      }, { rootMargin: '240px 0px' });
+      lazyFigures.forEach(function (figure) { observer.observe(figure); });
+      lazyFigures = [];
+    }
+    if (lazyFigures.length) {
+      if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', observeLazy);
+      else observeLazy();
+    }
+    if (!document.querySelectorAll('figure[data-dot-src]').length) return;
     var timer;
     addEventListener('resize', function () { clearTimeout(timer); timer = setTimeout(protectAll, 150); }, { passive: true });
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(protectAll);

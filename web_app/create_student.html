@@ -877,6 +877,9 @@
           body: JSON.stringify(body)
         });
         if (res.ok) {
+          const result = await res.json();
+          // Flagged posts are held for review — tell the author explicitly.
+          if (result.message) alert(result.message);
           // Delete the draft if this was a draft submission
           if (!editId && currentDraftId) await deleteCurrentDraft();
           window.location.href = '/feed';

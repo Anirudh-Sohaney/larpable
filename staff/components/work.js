@@ -13,9 +13,16 @@
  *            also averaged into the vector).
  *       Existing: search the vocabulary (words + synonyms) and remove
  *            entries, 6 at a time.
- *   - user_control: browse platform users (search / filter / sort, 6 at a
- *     time in a scrollable list), open a full profile popup and remove
- *     accounts after a confirmation.
+*  - user_control: browse platform users (search / filter / sort, in a
+ *    scrollable list), open a full profile popup and remove accounts after
+ *    a confirmation.
+ *  - opportunities_control: browse published opportunity posts (search /
+ *    filter by type, newest first, scrollable list), open a full detail
+ *    popup and remove posts after a confirmation.
+ *  - flagged_control: moderate the flagged-posts queue — every post matched
+ *    by the profanity filter lands here immediately; approve it to publish it
+ *    (clears the flag so it shows in the public feed like any other post) or
+ *    delete it to remove it from all data.
  *
  * INTEGRATION:
  *   GET  /api/staff/work/taxonomy          (skills_control)
@@ -23,6 +30,11 @@
  *   DELETE /api/staff/work/taxonomy/:kind/:label (skills_control)
  *   GET  /api/staff/work/users             (user_control)
  *   DELETE /api/staff/work/users/:id       (user_control)
+ *   GET  /api/staff/work/opportunities     (opportunities_control)
+ *   DELETE /api/staff/work/opportunities/:id (opportunities_control)
+ *   GET  /api/staff/work/flagged            (flagged_control)
+ *   POST /api/staff/work/flagged/:id/approve (flagged_control)
+ *   DELETE /api/staff/work/flagged/:id      (flagged_control)
  */
 
 const Work = {
@@ -37,7 +49,14 @@ const Work = {
     uSearch: '',
     uFilter: 'all',
     uSort: 'newest',
-    uVisible: 70
+    uVisible: 70,
+    opps: null,
+    oSearch: '',
+    oFilter: 'all',
+    oVisible: 70,
+    flagged: null,
+    fSearch: '',
+    fVisible: 70
   },
 
   kinds() {
@@ -64,10 +83,24 @@ const Work = {
     return response.json();
   },
 
+  async fetchOpportunities() {
+    const response = await fetch('/api/staff/work/opportunities', { credentials: 'include', cache: 'no-store' });
+    if (!response.ok) throw new Error('Could not load opportunity posts.');
+    return response.json();
+  },
+
+  async fetchFlagged() {
+    const response = await fetch('/api/staff/work/flagged', { credentials: 'include', cache: 'no-store' });
+    if (!response.ok) throw new Error('Could not load flagged posts.');
+    return response.json();
+  },
+
   async render(container) {
     const canSkills = App.can('skills_control');
     const canUsers = App.can('user_control');
-    if (!canSkills && !canUsers) {
+    const canOpps = App.can('opportunities_control');
+    const canFlagged = App.can('flagged_control');
+    if (!canSkills && !canUsers && !canOpps && !canFlagged) {
       container.innerHTML = '<div class="sp-tab-content"><div class="sp-empty">Access denied. A platform-control permission is required.</div></div>';
       return;
     }
@@ -135,6 +168,34 @@ const Work = {
           <div class="sp-users-list" id="work-user-list" style="max-height:380px; overflow-y:auto; border:1px solid var(--sp-border); border-radius:var(--sp-radius);"><div class="sp-empty" style="padding:24px;">Loading…</div></div>
         </div>
         ` : ''}
+
+        ${canOpps ? `
+        <div class="sp-admin-section">
+          <div class="sp-admin-section-title">OPPORTUNITY POSTS</div>
+          <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:12px;">
+            <input type="search" class="sp-form-input" id="work-opp-search" placeholder="Search posts..." style="max-width:240px;" oninput="Work.handleOppSearch(this.value)">
+            <select class="sp-form-input" id="work-opp-filter" style="max-width:170px;" onchange="Work.handleOppFilter(this.value)">
+              <option value="all">All types</option>
+              <option value="project">Project</option>
+              <option value="nonprofit">Nonprofit</option>
+              <option value="company">Company</option>
+            </select>
+            <span style="font-size:0.78rem; color:var(--sp-muted);" id="work-opp-count"></span>
+          </div>
+          <div class="sp-users-list" id="work-opp-list" style="max-height:380px; overflow-y:auto; border:1px solid var(--sp-border); border-radius:var(--sp-radius);"><div class="sp-empty" style="padding:24px;">Loading…</div></div>
+        </div>
+        ` : ''}
+
+        ${canFlagged ? `
+        <div class="sp-admin-section">
+          <div class="sp-admin-section-title">FLAGGED POSTS</div>
+          <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:12px;">
+            <input type="search" class="sp-form-input" id="work-flag-search" placeholder="Search flagged posts..." style="max-width:240px;" oninput="Work.handleFlaggedSearch(this.value)">
+            <span style="font-size:0.78rem; color:var(--sp-muted);" id="work-flag-count"></span>
+          </div>
+          <div class="sp-users-list" id="work-flag-list" style="max-height:380px; overflow-y:auto; border:1px solid var(--sp-border); border-radius:var(--sp-radius);"><div class="sp-empty" style="padding:24px;">Loading…</div></div>
+        </div>
+        ` : ''}
       </div>
     `;
 
@@ -157,6 +218,28 @@ const Work = {
         this.renderUsers();
       } catch (error) {
         document.getElementById('work-user-list').innerHTML = `<div class="sp-empty" style="padding:24px;">${Utils.escapeHtml(error.message)}</div>`;
+      }
+    }
+
+    if (canOpps) {
+      try {
+        const result = await this.fetchOpportunities();
+        this.state.opps = result.opportunities || [];
+        this.renderOpps();
+      } catch (error) {
+        const el = document.getElementById('work-opp-list');
+        if (el) el.innerHTML = `<div class="sp-empty" style="padding:24px;">${Utils.escapeHtml(error.message)}</div>`;
+      }
+    }
+
+    if (canFlagged) {
+      try {
+        const result = await this.fetchFlagged();
+        this.state.flagged = result.flagged || [];
+        this.renderFlagged();
+      } catch (error) {
+        const el = document.getElementById('work-flag-list');
+        if (el) el.innerHTML = `<div class="sp-empty" style="padding:24px;">${Utils.escapeHtml(error.message)}</div>`;
       }
     }
   },
@@ -439,6 +522,278 @@ const Work = {
       this.closeUserModal();
       this.state.users = this.state.users.filter(u => u.id !== userId);
       this.renderUsers();
+    } catch (error) {
+      alert(error.message);
+    }
+  },
+
+  // ── Opportunity Posts ──────────────────────────────────────
+  handleOppSearch(value) {
+    this.state.oSearch = value;
+    this.state.oVisible = 70;
+    this.renderOpps();
+  },
+
+  handleOppFilter(value) {
+    this.state.oFilter = value;
+    this.state.oVisible = 70;
+    this.renderOpps();
+  },
+
+  showMoreOpps() {
+    this.state.oVisible = Math.min(this.state.oVisible + 80, 150);
+    this.renderOpps();
+  },
+
+  matchedOpps() {
+    const opps = this.state.opps || [];
+    const query = this.state.oSearch.trim().toLowerCase();
+    const filtered = opps.filter(opp => {
+      if (this.state.oFilter !== 'all' && opp.type !== this.state.oFilter) return false;
+      if (!query) return true;
+      const haystack = [opp.title, opp.description, opp.looking_for, opp.location, opp.issuer_name, opp.details]
+        .filter(Boolean).join(' ').toLowerCase();
+      return haystack.includes(query);
+    });
+    return filtered.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  },
+
+  renderOpps() {
+    const container = document.getElementById('work-opp-list');
+    const countEl = document.getElementById('work-opp-count');
+    if (!container || !countEl) return;
+    const matches = this.matchedOpps();
+    countEl.textContent = `${matches.length} / ${(this.state.opps || []).length}`;
+    if (!matches.length) {
+      container.innerHTML = '<div class="sp-empty" style="padding:24px;">No posts found.</div>';
+      return;
+    }
+    const TYPE = { project: 'Project', nonprofit: 'Nonprofit', company: 'Company' };
+    const shown = matches.slice(0, this.state.oVisible);
+    container.innerHTML = shown.map(opp => {
+      const brief = opp.description
+        ? (opp.description.length > 120 ? opp.description.slice(0, 120).trimEnd() + '…' : opp.description)
+        : '—';
+      return `
+        <div class="sp-work-row sp-user-row" onclick="Work.openOpp('${opp.id}')">
+          <div style="min-width:0;">
+            <div style="font-size:0.88rem; font-weight:600;">${Utils.escapeHtml(opp.title)}</div>
+            <div style="font-size:0.72rem; color:var(--sp-muted); margin-top:2px;">${Utils.escapeHtml(TYPE[opp.type] || opp.type)} · ${Utils.formatDate(opp.created_at)} · <span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:220px; display:inline-block; vertical-align:bottom;">${Utils.escapeHtml(brief)}</span></div>
+          </div>
+          <span style="font-size:0.72rem; color:var(--sp-accent); flex-shrink:0;">View →</span>
+        </div>
+      `;
+    }).join('');
+    if (matches.length > shown.length) {
+      container.insertAdjacentHTML('beforeend', `
+        <div style="text-align:center; margin-top:4px;">
+          <button class="sp-btn" onclick="Work.showMoreOpps()">Show more (${matches.length - shown.length} remaining)</button>
+        </div>
+      `);
+    }
+  },
+
+  openOpp(id, fromFlagged) {
+    const opp = fromFlagged
+      ? (this.state.flagged || []).find(o => o.id === id)
+      : (this.state.opps || []).find(o => o.id === id);
+    if (!opp) return;
+    const TYPE = { project: 'Project', nonprofit: 'Nonprofit', company: 'Company' };
+    const chips = (items) => items && items.length
+      ? items.map(item => `<span class="sp-chip">${Utils.escapeHtml(item)}</span>`).join('')
+      : '<span style="color:var(--sp-muted); font-size:0.78rem;">—</span>';
+    const row = (label, value) => `
+      <div style="display:flex; justify-content:space-between; gap:16px; padding:6px 0; border-bottom:1px solid var(--sp-border);">
+        <span style="font-size:0.75rem; color:var(--sp-muted); flex-shrink:0;">${label}</span>
+        <span style="font-size:0.82rem; text-align:right; max-width:320px; word-break:break-word;">${value}</span>
+      </div>
+    `;
+    const overlay = document.createElement('div');
+    overlay.className = 'sp-modal-overlay open';
+    overlay.id = 'work-opp-modal';
+    overlay.innerHTML = `
+      <div class="sp-modal">
+        <div class="sp-modal-header">
+          <h3 class="sp-modal-title">${Utils.escapeHtml(opp.title)}</h3>
+          <button class="sp-modal-close" onclick="Work.closeOppModal()">&times;</button>
+        </div>
+        ${fromFlagged ? `
+        <div style="margin-bottom:16px; padding:10px 12px; border:1px solid var(--sp-red); border-radius:var(--sp-radius); background:rgba(220,53,69,0.06);">
+          <div style="font-size:0.72rem; font-weight:600; color:var(--sp-red); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">Flagged · held from public feed</div>
+          <div style="font-size:0.82rem; color:var(--sp-muted); margin-bottom:6px;">Fields: ${Utils.escapeHtml((opp.flagged_fields || []).join(', ') || '—')} · ${Utils.formatDate(opp.flagged_at)}</div>
+          <div>${(opp.flagged_terms || []).map(t => `<span class="sp-chip" style="background:rgba(220,53,69,0.08); color:var(--sp-red); border-color:var(--sp-red);">${Utils.escapeHtml(t)}</span>`).join('') || '—'}</div>
+        </div>
+        ` : ''}
+        <div style="margin-bottom:16px;">
+          ${row('Type', Utils.escapeHtml(TYPE[opp.type] || opp.type))}
+          ${row('Posted', Utils.formatDate(opp.created_at))}
+          ${row('Author', Utils.escapeHtml(opp.issuer_name || opp.created_by || '—'))}
+          ${row('Location', Utils.escapeHtml(opp.location || '—'))}
+          ${row('Remote', opp.remote ? '<span style="color:var(--sp-green);">Yes</span>' : '<span style="color:var(--sp-muted);">No</span>')}
+          ${opp.industry ? row('Industry', Utils.escapeHtml(opp.industry)) : ''}
+          ${opp.nonprofit_field ? row('Field', Utils.escapeHtml(opp.nonprofit_field)) : ''}
+        </div>
+        <div style="margin-bottom:12px;">
+          <div style="font-size:0.72rem; font-weight:600; color:var(--sp-muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">Description</div>
+          <div style="font-size:0.85rem; white-space:pre-wrap;">${Utils.escapeHtml(opp.description || '—')}</div>
+        </div>
+        ${opp.looking_for ? `
+        <div style="margin-bottom:12px;">
+          <div style="font-size:0.72rem; font-weight:600; color:var(--sp-muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">Looking for</div>
+          <div style="font-size:0.85rem; white-space:pre-wrap;">${Utils.escapeHtml(opp.looking_for)}</div>
+        </div>
+        ` : ''}
+        ${opp.details ? `
+        <div style="margin-bottom:12px;">
+          <div style="font-size:0.72rem; font-weight:600; color:var(--sp-muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">Details</div>
+          <div style="font-size:0.85rem; white-space:pre-wrap;">${Utils.escapeHtml(opp.details)}</div>
+        </div>
+        ` : ''}
+        <div style="margin-bottom:20px;">
+          <div style="font-size:0.72rem; font-weight:600; color:var(--sp-muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">Skills</div>
+          <div>${chips(opp.skills)}</div>
+        </div>
+        <div class="sp-form-actions">
+          <button class="sp-btn" onclick="Work.closeOppModal()">Close</button>
+          ${fromFlagged ? `<button class="sp-btn" style="color:var(--sp-green); border-color:var(--sp-green);" onclick="Work.approveFlagged('${opp.id}')">Approve post</button>` : ''}
+          <button class="sp-btn" style="color:var(--sp-red); border-color:var(--sp-red);" onclick="Work.removeOpp('${opp.id}', ${fromFlagged})">Delete post</button>
+        </div>
+      </div>
+    `;
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) this.closeOppModal(); });
+    document.body.appendChild(overlay);
+  },
+
+  closeOppModal() {
+    const modal = document.getElementById('work-opp-modal');
+    if (modal) modal.remove();
+  },
+
+  async removeOpp(id, fromFlagged) {
+    const opp = fromFlagged
+      ? (this.state.flagged || []).find(o => o.id === id)
+      : (this.state.opps || []).find(o => o.id === id);
+    if (!opp) return;
+    if (!confirm(`Delete ${fromFlagged ? 'flagged ' : 'the '}opportunity "${opp.title}"? This cannot be undone.`)) return;
+    const url = fromFlagged
+      ? `/api/staff/work/flagged/${encodeURIComponent(id)}`
+      : `/api/staff/work/opportunities/${encodeURIComponent(id)}`;
+    try {
+      const response = await fetch(url, { method: 'DELETE', credentials: 'include' });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || 'Could not delete the opportunity.');
+      this.closeOppModal();
+      this.state.opps = (this.state.opps || []).filter(o => o.id !== id);
+      this.state.flagged = (this.state.flagged || []).filter(o => o.id !== id);
+      this.renderOpps();
+      this.renderFlagged();
+    } catch (error) {
+      alert(error.message);
+    }
+  },
+
+  // ── Flagged Posts ──────────────────────────────────────────
+  handleFlaggedSearch(value) {
+    this.state.fSearch = value;
+    this.state.fVisible = 70;
+    this.renderFlagged();
+  },
+
+  showMoreFlagged() {
+    this.state.fVisible = Math.min(this.state.fVisible + 80, 150);
+    this.renderFlagged();
+  },
+
+  matchedFlagged() {
+    const flagged = this.state.flagged || [];
+    const query = this.state.fSearch.trim().toLowerCase();
+    return flagged
+      .filter(opp => {
+        if (!query) return true;
+        const haystack = [opp.title, opp.issuer_name, (opp.flagged_terms || []).join(' '), opp.description, opp.looking_for]
+          .filter(Boolean).join(' ').toLowerCase();
+        return haystack.includes(query);
+      })
+      .sort((a, b) => new Date(b.flagged_at || b.created_at) - new Date(a.flagged_at || a.created_at));
+  },
+
+  renderFlagged() {
+    const container = document.getElementById('work-flag-list');
+    const countEl = document.getElementById('work-flag-count');
+    if (!container || !countEl) return;
+    const matches = this.matchedFlagged();
+    countEl.textContent = `${matches.length} / ${(this.state.flagged || []).length}`;
+    if (!matches.length) {
+      container.innerHTML = '<div class="sp-empty" style="padding:24px;">No flagged posts awaiting moderation.</div>';
+      return;
+    }
+    const TYPE = { project: 'Project', nonprofit: 'Nonprofit', company: 'Company' };
+    const shown = matches.slice(0, this.state.fVisible);
+    container.innerHTML = shown.map(opp => {
+      const terms = (opp.flagged_terms || []).map(t =>
+        `<span class="sp-chip" style="background:rgba(220,53,69,0.08); color:var(--sp-red); border-color:var(--sp-red);">${Utils.escapeHtml(t)}</span>`
+      ).join('');
+      return `
+        <div class="sp-work-row sp-user-row" onclick="Work.openOpp('${opp.id}', true)">
+          <div style="min-width:0;">
+            <div style="font-size:0.88rem; font-weight:600;">${Utils.escapeHtml(opp.title)}</div>
+            <div style="font-size:0.72rem; color:var(--sp-muted); margin-top:2px;">${Utils.escapeHtml(TYPE[opp.type] || opp.type)} · ${Utils.formatDate(opp.created_at)} · ${Utils.escapeHtml(opp.issuer_name || 'Unknown')}</div>
+            ${terms ? `<div style="margin-top:4px;">${terms}</div>` : ''}
+          </div>
+          <div style="flex-shrink:0; display:flex; gap:6px; align-items:center;">
+            <button class="sp-btn" style="font-size:0.72rem; color:var(--sp-green); border-color:var(--sp-green);" onclick="event.stopPropagation();Work.approveFlagged('${opp.id}')">Approve</button>
+            <button class="sp-btn" style="font-size:0.72rem; color:var(--sp-red); border-color:var(--sp-red);" onclick="event.stopPropagation();Work.removeFlagged('${opp.id}')">Delete</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+    if (matches.length > shown.length) {
+      container.insertAdjacentHTML('beforeend', `
+        <div style="text-align:center; margin-top:4px;">
+          <button class="sp-btn" onclick="Work.showMoreFlagged()">Show more (${matches.length - shown.length} remaining)</button>
+        </div>
+      `);
+    }
+  },
+
+  async approveFlagged(id) {
+    const opp = (this.state.flagged || []).find(o => o.id === id);
+    if (!opp) return;
+    try {
+      const response = await fetch(`/api/staff/work/flagged/${encodeURIComponent(id)}/approve`, {
+        method: 'POST',
+        credentials: 'include'
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || 'Could not approve the post.');
+      this.closeOppModal();
+      this.state.flagged = this.state.flagged.filter(o => o.id !== id);
+      if (!(this.state.opps || []).some(o => o.id === id)) {
+        this.state.opps = [opp, ...(this.state.opps || [])];
+      }
+      this.renderFlagged();
+      this.renderOpps();
+    } catch (error) {
+      alert(error.message);
+    }
+  },
+
+  async removeFlagged(id) {
+    const opp = (this.state.flagged || []).find(o => o.id === id);
+    if (!opp) return;
+    if (!confirm(`Delete flagged opportunity "${opp.title}"? It will be removed from all data and cannot be undone.`)) return;
+    try {
+      const response = await fetch(`/api/staff/work/flagged/${encodeURIComponent(id)}`, {
+        method: 'DELETE',
+        credentials: 'include'
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || 'Could not delete the post.');
+      this.closeOppModal();
+      this.state.flagged = this.state.flagged.filter(o => o.id !== id);
+      this.state.opps = (this.state.opps || []).filter(o => o.id !== id);
+      this.renderFlagged();
+      this.renderOpps();
     } catch (error) {
       alert(error.message);
     }

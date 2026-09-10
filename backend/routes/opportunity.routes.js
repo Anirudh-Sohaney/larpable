@@ -9,6 +9,11 @@
  * DELETE /api/opportunities/:id      — delete (owner only)
  * 
  * All handlers are async (non-blocking I/O).
+ *
+ * POSTS & MODERATION: every new post (and edit) is scanned by the profanity
+ * filter (`../profanity`). Flagged posts are stored `flagged: true`, hidden
+ * from the public feed until a staff member approves them (the author still
+ * sees their own post), and listed in the staff Work tab's flagged queue.
  */
 
 const express = require('express');
@@ -18,6 +23,7 @@ const store = require('../store');
 const { encryptObject, decryptObject } = require('../crypto');
 const { sanitizeObject } = require('../sanitize');
 const { geocode } = require('../geocode');
+const { scanFields, applyFlag, flagNotice } = require('../profanity');
 
 // ── Middleware: require auth ──────────────────────────────────
 async function requireAuth(req, res, next) {
@@ -32,12 +38,26 @@ async function requireAuth(req, res, next) {
   next();
 }
 
+// ── Middleware: optional auth (public feed) ───────────────────
+// Logged-in posters still see their own flagged posts in the feed;
+// anonymous visitors only ever see approved posts.
+async function optionalAuth(req, res, next) {
+  const token = req.cookies?.['larpable_session'];
+  req.user = token ? await auth.getUserFromToken(token) : null;
+  next();
+}
+
 // ── GET /api/opportunities ───────────────────────────────────
-router.get('/', async (req, res) => {
+router.get('/', optionalAuth, async (req, res) => {
   try {
     const { type } = req.query;
-    const opportunities = await store.getAllOpportunities(type || null);
-    
+    let opportunities = await store.getAllOpportunities(type || null);
+
+    // Flagged posts never reach the public feed — for anyone, including their
+    // own author. They only exist in the staff Work tab's queue until a
+    // moderator approves (or removes) them.
+    opportunities = opportunities.filter(o => !o.flagged);
+
     const enriched = await Promise.all(opportunities.map(opp => enrichOppWithCoords(opp)));
     
     res.json({ opportunities: enriched });
@@ -51,7 +71,7 @@ router.get('/', async (req, res) => {
 router.get('/mine', requireAuth, async (req, res) => {
   try {
     const allOpps = await store.getAllOpportunities(null);
-    const mine = allOpps.filter(o => o.created_by === req.user.id);
+    const mine = allOpps.filter(o => o.created_by === req.user.id && !o.flagged);
     
     const enriched = await Promise.all(mine.map(opp => enrichOppWithCoords(opp)));
     
@@ -63,11 +83,16 @@ router.get('/mine', requireAuth, async (req, res) => {
 });
 
 // ── GET /api/opportunities/:id ───────────────────────────────
-router.get('/:id', async (req, res) => {
+router.get('/:id', optionalAuth, async (req, res) => {
   try {
     const opp = await store.getOpportunity(req.params.id);
     
     if (!opp) {
+      return res.status(404).json({ error: 'Opportunity not found' });
+    }
+    
+    // Held-from-feed posts are only visible to their author (and admins).
+    if (opp.flagged && (!req.user || (opp.created_by !== req.user.id && req.user.id !== 'admin_larpable'))) {
       return res.status(404).json({ error: 'Opportunity not found' });
     }
     
@@ -93,6 +118,7 @@ router.get('/:id', async (req, res) => {
       type: opp.type,
       created_by: opp.created_by || '',
       created_at: opp.created_at,
+      flagged: opp.flagged || false,
       fields: decrypted,
       issuer
     });
@@ -152,12 +178,21 @@ router.post('/', requireAuth, async (req, res) => {
         })
       }
     };
-    
+
+    // Profanity filter: any prohibited word in the new post's input fields
+    // flags it — held from the public feed until a staff member acts, and the
+    // author is told the post is under review.
+    const scan = scanFields(oppData.encrypted_fields);
+    applyFlag(oppData, scan, oppData.created_at);
+    const flagged = scan.flagged;
+
     oppData.encrypted_fields = encryptObject(oppData.encrypted_fields);
     
     await store.saveOpportunity(oppId, oppData);
     
-    res.json({ id: oppId });
+    res.json(flagged
+      ? { id: oppId, flagged: true, message: flagNotice(scan.terms) }
+      : { id: oppId });
   } catch (e) {
     console.error('Create opportunity error:', e);
     res.status(500).json({ error: 'Server error' });
@@ -192,6 +227,10 @@ router.patch('/:id', requireAuth, async (req, res) => {
     }
     const updatedFields = { ...currentFields, ...sanitizeObject(updates) };
     
+    // Edits are re-scanned too, so profanity can't slip in after approval.
+    const scan = scanFields(updatedFields);
+    applyFlag(opp, scan, new Date().toISOString());
+
     // Re-encrypt
     opp.encrypted_fields = encryptObject(updatedFields);
     
@@ -202,7 +241,9 @@ router.patch('/:id', requireAuth, async (req, res) => {
     
     await store.saveOpportunity(req.params.id, opp);
     
-    res.json({ ok: true });
+    res.json(scan.flagged
+      ? { ok: true, flagged: true, message: flagNotice(scan.terms) }
+      : { ok: true });
   } catch (e) {
     console.error('Update opportunity error:', e);
     res.status(500).json({ error: 'Server error' });
@@ -268,6 +309,7 @@ function enrichOpp(opp) {
     details: f.details || '',
     nonprofit_field: f.nonprofit_field || '',
     industry: f.industry || '',
+    flagged: !!opp.flagged,
     created_by: opp.created_by || '',
     created_at: opp.created_at || '',
     posted: opp.created_at ? formatPosted(opp.created_at) : 'Recently'

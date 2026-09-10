@@ -11,6 +11,14 @@ const Feed = {
     this.computeDistances();
     this.scored = this.currentUser && ((this.currentUser.skills || []).length || (this.currentUser.interests || []).length);
     this.setupControls();
+    // Deep-link: /feed?mine=1 (used after delete) opens the Your projects tab
+    try {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('mine') === '1' || params.get('mine') === 'true' || window.location.hash === '#yours') {
+        this.showingYours = true;
+        document.getElementById('yours-btn')?.classList.add('is-on');
+      }
+    } catch {}
     Filters.fillSelects();
     this.render();
   },
@@ -38,6 +46,12 @@ const Feed = {
     document.getElementById('yours-btn')?.addEventListener('click', e => {
       this.showingYours = !this.showingYours;
       e.currentTarget.classList.toggle('is-on', this.showingYours);
+      try {
+        const url = new URL(window.location.href);
+        if (this.showingYours) url.searchParams.set('mine', '1');
+        else url.searchParams.delete('mine');
+        history.replaceState(null, '', url);
+      } catch {}
       this.render();
     });
   },
@@ -117,11 +131,29 @@ const Feed = {
       ${o.description ? `<div class="d-opp-desc">${Utils.escapeHtml(o.description)}</div>` : ''}
       ${bits ? `<div class="d-opp-meta">${bits}</div>` : ''}
       ${skills ? `<div class="d-opp-looking">${skills}</div>` : ''}
+      ${mine ? `<div style="display:flex;gap:0.4rem;margin-bottom:0.6rem;">
+        <button class="d-btn d-btn-sm" type="button" onclick="event.preventDefault();event.stopPropagation();Feed.editOpportunity('${String(o.id || '').replace(/'/g, "\\'")}', '${o.type || 'project'}')">Edit</button>
+        <button class="d-btn d-btn-sm d-btn-danger" type="button" onclick="event.preventDefault();event.stopPropagation();Feed.deleteOpportunity('${String(o.id || '').replace(/'/g, "\\'")}')">Delete</button>
+      </div>` : ''}
       <div class="d-opp-footer">
         <span class="d-opp-posted">${Utils.escapeHtml(o.posted || Utils.postedAgo(o.created_at))}</span>
         <span class="d-opp-action">${mine ? 'Manage' : 'Learn more'} →</span>
       </div>
     </a>`;
+  },
+
+  editOpportunity(id, type) {
+    window.location.href = `/create_student?type=${encodeURIComponent(type || 'project')}&edit=${encodeURIComponent(id)}`;
+  },
+
+  async deleteOpportunity(id) {
+    if (!confirm('Are you sure you want to delete this opportunity? This cannot be undone.')) return;
+    try {
+      const res = await fetch('/api/opportunities/' + encodeURIComponent(id), { method: 'DELETE', credentials: 'same-origin' });
+      if (!res.ok) { alert('Failed to delete.'); return; }
+      this.opportunities = this.opportunities.filter(o => o.id !== id);
+      this.render();
+    } catch { alert('Network error.'); }
   },
 
   renderDraft(d) {

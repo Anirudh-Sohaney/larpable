@@ -74,6 +74,11 @@ const App = {
       });
     });
 
+    // Live search while typing in the add-staff modal
+    document.getElementById('staff-username-input').addEventListener('input', Utils.debounce(() => {
+      this.searchStaffUsers();
+    }, 250));
+
     this.navigate('home');
   },
 
@@ -112,7 +117,8 @@ const App = {
    * holding a platform-control permission (skills_control or user_control).
    */
   updateNavVisibility() {
-    const canWork = this.can('skills_control') || this.can('user_control');
+    const canWork = this.can('skills_control') || this.can('user_control') ||
+      this.can('opportunities_control') || this.can('flagged_control');
     document.getElementById('work-nav').style.display = canWork ? '' : 'none';
     document.getElementById('more-work-nav').style.display = canWork ? '' : 'none';
     document.getElementById('admin-badge').style.display = this.isStaffAdmin ? '' : 'none';
@@ -283,37 +289,71 @@ const App = {
   },
 
   // ── Staff Management ───────────────────────────────────────
+  selectedStaffUser: null,
+
   openAddStaffModal() {
-    // INTEGRATION: POST /api/staff/members
+    this.selectedStaffUser = null;
     document.getElementById('staff-username-input').value = '';
-    document.getElementById('staff-firstname-input').value = '';
+    document.getElementById('staff-search-results').innerHTML = '';
+    document.getElementById('staff-add-btn').disabled = true;
     this.openModal('staff-modal');
+    this.searchStaffUsers();
   },
 
-  handleAddStaff() {
-    const username = document.getElementById('staff-username-input').value.trim();
-    const firstName = document.getElementById('staff-firstname-input').value.trim();
-
-    if (!username) { alert('Username required'); return; }
-
-    DataStore.addStaffMember({
-      userId: 'user_' + Date.now(),
-      username,
-      firstName: firstName || username,
-      lastNameInitial: '',
-      addedAt: new Date().toISOString(),
-      addedBy: this.currentUser.id
-    });
-
-    this.closeModal('staff-modal');
-    Admin.render(document.getElementById('main-content'));
+  // GET /api/staff/users?search= — searchable username dropdown
+  async searchStaffUsers() {
+    const search = (document.getElementById('staff-username-input').value || '').trim();
+    const container = document.getElementById('staff-search-results');
+    try {
+      const res = await fetch(`/api/staff/users?search=${encodeURIComponent(search)}`, { credentials: 'include', cache: 'no-store' });
+      if (!res.ok) throw new Error('Failed to load users');
+      const data = await res.json();
+      const memberIds = new Set(DataStore.getStaffMembers().map(m => m.userId));
+      this._staffUserResults = (data.users || []).filter(u => !memberIds.has(u.userId));
+      container.innerHTML = this._staffUserResults.length
+        ? this._staffUserResults.map(user => `
+            <div class="sp-search-option" onclick="App.selectStaffUser('${user.userId}')">${Utils.escapeHtml(user.display)}</div>
+          `).join('')
+        : '<div class="sp-search-empty">No users found.</div>';
+    } catch (error) {
+      container.innerHTML = '<div class="sp-search-empty">Failed to load users.</div>';
+    }
   },
 
-  removeStaffMember(userId) {
+  selectStaffUser(userId) {
+    const user = (this._staffUserResults || []).find(u => u.userId === userId);
+    if (!user) return;
+    this.selectedStaffUser = user;
+    document.getElementById('staff-username-input').value = user.display;
+    document.getElementById('staff-search-results').innerHTML = '';
+    document.getElementById('staff-add-btn').disabled = false;
+  },
+
+  // POST /api/staff/members { userId } — persists to staff.json + users.json
+  async handleAddStaff() {
+    if (!this.selectedStaffUser) { alert('Search and select a user first.'); return; }
+    const userId = this.selectedStaffUser.userId;
+    const btn = document.getElementById('staff-add-btn');
+    btn.disabled = true;
+    try {
+      await DataStore.addStaffMember(userId);
+      this.closeModal('staff-modal');
+      Admin.render(document.getElementById('main-content'));
+    } catch (error) {
+      btn.disabled = false;
+      alert(error.message);
+    }
+  },
+
+  // DELETE /api/staff/members/:userId
+  async removeStaffMember(userId) {
     if (!confirm('Remove this staff member?')) return;
-    // INTEGRATION: DELETE /api/staff/members/:userId
-    DataStore.removeStaffMember(userId);
-    Admin.render(document.getElementById('main-content'));
+    try {
+      await DataStore.removeStaffMember(userId);
+      Admin.render(document.getElementById('main-content'));
+    } catch (error) {
+      alert(error.message);
+    }
   }
 };
 

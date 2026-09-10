@@ -30,12 +30,44 @@
     if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
     scrollTo(0, 0); addEventListener('load', () => scrollTo(0, 0));
     const text = 'LARPABLE.', typed = document.getElementById('typed'), cursor = document.getElementById('cursor'), logo = document.getElementById('d-logo'), hero = document.getElementById('d-hero'), cue = document.getElementById('d-cue'), topbar = document.getElementById('d-topbar'), topnav = document.getElementById('d-topnav'); let index = 0;
-    function type() { if (index < text.length) { typed.textContent += text[index++]; setTimeout(type, 100); } else { cursor.style.display = 'none'; setTimeout(() => { logo.classList.add('docked'); hero.classList.add('show'); document.body.classList.remove('d-locked'); window._dAnimDone = true; if (window._dHeroArtReady) document.getElementById('d-hero-art').classList.add('reveal'); setTimeout(() => cue.classList.add('show'), 900); }, 450); } }
-    setTimeout(type, 400);
+    // Every major OS hands its "cut the motion" switch to the browser as
+    // prefers-reduced-motion: Windows 11 Settings > Accessibility > Visual
+    // effects > Animation effects (Windows 10: Ease of Access > Show animations
+    // in Windows), macOS System Settings > Accessibility > Display > Reduce
+    // motion, iOS/iPadOS Accessibility > Motion > Reduce Motion, Android
+    // Developer options > Remove animations, and Linux desktops running with
+    // GTK animations turned off. When any of them is on, paint the finished
+    // landing page in one go instead of running the intro with near-zero
+    // durations, which reads as flicker.
+    const reduceQuery = matchMedia('(prefers-reduced-motion: reduce)'), bareReduceQuery = matchMedia('(prefers-reduced-motion)');
+    // Not every limitation is an OS switch: the value-less query form covers
+    // engines that never implemented the value syntax, and Data Saver / Lite
+    // mode plus 1 GB-or-less phones are exactly the devices the canvas-heavy
+    // intro glitches on.
+    const memory = navigator.deviceMemory;
+    let reduced = reduceQuery.matches || bareReduceQuery.matches || (navigator.connection && navigator.connection.saveData === true) || (typeof memory === 'number' && memory > 0 && memory <= 1), typeTimer = null;
+    function settle() {
+      clearTimeout(typeTimer);
+      typed.textContent = text;
+      cursor.style.display = 'none';
+      logo.classList.add('docked');
+      hero.classList.add('show');
+      document.body.classList.remove('d-locked');
+      window._dAnimDone = true;
+      if (window._dHeroArtReady) document.getElementById('d-hero-art').classList.add('reveal');
+      cue.classList.add('show');
+    }
+    function finishIntro() { cursor.style.display = 'none'; setTimeout(settle, 450); }
+    function type() { if (reduced) return; if (index < text.length) { typed.textContent += text[index++]; typeTimer = setTimeout(type, 100); } else { finishIntro(); } }
+    if (reduced) settle(); else typeTimer = setTimeout(type, 400);
     new IntersectionObserver(([entry]) => topnav.classList.toggle('show', !entry.isIntersecting && scrollY > 10), { threshold: 0 }).observe(document.getElementById('d-btn-wrap'));
-    addEventListener('scroll', () => { topbar.classList.toggle('solid', scrollY > 40); document.querySelector('.d-hero').classList.toggle('compact', scrollY > 10); if (scrollY > 10) cue.classList.add('hide'); }, { passive: true });
+    addEventListener('scroll', () => { topbar.classList.toggle('solid', scrollY > 40); if (!reduced) document.querySelector('.d-hero').classList.toggle('compact', scrollY > 10); if (scrollY > 10) cue.classList.add('hide'); }, { passive: true });
     const observer = new IntersectionObserver(entries => entries.forEach(entry => { if (entry.isIntersecting) { entry.target.classList.add('in'); observer.unobserve(entry.target); } }), { rootMargin: '0px 0px -12% 0px' });
     document.querySelectorAll('.d-rise').forEach((element, i) => { element.style.transitionDelay = (i % 4) * 60 + 'ms'; observer.observe(element); });
+    // The setting can be flipped while the page is open; matchMedia fires when
+    // it is. Safari before 14 only offers the deprecated addListener.
+    const watchMotion = (query) => { const onChange = (event) => { if (event.matches && !reduced) { reduced = true; settle(); } }; if (query.addEventListener) query.addEventListener('change', onChange); else if (query.addListener) query.addListener(onChange); };
+    watchMotion(reduceQuery); watchMotion(bareReduceQuery);
   </script>
   <script src="/js/dot-art.js"></script>
 </body>

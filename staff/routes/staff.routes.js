@@ -30,6 +30,7 @@ const router = express.Router();
 const auth = require('../../backend/auth');
 const store = require('../../backend/store');
 const crypto = require('../../backend/crypto');
+const { applyApproval } = require('../../backend/profanity');
 const path = require('path');
 const fs = require('fs');
 
@@ -794,7 +795,8 @@ router.patch('/members/:userId/permissions', requireAuth, requireStaffAdmin, asy
     const requested = Array.isArray(req.body?.permissions) ? req.body.permissions : [];
     const allowed = new Set([
       'modify_calendar', 'assign_goals', 'assign_tasks',
-      'manage_staff', 'skills_control', 'user_control'
+      'manage_staff', 'skills_control', 'user_control',
+      'opportunities_control', 'flagged_control'
     ]);
     const staffData = await store.read(STAFF_FILE);
     const member = staffData.staff_members?.[userId];
@@ -1461,17 +1463,84 @@ function requirePermission(permission) {
 }
 
 // ── Work Tab: Taxonomy (skills_control) ─────────────────────
-const MATCH_DIR = path.join(__dirname, '..', '..', 'backend', 'matching');
+// Where the taxonomy/vector files are written. They sit next to the matching
+// engine by default; MATCH_DIR points them at a directory that outlives the
+// deploy checkout (production replaces the whole app directory on every push).
+const MATCH_CODE_DIR = path.join(__dirname, '..', '..', 'backend', 'matching');
+const MATCH_DIR = process.env.MATCH_DIR || MATCH_CODE_DIR;
 
 function readMatchFile(name) {
   try { return JSON.parse(fs.readFileSync(path.join(MATCH_DIR, name), 'utf8')); }
   catch { return {}; }
 }
 
+// Like readMatchFile, but never hands back an empty object for a file that
+// exists and is unreadable: a write built on that empty object would drop every
+// skill, interest and vector already stored in it. A missing file has nothing
+// to lose, so that still reads as empty.
+function readMatchFileStrict(name) {
+  const file = path.join(MATCH_DIR, name);
+  let raw;
+  try { raw = fs.readFileSync(file, 'utf8'); }
+  catch (e) { if (e.code === 'ENOENT') return {}; throw e; }
+  try { return JSON.parse(raw); }
+  catch { throw new Error(`${name} is not valid JSON (${file}) — refusing to overwrite it`); }
+}
+
+// The four taxonomy files are updated as one transaction, so every mutation
+// takes this lock: concurrent adds can no longer read the same snapshot and
+// clobber each other's entry.
+let matchLock = Promise.resolve();
+function withMatchLock(fn) {
+  const queued = matchLock.then(fn, fn);
+  matchLock = queued.catch(() => {});
+  return queued;
+}
+
+// Interpreters that may have sentence-transformers installed. An explicit
+// EMBED_PYTHON is used on its own (a misconfigured path should fail loudly, not
+// quietly run some other Python); otherwise python3 on unix and py on Windows,
+// where "python3" is often only a Microsoft Store stub. Candidates that do not
+// exist are skipped.
+function embedInterpreters() {
+  const configured = process.env.EMBED_PYTHON;
+  if (configured) return [configured];
+  return [...new Set([process.platform === 'win32' ? 'py' : 'python3', 'python3', 'py', 'python'])];
+}
+
+function runEmbedScript(input) {
+  const { spawnSync } = require('child_process');
+  const script = path.join(MATCH_CODE_DIR, 'embed_terms.py');
+  let missing = null;
+  for (const bin of embedInterpreters()) {
+    const result = spawnSync(bin, [script], {
+      input, encoding: 'utf8', maxBuffer: 100 * 1024 * 1024, timeout: 300000, env: process.env
+    });
+    if (result.error && result.error.code === 'ENOENT') { missing = { bin, result }; continue; }
+    return { bin, result };
+  }
+  return missing;
+}
+
+// One line of the embed script's stderr, so the staff portal shows the real
+// reason (missing module, model download, bad interpreter) instead of a
+// bare "Vector generation failed".
+function embedFailureReason(bin, result) {
+  if (!bin) return 'no Python interpreter found — set EMBED_PYTHON to one with sentence-transformers installed';
+  if (result.error) return `${bin}: ${result.error.message}`.slice(0, 300);
+  const lines = String(result.stderr || '').replace(/\r/g, '\n').split('\n').map(s => s.trim())
+    .filter(s => s && !s.startsWith('Warning:') && !s.includes('it/s]'));
+  const tail = lines[lines.length - 1] || `exit code ${result.status}`;
+  const hint = /ModuleNotFoundError|No module named/.test(tail)
+    ? ' — install sentence-transformers for that Python, or set EMBED_PYTHON to one that has it'
+    : '';
+  return `${bin}: ${tail}${hint}`.slice(0, 300);
+}
+
 async function writeMatchFile(name, data) {
   const tmp = path.join(MATCH_DIR, name + '.tmp.' + process.pid);
   const dest = path.join(MATCH_DIR, name);
-  await fs.promises.writeFile(tmp, JSON.stringify(data, null, 2), 'utf8');
+  await fs.promises.writeFile(tmp, JSON.stringify(data, null, 2) + '\n', 'utf8');
   await fs.promises.rename(tmp, dest);
 }
 
@@ -1514,48 +1583,65 @@ router.post('/work/taxonomy', requireAuth, requireStaff, requirePermission('skil
       return res.status(400).json({ error: 'Add at least one definition sentence or synonym' });
     }
 
-    // Generate vector via Python embed script
-    const { spawnSync } = require('child_process');
-    const script = path.join(MATCH_DIR, 'embed_terms.py');
-    const input = JSON.stringify([{ term: label, sentences, synonyms }]);
-    const result = spawnSync('python3', [script], {
-      input, encoding: 'utf8', maxBuffer: 100 * 1024 * 1024, timeout: 300000
-    });
-    if (result.status !== 0) {
-      console.error('Embedding failed:', result.stderr || result.error || 'unknown');
-      return res.status(500).json({ error: 'Vector generation failed' });
+    // Vectors must match what is already stored, or cosine similarity against
+    // the existing entries is meaningless.
+    const expectedDims = Number(taxonomy.embedding_dimensions || readMatchFile('vectors.json').dimensions || 1024);
+
+    // Embedding is the slow part (model load + encode), so it runs before the
+    // write lock; the files are re-read and re-checked once the lock is held.
+    const run = runEmbedScript(JSON.stringify([{ term: label, sentences, synonyms }]));
+    if (!run || !run.bin || run.result.status !== 0) {
+      const reason = embedFailureReason(run && run.bin, run && run.result);
+      console.error('Embedding failed:', reason);
+      return res.status(500).json({ error: `Vector generation failed — ${reason}` });
     }
     let vector;
-    try { vector = JSON.parse(result.stdout)[label]; } catch { vector = null; }
-    if (!vector) return res.status(500).json({ error: 'Vector generation failed' });
-
-    const vectors = readMatchFile('vectors.json');
-    if (!vectors.vectors) vectors.vectors = {};
-    if (!vectors.vectors[kind]) vectors.vectors[kind] = {};
-    vectors.vectors[kind][label] = vector;
-
-    const skillSynonyms = readMatchFile('skill_synonyms.json');
-    const relationSynonyms = readMatchFile('taxonomy_synonyms.json');
-    if (kind === 'skill') {
-      if (!skillSynonyms.synonyms) skillSynonyms.synonyms = {};
-      skillSynonyms.synonyms[label] = synonyms;
-    } else {
-      if (!relationSynonyms.synonyms) relationSynonyms.synonyms = {};
-      if (!relationSynonyms.synonyms[`${kind}s`]) relationSynonyms.synonyms[`${kind}s`] = {};
-      relationSynonyms.synonyms[`${kind}s`][label] = synonyms;
+    try { vector = JSON.parse(run.result.stdout)[label]; } catch { vector = null; }
+    if (!Array.isArray(vector) || vector.length !== expectedDims) {
+      const got = Array.isArray(vector) ? `${vector.length} dimensions` : 'no vector';
+      const reason = `${got} instead of ${expectedDims} — EMBED_MODEL must match ${taxonomy.embedding_model || 'the stored vectors'}`;
+      console.error('Embedding failed:', reason);
+      return res.status(500).json({ error: `Vector generation failed — ${reason}` });
     }
 
-    list.push(label);
-    taxonomy[listKey] = list;
-    await writeMatchFile('taxonomy.json', taxonomy);
-    await writeMatchFile('vectors.json', vectors);
-    if (kind === 'skill') await writeMatchFile('skill_synonyms.json', skillSynonyms);
-    else await writeMatchFile('taxonomy_synonyms.json', relationSynonyms);
+    const added = await withMatchLock(async () => {
+      const current = readMatchFileStrict('taxonomy.json');
+      const currentList = current[listKey] || [];
+      if (currentList.some(x => String(x).toLowerCase() === label.toLowerCase())) return false;
+
+      const vectors = readMatchFileStrict('vectors.json');
+      if (!vectors.vectors) vectors.vectors = {};
+      if (!vectors.vectors[kind]) vectors.vectors[kind] = {};
+      vectors.vectors[kind][label] = vector;
+      vectors.model = vectors.model || taxonomy.embedding_model || process.env.EMBED_MODEL || 'BAAI/bge-large-en-v1.5';
+      vectors.dimensions = vectors.dimensions || vector.length;
+
+      const skillSynonyms = readMatchFileStrict('skill_synonyms.json');
+      const relationSynonyms = readMatchFileStrict('taxonomy_synonyms.json');
+      if (kind === 'skill') {
+        if (!skillSynonyms.synonyms) skillSynonyms.synonyms = {};
+        skillSynonyms.synonyms[label] = synonyms;
+      } else {
+        if (!relationSynonyms.synonyms) relationSynonyms.synonyms = {};
+        if (!relationSynonyms.synonyms[`${kind}s`]) relationSynonyms.synonyms[`${kind}s`] = {};
+        relationSynonyms.synonyms[`${kind}s`][label] = synonyms;
+      }
+
+      currentList.push(label);
+      current[listKey] = currentList;
+      await writeMatchFile('taxonomy.json', current);
+      await writeMatchFile('vectors.json', vectors);
+      if (kind === 'skill') await writeMatchFile('skill_synonyms.json', skillSynonyms);
+      else await writeMatchFile('taxonomy_synonyms.json', relationSynonyms);
+      return true;
+    });
+    if (!added) return res.status(409).json({ error: `${label} already exists as a ${kind}` });
 
     res.status(201).json({ kind, label, sentences: sentences.length, synonyms, vector_generated: true });
   } catch (e) {
     console.error('Add taxonomy error:', e);
-    res.status(500).json({ error: 'Server error' });
+    const error = /refusing to overwrite/.test(e.message || '') ? e.message : 'Server error';
+    res.status(500).json({ error });
   }
 });
 
@@ -1566,27 +1652,33 @@ router.delete('/work/taxonomy/:kind/:label', requireAuth, requireStaff, requireP
     if (!allowed.includes(kind)) return res.status(400).json({ error: 'kind must be skill, interest or field' });
     const label = String(req.params.label || '');
     const listKey = `${kind}s`;
-    const taxonomy = readMatchFile('taxonomy.json');
-    const list = taxonomy[listKey] || [];
-    const index = list.findIndex(x => String(x).toLowerCase() === label.toLowerCase());
-    if (index === -1) return res.status(404).json({ error: `${label} not found as a ${kind}` });
-    const actual = list[index];
-    list.splice(index, 1);
 
-    const vectors = readMatchFile('vectors.json');
-    if (vectors.vectors?.[kind]) delete vectors.vectors[kind][actual];
+    const removed = await withMatchLock(async () => {
+      const taxonomy = readMatchFileStrict('taxonomy.json');
+      const list = taxonomy[listKey] || [];
+      const index = list.findIndex(x => String(x).toLowerCase() === label.toLowerCase());
+      if (index === -1) return null;
+      const actual = list[index];
+      list.splice(index, 1);
+      taxonomy[listKey] = list;
 
-    const skillSynonyms = readMatchFile('skill_synonyms.json');
-    const relationSynonyms = readMatchFile('taxonomy_synonyms.json');
-    if (kind === 'skill') delete skillSynonyms.synonyms?.[actual];
-    else delete relationSynonyms.synonyms?.[`${kind}s`]?.[actual];
+      const vectors = readMatchFileStrict('vectors.json');
+      if (vectors.vectors?.[kind]) delete vectors.vectors[kind][actual];
 
-    await writeMatchFile('taxonomy.json', taxonomy);
-    await writeMatchFile('vectors.json', vectors);
-    if (kind === 'skill') await writeMatchFile('skill_synonyms.json', skillSynonyms);
-    else await writeMatchFile('taxonomy_synonyms.json', relationSynonyms);
+      const skillSynonyms = readMatchFileStrict('skill_synonyms.json');
+      const relationSynonyms = readMatchFileStrict('taxonomy_synonyms.json');
+      if (kind === 'skill') delete skillSynonyms.synonyms?.[actual];
+      else delete relationSynonyms.synonyms?.[`${kind}s`]?.[actual];
 
-    res.json({ success: true, removed: actual });
+      await writeMatchFile('taxonomy.json', taxonomy);
+      await writeMatchFile('vectors.json', vectors);
+      if (kind === 'skill') await writeMatchFile('skill_synonyms.json', skillSynonyms);
+      else await writeMatchFile('taxonomy_synonyms.json', relationSynonyms);
+      return actual;
+    });
+    if (!removed) return res.status(404).json({ error: `${label} not found as a ${kind}` });
+
+    res.json({ success: true, removed });
   } catch (e) {
     console.error('Delete taxonomy error:', e);
     res.status(500).json({ error: 'Server error' });
@@ -1686,6 +1778,152 @@ router.delete('/work/users/:id', requireAuth, requireStaff, requirePermission('u
     res.json({ success: true, removed: userId, sessions: sessionHashes.length, drafts: draftIds.length, opportunities: oppIds.length, staff: !!member });
   } catch (e) {
     console.error('Delete work user error:', e);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// ── GET /api/staff/work/opportunities ─────────────────────────
+// Every published opportunity post, newest first, with the encrypted
+// content decoded. Feeds the staff list view and the detail modal.
+router.get('/work/opportunities', requireAuth, requireStaff, requirePermission('opportunities_control'), async (req, res) => {
+  try {
+    const opps = await store.getAllOpportunities(null);
+    // Flagged posts belong to the moderation queue, not the general list —
+    // they show up there until approved (which clears the flag) or deleted.
+    const list = opps.filter(opp => !opp.flagged).map(opp => {
+      const fields = opp.encrypted_fields || {};
+      return {
+        id: opp.id,
+        type: opp.type || 'project',
+        created_by: opp.created_by || '',
+        created_at: opp.created_at || null,
+        title: fields.title || '',
+        description: fields.description || '',
+        location: fields.location || '',
+        remote: !!fields.remote,
+        skills: fields.skills || [],
+        looking_for: fields.looking_for || '',
+        details: fields.details || '',
+        issuer_name: fields.issuer_name || '',
+        issuer_context: fields.issuer_context || '',
+        industry: fields.industry || '',
+        nonprofit_field: fields.nonprofit_field || ''
+      };
+    }).sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    res.json({ opportunities: list });
+  } catch (e) {
+    console.error('Get work opportunities error:', e);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// ── DELETE /api/staff/work/opportunities/:id ──────────────────
+// Moderate a single opportunity post (staff-side delete).
+router.delete('/work/opportunities/:id', requireAuth, requireStaff, requirePermission('opportunities_control'), async (req, res) => {
+  try {
+    const existing = await store.getById('opportunities.json', req.params.id);
+    if (!existing) return res.status(404).json({ error: 'Opportunity not found' });
+    const decrypted = crypto.decryptObject(existing);
+    const title = decrypted.encrypted_fields?.title || '';
+    await store.deleteOpportunity(req.params.id);
+    await addLog({
+      type: 'system',
+      action: 'remove_opportunity',
+      details: `Removed opportunity post: ${title || req.params.id}`,
+      user_id: req.user.id,
+      username: req.user.encrypted_fields?.username || 'unknown',
+      metadata: { target_opportunity_id: req.params.id, target_title: title }
+    });
+    res.json({ ok: true, removed: req.params.id });
+  } catch (e) {
+    console.error('Delete work opportunity error:', e);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// ── GET /api/staff/work/flagged ──────────────────────────────
+// Every post currently held by the profanity filter, newest first.
+router.get('/work/flagged', requireAuth, requireStaff, requirePermission('flagged_control'), async (req, res) => {
+  try {
+    const opps = await store.getAllOpportunities(null);
+    const list = opps
+      .filter(opp => opp.flagged)
+      .map(opp => {
+        const fields = opp.encrypted_fields || {};
+        return {
+          id: opp.id,
+          type: opp.type || 'project',
+          created_by: opp.created_by || '',
+          created_at: opp.created_at || null,
+          flagged_at: opp.flagged_at || null,
+          flagged_terms: opp.flagged_terms || [],
+          flagged_fields: opp.flagged_fields || [],
+          title: fields.title || '',
+          description: fields.description || '',
+          location: fields.location || '',
+          remote: !!fields.remote,
+          skills: fields.skills || [],
+          looking_for: fields.looking_for || '',
+          details: fields.details || '',
+          issuer_name: fields.issuer_name || '',
+          issuer_context: fields.issuer_context || '',
+          industry: fields.industry || '',
+          nonprofit_field: fields.nonprofit_field || ''
+        };
+      })
+      .sort((a, b) => new Date(b.flagged_at || b.created_at) - new Date(a.flagged_at || a.created_at));
+    res.json({ flagged: list });
+  } catch (e) {
+    console.error('Get flagged opportunities error:', e);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// ── POST /api/staff/work/flagged/:id/approve ─────────────────
+// Clear the flag so the post shows up in the public feed like any other.
+router.post('/work/flagged/:id/approve', requireAuth, requireStaff, requirePermission('flagged_control'), async (req, res) => {
+  try {
+    const opp = await store.getById('opportunities.json', req.params.id);
+    if (!opp || !opp.flagged) return res.status(404).json({ error: 'Flagged opportunity not found' });
+    const decrypted = crypto.decryptObject(opp);
+    const title = decrypted.encrypted_fields?.title || '';
+    applyApproval(opp, req.user.id);
+    await store.saveOpportunity(req.params.id, opp);
+    await addLog({
+      type: 'system',
+      action: 'approve_opportunity',
+      details: `Approved flagged opportunity post: ${title || ''}`,
+      user_id: req.user.id,
+      username: req.user.encrypted_fields?.username || 'unknown',
+      metadata: { target_opportunity_id: req.params.id, target_title: title }
+    });
+    res.json({ ok: true, approved: req.params.id });
+  } catch (e) {
+    console.error('Approve flagged opportunity error:', e);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// ── DELETE /api/staff/work/flagged/:id ───────────────────────
+// Moderator delete — removes the post from all data entirely.
+router.delete('/work/flagged/:id', requireAuth, requireStaff, requirePermission('flagged_control'), async (req, res) => {
+  try {
+    const opp = await store.getById('opportunities.json', req.params.id);
+    if (!opp || !opp.flagged) return res.status(404).json({ error: 'Flagged opportunity not found' });
+    const decrypted = crypto.decryptObject(opp);
+    const title = decrypted.encrypted_fields?.title || '';
+    await store.deleteOpportunity(req.params.id);
+    await addLog({
+      type: 'system',
+      action: 'remove_flagged',
+      details: `Removed flagged opportunity post: ${title}`,
+      user_id: req.user.id,
+      username: req.user.encrypted_fields?.username || 'unknown',
+      metadata: { target_opportunity_id: req.params.id, target_title: title }
+    });
+    res.json({ ok: true, removed: req.params.id });
+  } catch (e) {
+    console.error('Delete flagged opportunity error:', e);
     res.status(500).json({ error: 'Server error' });
   }
 });
