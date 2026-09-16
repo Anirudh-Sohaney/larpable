@@ -811,7 +811,7 @@
           throw new Error(data.error || 'Signup failed');
         }
 
-        window.location.href = '/profile';
+        window.location.href = '/feed';
       } catch (err) {
         showError(err.message || 'Signup failed. Please try again.');
         btn.disabled = false;

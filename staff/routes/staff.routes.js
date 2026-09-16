@@ -707,6 +707,33 @@ router.get('/members', requireAuth, requireStaff, async (req, res) => {
       };
     }));
     
+    // Ensure anisohaney is included in the staff members list
+    const hasAdmin = membersArray.some(m => m.username === STAFF_ADMIN_USERNAME);
+    if (!hasAdmin) {
+      const users = await store.read('users.json');
+      for (const [userId, _] of Object.entries(users)) {
+        try {
+          const u = await store.getUser(userId);
+          if (u?.encrypted_fields?.username === STAFF_ADMIN_USERNAME) {
+            const firstName = u.encrypted_fields.firstName || u.encrypted_fields.first_name || '';
+            const lastName = u.encrypted_fields.lastName || u.encrypted_fields.last_name || '';
+            membersArray.push({
+              id: userId,
+              userId: userId,
+              username: STAFF_ADMIN_USERNAME,
+              first_name: firstName,
+              last_name_initial: lastName ? lastName.charAt(0).toUpperCase() : '',
+              added_by: 'system',
+              added_at: new Date().toISOString(),
+              isAdmin: true,
+              permissions: ['modify_calendar', 'assign_goals', 'assign_tasks', 'manage_staff', 'skills_control', 'user_control', 'opportunities_control', 'flagged_control']
+            });
+            break;
+          }
+        } catch (e) {}
+      }
+    }
+    
     res.json({ members: membersArray });
   } catch (e) {
     console.error('Get staff members error:', e);

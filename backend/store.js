@@ -15,13 +15,15 @@ const { encryptObject, decryptObject } = require('./crypto');
 // - If DATA_DIR env var is set (production), use that.
 // - Otherwise, check for /data/ first, then /larpable_data/ (both parallel to /app/)
 function resolveDataDir() {
-  if (process.env.DATA_DIR) return process.env.DATA_DIR;
+  if (process.env.DATA_DIR && fs.existsSync(process.env.DATA_DIR)) {
+    return process.env.DATA_DIR;
+  }
   const parentDir = path.resolve(__dirname, '..', '..');
-  const dataDir = path.join(parentDir, 'data');
-  if (fs.existsSync(dataDir)) return dataDir;
   const larpableDataDir = path.join(parentDir, 'larpable_data');
   if (fs.existsSync(larpableDataDir)) return larpableDataDir;
-  return dataDir; // default — will be created if missing
+  const dataDir = path.join(parentDir, 'data');
+  if (fs.existsSync(dataDir)) return dataDir;
+  return process.env.DATA_DIR || dataDir; // default
 }
 const DATA_DIR = resolveDataDir();
 

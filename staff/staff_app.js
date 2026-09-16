@@ -48,7 +48,9 @@ const App = {
       const me = mePayload.user || mePayload;
       const staff = await staffResponse.json();
       const check = checkResponse.ok ? await checkResponse.json() : {};
-      DataStore.hydrateLive(await dataResponse.json());
+      const dataPayload = await dataResponse.json();
+      if (staff.members) dataPayload.members = staff.members;
+      DataStore.hydrateLive(dataPayload);
       // Access comes from the session flag or /api/staff/check — a missing
       // members-table row must not lock out staff (e.g. admin added by flag).
       const member = (staff.members || []).find(item => item.id === me.id);

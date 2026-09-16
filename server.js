@@ -333,17 +333,29 @@ app.get('/staff/', async (req, res) => {
 app.use('/staff', express.static(path.join(__dirname, 'staff')));
 
 // ── Start Server ─────────────────────────────────────────────
-app.listen(PORT, HOST, () => {
-  console.log(`\n  ┌─────────────────────────────────────┐`);
-  console.log(`  │  LARPABLE. server                    │`);
-  console.log(`  │  http://${HOST}:${PORT}                │`);
-  console.log(`  │                                      │`);
-  console.log(`  │  Frontend:  /                        │`);
-  console.log(`  │  API:       /api/*                   │`);
-  console.log(`  │  Data:      backend/data/*.json      │`);
-  console.log(`  │  Env:       ${IS_PRODUCTION ? 'production' : 'development'}              │`);
-  console.log(`  └─────────────────────────────────────┘\n`);
-});
+function startServer(port) {
+  const server = app.listen(port, HOST, () => {
+    console.log(`\n  ┌─────────────────────────────────────┐`);
+    console.log(`  │  LARPABLE. server                    │`);
+    console.log(`  │  http://${HOST}:${port}                │`);
+    console.log(`  │                                      │`);
+    console.log(`  │  Frontend:  /                        │`);
+    console.log(`  │  API:       /api/*                   │`);
+    console.log(`  │  Data:      backend/data/*.json      │`);
+    console.log(`  │  Env:       ${IS_PRODUCTION ? 'production' : 'development'}              │`);
+    console.log(`  └─────────────────────────────────────┘\n`);
+  });
+
+  server.on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+      console.log(`Port ${port} is in use, trying ${port === PORT ? 9194 : port + 1}...`);
+      startServer(port === PORT ? 9194 : port + 1);
+    } else {
+      console.error('Server error:', err);
+    }
+  });
+}
+startServer(PORT);
 
 // ── Production deploy recorder ───────────────────────────────
 // After each auto-deploy the restarted server records the deployed SHA as a
