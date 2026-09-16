@@ -79,6 +79,7 @@ const Tasks = {
                 <option value="review" ${task.status === 'review' ? 'selected' : ''}>In Review</option>
                 <option value="done" ${task.status === 'done' ? 'selected' : ''}>Done</option>
               </select>
+              ${App.can('assign_tasks') ? `<button class="sp-btn sp-btn-danger" style="margin-left: 8px; padding: 4px 8px; font-size: 12px; background: transparent; border: 1px solid var(--sp-red); color: var(--sp-red); border-radius: 4px; cursor: pointer;" onclick="Tasks.deleteTask('${task.id}')">Delete</button>` : ''}
             </div>
           </div>
         `;
@@ -104,5 +105,12 @@ const Tasks = {
     // Auth: assignee can update their own tasks' status; admin can update any
     DataStore.updateTask(taskId, { status: newStatus });
     this.render(document.getElementById('main-content'));
+  },
+
+  deleteTask(taskId) {
+    if (confirm('Are you sure you want to delete this task?')) {
+      DataStore.deleteTask(taskId);
+      this.render(document.getElementById('main-content'));
+    }
   }
 };

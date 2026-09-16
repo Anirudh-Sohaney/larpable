@@ -490,6 +490,12 @@ const DataStore = {
     this.persistUpdate('tasks', taskId, updates);
   },
 
+  deleteTask(taskId) {
+    const idx = DEMO_DATA.tasks.findIndex(t => t.id === taskId);
+    if (idx !== -1) DEMO_DATA.tasks.splice(idx, 1);
+    this.persistDelete('tasks', taskId);
+  },
+
   addEvent(event) {
     // INTEGRATION: POST /api/staff/calendar { title, date, time, duration, type, team, description }
     // Auth: requireStaffAdmin
