@@ -726,7 +726,7 @@ router.get('/members', requireAuth, requireStaff, async (req, res) => {
               added_by: 'system',
               added_at: new Date().toISOString(),
               isAdmin: true,
-              permissions: ['modify_calendar', 'assign_goals', 'assign_tasks', 'manage_staff', 'skills_control', 'user_control', 'opportunities_control', 'flagged_control']
+              permissions: ['modify_calendar', 'assign_goals', 'assign_tasks', 'manage_staff', 'skills_control', 'user_view', 'opportunities_control', 'flagged_control']
             });
             break;
           }
@@ -822,7 +822,7 @@ router.patch('/members/:userId/permissions', requireAuth, requireStaffAdmin, asy
     const requested = Array.isArray(req.body?.permissions) ? req.body.permissions : [];
     const allowed = new Set([
       'modify_calendar', 'assign_goals', 'assign_tasks',
-      'manage_staff', 'skills_control', 'user_control',
+      'manage_staff', 'skills_control', 'user_view',
       'opportunities_control', 'flagged_control'
     ]);
     const staffData = await store.read(STAFF_FILE);
@@ -1324,6 +1324,8 @@ router.get('/overview', requireAuth, requireStaff, async (req, res) => {
         last_name: fields.last_name || fields.lastName || '',
         skills: Array.isArray(fields.skills) ? fields.skills : [],
         interests: Array.isArray(fields.interests) ? fields.interests : [],
+        state: fields.state || '',
+        country: fields.country || '',
         created_at: decrypted.created_at || raw.created_at || null,
         verified: !!(decrypted.verified || fields.verified || fields.email_verified || fields.emailVerified)
       };
@@ -1338,8 +1340,14 @@ router.get('/overview', requireAuth, requireStaff, async (req, res) => {
       .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
       .slice(0, limit)
       .map(([label, value]) => ({ label, count: value }));
-    const skillCounts = new Map(), interestCounts = new Map(), fieldCounts = new Map();
-    users.forEach(user => { countValues(user.skills); (user.skills || []).forEach(value => skillCounts.set(value, (skillCounts.get(value) || 0) + 1)); (user.interests || []).forEach(value => interestCounts.set(value, (interestCounts.get(value) || 0) + 1)); });
+    const skillCounts = new Map(), interestCounts = new Map(), fieldCounts = new Map(), countryCounts = new Map();
+    users.forEach(user => { 
+      countValues(user.skills); 
+      (user.skills || []).forEach(value => skillCounts.set(value, (skillCounts.get(value) || 0) + 1)); 
+      (user.interests || []).forEach(value => interestCounts.set(value, (interestCounts.get(value) || 0) + 1));
+      const loc = user.country;
+      if (loc) countryCounts.set(loc, (countryCounts.get(loc) || 0) + 1);
+    });
     const postsByType = {};
     posts.forEach(post => {
       const fields = post.encrypted_fields || {};
@@ -1370,7 +1378,7 @@ router.get('/overview', requireAuth, requireStaff, async (req, res) => {
     res.json({
       generatedAt: new Date().toISOString(), launchDate,
       totals: { users: users.length, usersSinceLaunch: users.length, usersLast7Days, usersLast30Days, posts: posts.length, postsSinceLaunch: posts.length, postsLast7Days, postsLast30Days, verifiedUsers: users.filter(user => user.verified).length, staff: staffCount },
-      postsByType, topSkills: top(skillCounts), topInterests: top(interestCounts), topFields: top(fieldCounts),
+      postsByType, topSkills: top(skillCounts), topCountries: top(countryCounts), topInterests: top(interestCounts), topFields: top(fieldCounts),
       recentUsers, recentPosts, growth
     });
   } catch (e) {
@@ -1712,9 +1720,9 @@ router.delete('/work/taxonomy/:kind/:label', requireAuth, requireStaff, requireP
   }
 });
 
-// ── Work Tab: Users (user_control) ──────────────────────────
+// ── Work Tab: Users (user_view) ──────────────────────────
 
-router.get('/work/users', requireAuth, requireStaff, requirePermission('user_control'), async (req, res) => {
+router.get('/work/users', requireAuth, requireStaff, requirePermission('user_view'), async (req, res) => {
   try {
     const users = await store.read('users.json');
     const staff = await store.read(STAFF_FILE);
@@ -1747,7 +1755,7 @@ router.get('/work/users', requireAuth, requireStaff, requirePermission('user_con
   }
 });
 
-router.delete('/work/users/:id', requireAuth, requireStaff, requirePermission('user_control'), async (req, res) => {
+router.delete('/work/users/:id', requireAuth, requireStaff, requireStaffAdmin, async (req, res) => {
   try {
     const userId = req.params.id;
     const users = await store.read('users.json');

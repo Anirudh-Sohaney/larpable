@@ -97,7 +97,7 @@ const Work = {
 
   async render(container) {
     const canSkills = App.can('skills_control');
-    const canUsers = App.can('user_control');
+    const canUsers = App.can('user_view');
     const canOpps = App.can('opportunities_control');
     const canFlagged = App.can('flagged_control');
     if (!canSkills && !canUsers && !canOpps && !canFlagged) {
@@ -494,7 +494,7 @@ const Work = {
         </div>
         <div class="sp-form-actions">
           <button class="sp-btn" onclick="Work.closeUserModal()">Close</button>
-          <button class="sp-btn" style="color:var(--sp-red); border-color:var(--sp-red);" onclick="Work.removeUser('${user.id}')">Remove user</button>
+          ${App.isStaffAdmin ? `<button class="sp-btn" style="color:var(--sp-red); border-color:var(--sp-red);" onclick="Work.removeUser('${user.id}')">Remove user</button>` : ''}
         </div>
       </div>
     `;

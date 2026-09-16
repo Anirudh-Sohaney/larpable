@@ -116,10 +116,10 @@ const App = {
   /**
    * Show/hide sidebar + mobile entries that depend on permissions.
    * Admin section only for the platform admin; the Work tab only for staff
-   * holding a platform-control permission (skills_control or user_control).
+   * holding a platform-control permission (skills_control or user_view).
    */
   updateNavVisibility() {
-    const canWork = this.can('skills_control') || this.can('user_control') ||
+    const canWork = this.can('skills_control') || this.can('user_view') ||
       this.can('opportunities_control') || this.can('flagged_control');
     document.getElementById('work-nav').style.display = canWork ? '' : 'none';
     document.getElementById('more-work-nav').style.display = canWork ? '' : 'none';
