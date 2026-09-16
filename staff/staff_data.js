@@ -357,10 +357,11 @@ const DataStore = {
   },
 
   getTasks(scope, filter) {
-    // INTEGRATION: fetch('/api/staff/tasks?scope=' + scope, { credentials: 'include' })
-    // New endpoint - extend staff.json with tasks section
     let tasks = [...DEMO_DATA.tasks];
-    if (scope === 'my') tasks = tasks.filter(t => (t.assigneeIds || [t.assignee]).includes(DEMO_DATA.currentUser.id));
+    if (scope === 'my') {
+      const myId = App?.currentUser?.id || DEMO_DATA.currentUser?.userId || DEMO_DATA.currentUser?.id;
+      tasks = tasks.filter(t => (t.assigneeIds || [t.assignee]).includes(myId));
+    }
     if (filter && filter !== 'all') tasks = tasks.filter(t => t.status === filter);
     return tasks;
   },
