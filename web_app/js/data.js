@@ -24,6 +24,7 @@ const DataStore = {
       latitude: u.latitude || null, longitude: u.longitude || null,
       skills: Array.isArray(u.skills) ? [...u.skills] : [],
       interests: Array.isArray(u.interests) ? [...u.interests] : [],
+      saved_posts: Array.isArray(u.saved_posts) ? [...u.saved_posts] : [],
       type: u.type || 'student', role: u.role || (u.type === 'admin' ? 'admin' : 'student'),
       staff_access: !!u.staff_access
     };
@@ -49,6 +50,21 @@ const DataStore = {
   },
 
   getCurrentUser() { return this.currentUser; },
+  
+  async toggleSavePost(oppId) {
+    if (!this.currentUser) return false;
+    this.currentUser.saved_posts = this.currentUser.saved_posts || [];
+    const isSaved = this.currentUser.saved_posts.includes(oppId);
+    
+    if (isSaved) {
+      this.currentUser.saved_posts = this.currentUser.saved_posts.filter(id => id !== oppId);
+      await this.request('/api/users/me/saved/' + oppId, { method: 'DELETE' });
+    } else {
+      this.currentUser.saved_posts.push(oppId);
+      await this.request('/api/users/me/saved/' + oppId, { method: 'POST' });
+    }
+    return !isSaved;
+  },
 
   requireAuth() {
     if (this.currentUser) return true;

@@ -66,8 +66,16 @@
         const typeLabel = { project: 'Project', nonprofit: 'Nonprofit', company: 'Company' }[kind] || kind;
         const skills = Array.isArray(fields.skills) ? fields.skills : [];
         document.title = 'LARPABLE. — ' + (fields.title || 'Opportunity');
+        
+        // Check saved state using the currently initialized App data
+        const currentUser = DataStore.getCurrentUser();
+        const isSaved = currentUser?.saved_posts?.includes(id);
+
         root.innerHTML = `
-          <a class="d-detail-back" href="/feed">← Back to feed</a>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
+            <a class="d-detail-back" href="/feed" style="margin-bottom:0;">← Back to feed</a>
+            ${currentUser ? `<button class="d-btn d-btn-sm" id="detail-save-btn" type="button">${isSaved ? '★ Saved' : '☆ Save'}</button>` : ''}
+          </div>
           <section class="d-detail-header">
             <div class="d-detail-kicker"><span class="d-detail-type d-badge d-badge--${esc(kind)}">${esc(typeLabel)}</span><span class="d-detail-dot">·</span><span>${esc(fields.industry || fields.nonprofit_field || 'Student-led')}</span></div>
             <h1 class="d-detail-title">${esc(fields.title || 'Untitled opportunity')}</h1>
@@ -80,6 +88,15 @@
           <section class="d-detail-story"><div class="d-detail-section-heading"><span class="d-detail-eyebrow">Details</span><span class="d-detail-rule"></span></div><div class="d-detail-facts"><div class="d-detail-fact"><div class="d-detail-info-label">Location</div><div class="d-detail-info-value">${esc(loc || 'Remote')}${fields.remote ? '<span class="d-detail-fact-note">Remote OK</span>' : ''}</div></div><div class="d-detail-fact"><div class="d-detail-info-label">${kind === 'nonprofit' ? 'Field' : 'Industry'}</div><div class="d-detail-info-value">${esc(field || '—')}</div></div><div class="d-detail-fact"><div class="d-detail-info-label">Posted</div><div class="d-detail-info-value">${esc(posted(data.created_at).replace(/^Posted /, '') || '—')}</div></div></div></section>
           <section class="d-detail-story"><div class="d-detail-contact"><h2>Contact / sign-up</h2><p>Reach out to the person behind this opportunity.</p><div>${links.length ? links.map(link => /^https?:\/\//i.test(link) ? `<a href="${esc(link)}" target="_blank" rel="noopener">${esc(link)}</a>` : `<a href="mailto:${esc(link)}">${esc(link)}</a>`).join('') : '<span>No contact link provided.</span>'}</div></div></section>
           <section class="d-admin" id="admin-controls"><h2 id="admin-title">Admin controls</h2><p id="admin-desc">This opportunity can be managed from here.</p><div class="d-admin-row"><button id="admin-edit">Edit</button><button class="danger" id="admin-delete">Delete</button><button id="admin-user">View user</button></div></section>`;
+        
+        const saveBtn = document.getElementById('detail-save-btn');
+        if (saveBtn) {
+          saveBtn.onclick = async () => {
+            const nowSaved = await DataStore.toggleSavePost(id);
+            saveBtn.textContent = nowSaved ? '★ Saved' : '☆ Save';
+          };
+        }
+
         const auth = await fetch('/api/auth/me', { credentials: 'include' });
         const authData = auth.ok ? await auth.json() : {};
         const isAdmin = authData.user?.role === 'admin';

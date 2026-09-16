@@ -77,7 +77,8 @@ router.get('/me', requireAuth, async (req, res) => {
     latitude,
     longitude,
     skills: fields.skills || [],
-    interests: fields.interests || []
+    interests: fields.interests || [],
+    saved_posts: fields.saved_posts || []
   });
 });
 
@@ -118,6 +119,43 @@ router.patch('/me', requireAuth, async (req, res) => {
     res.json({ ok: true });
   } catch (e) {
     console.error('Update user error:', e);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// ── POST /api/users/me/saved/:opportunityId ─────────────────────
+router.post('/me/saved/:opportunityId', requireAuth, async (req, res) => {
+  try {
+    const rawUser = await store.getRawUser(req.user.id);
+    if (!rawUser) return res.status(404).json({ error: 'User not found' });
+    
+    const fields = decryptObject(rawUser.encrypted_fields || {});
+    const saved = fields.saved_posts || [];
+    if (!saved.includes(req.params.opportunityId)) {
+      saved.push(req.params.opportunityId);
+    }
+    fields.saved_posts = saved;
+    rawUser.encrypted_fields = encryptObject(fields);
+    await store.saveUser(req.user.id, rawUser);
+    res.json({ ok: true, saved_posts: saved });
+  } catch (e) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// ── DELETE /api/users/me/saved/:opportunityId ─────────────────────
+router.delete('/me/saved/:opportunityId', requireAuth, async (req, res) => {
+  try {
+    const rawUser = await store.getRawUser(req.user.id);
+    if (!rawUser) return res.status(404).json({ error: 'User not found' });
+    
+    const fields = decryptObject(rawUser.encrypted_fields || {});
+    const saved = fields.saved_posts || [];
+    fields.saved_posts = saved.filter(id => id !== req.params.opportunityId);
+    rawUser.encrypted_fields = encryptObject(fields);
+    await store.saveUser(req.user.id, rawUser);
+    res.json({ ok: true, saved_posts: fields.saved_posts });
+  } catch (e) {
     res.status(500).json({ error: 'Server error' });
   }
 });

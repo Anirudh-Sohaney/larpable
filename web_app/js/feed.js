@@ -65,6 +65,11 @@ const Feed = {
     const selectedTotal = Filters.selectedTotal();
     const user = DataStore.getCurrentUser();
     let rows = this.showingYours ? this.opportunities.filter(o => (o.created_by || o.issuer_id) === user?.id) : [...this.opportunities];
+    const isSavedMode = new URLSearchParams(window.location.search).get('saved') === 'true';
+    if (isSavedMode && user) {
+      const savedIds = user.saved_posts || [];
+      rows = rows.filter(o => savedIds.includes(o.id));
+    }
     if (type) rows = rows.filter(o => o.type === type);
     rows = Filters.apply(rows).filter(o => !q || [o.title, o.description, o.issuer_name].some(v => String(v || '').toLowerCase().includes(q)) || (o.skills || []).some(s => (typeof normalizeSynonym === 'function' ? normalizeSynonym(s) : s).toLowerCase().includes(q)));
     rows.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
@@ -97,6 +102,11 @@ const Feed = {
           : 'Nothing matches those filters. <button class="d-btn-ghost" onclick="Filters.clearAll(); Feed.render()">Clear filters</button>'}</div>`;
   },
 
+  async toggleSave(oppId) {
+    const isSaved = await DataStore.toggleSavePost(oppId);
+    this.render(); // Re-render feed to reflect new saved state
+  },
+
   renderCard(o) {
     const selected = Filters.selectedTotal();
     const showDist = this.currentSort === 'closest' && this.distanceMap[o.id] != null && this.distanceMap[o.id] !== Infinity;
@@ -108,6 +118,7 @@ const Feed = {
       + (all.length > 6 ? `<span class="d-skill-tag d-skill-tag--more">+${all.length - 6} more</span>` : '');
     const links = (o.contact_links || []).length;
     const mine = this.showingYours && (o.created_by || o.issuer_id) === DataStore.getCurrentUser()?.id;
+    const isSaved = DataStore.getCurrentUser()?.saved_posts?.includes(o.id);
     const TYPE = { project: 'Project', nonprofit: 'Nonprofit', company: 'Company' };
 
     const bits = [
@@ -137,7 +148,12 @@ const Feed = {
       </div>` : ''}
       <div class="d-opp-footer">
         <span class="d-opp-posted">${Utils.escapeHtml(o.posted || Utils.postedAgo(o.created_at))}</span>
-        <span class="d-opp-action">${mine ? 'Manage' : 'Learn more'} →</span>
+        <span class="d-opp-action">
+          <button class="d-btn d-btn-sm" style="margin-right:8px; padding:2px 8px; font-size:0.7rem;" type="button" onclick="event.preventDefault();event.stopPropagation();Feed.toggleSave('${String(o.id || '').replace(/'/g, "\\'")}')">
+            ${isSaved ? '★ Saved' : '☆ Save'}
+          </button>
+          ${mine ? 'Manage' : 'Learn more'} →
+        </span>
       </div>
     </a>`;
   },

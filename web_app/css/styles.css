@@ -59,3 +59,55 @@ button,input,select,textarea{font:inherit;color:inherit}
 .d-modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:1000;justify-content:center;align-items:center}
 .d-modal-overlay.open{display:flex}
 .d-modal{background:var(--bg-secondary);border-radius:var(--radius-lg);padding:28px;width:520px;max-width:90vw;max-height:85vh;overflow-y:auto}
+
+/* GLOBAL UI REDESIGN OVERRIDES */
+.d-header { display: none !important; }
+body { padding-top: 0 !important; overflow-x: hidden; }
+
+#list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.05rem;
+}
+
+.d-opp-card {
+  background: rgba(255, 255, 255, 0.86) !important;
+  backdrop-filter: blur(4px);
+}
+
+.d-bottom-nav {
+  position: sticky;
+  bottom: 24px;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+  border-radius: 9999px;
+  padding: 6px 12px;
+  max-width: 360px;
+  margin: 32px auto 0;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+  z-index: 100;
+}
+.d-nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  color: var(--fg-secondary);
+  text-decoration: none;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 8px 20px;
+  border-radius: 9999px;
+  transition: all 0.2s ease-out;
+}
+.d-nav-item:hover {
+  color: var(--accent);
+  background: rgba(0, 0, 0, 0.03);
+}
+.d-nav-item.is-active {
+  color: var(--accent);
+}
