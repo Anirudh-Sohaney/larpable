@@ -54,12 +54,12 @@ const App = {
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
           <span>Yours</span>
         </a>
-        <div class="d-nav-item-wrap" style="position:relative; flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-          <button type="button" class="d-nav-item ${location.pathname==='/profile' ? 'is-active' : ''}" id="bottom-nav-profile-btn" style="border: none; background: transparent; width: 100%; cursor: pointer;">
+        <div class="d-nav-item-wrap" style="position:relative; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+          <button type="button" class="d-nav-item ${location.pathname==='/profile' ? 'is-active' : ''}" id="bottom-nav-profile-btn" style="border: none; background: transparent; cursor: pointer;">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
             <span>Profile</span>
           </button>
-          <div id="bottom-nav-profile-menu" style="display:none; position:absolute; bottom: 100%; right: 10px; margin-bottom: 8px; background: var(--card, #FFFDF8); border: 1px solid var(--border, #D6D1C9); border-radius: 8px; box-shadow: 0 -4px 16px rgba(0,0,0,0.1); flex-direction: column; min-width: 140px; overflow: hidden; text-align: left;">
+          <div id="bottom-nav-profile-menu" style="display:none; position:absolute; bottom: 100%; right: 0; margin-bottom: 8px; background: var(--card, #FFFDF8); border: 1px solid var(--border, #D6D1C9); border-radius: 8px; box-shadow: 0 -4px 16px rgba(0,0,0,0.1); flex-direction: column; min-width: 140px; overflow: hidden; text-align: left;">
             <a href="/profile" style="padding: 12px 16px; text-decoration: none; color: var(--font, #2D2A26); font-size: 0.9rem; display: block; border-bottom: 1px solid var(--border, #D6D1C9);">Profile</a>
             ${(user.role === 'admin' || user.staff_access) ? '<a href="/staff" style="padding: 12px 16px; text-decoration: none; color: var(--accent, #E8734A); font-weight: 600; font-size: 0.9rem; display: block; border-bottom: 1px solid var(--border, #D6D1C9);">Staff Portal</a>' : ''}
             <button type="button" onclick="App.logout()" style="padding: 12px 16px; border: none; background: transparent; color: #dc3545; font-size: 0.9rem; width: 100%; text-align: left; cursor: pointer;">Log out</button>
