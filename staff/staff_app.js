@@ -104,6 +104,7 @@ const App = {
       case 'calendar':  Calendar.render(content); break;
       case 'goals':     Goals.render(content); break;
       case 'tasks':     Tasks.render(content); break;
+      case 'outreach':  Outreach.render(content); break;
       case 'work':      Work.render(content); break;
       case 'logs':      Logs.render(content); break;
       case 'resources': Resources.render(content); break;
@@ -348,13 +349,89 @@ const App = {
   },
 
   // DELETE /api/staff/members/:userId
-  async removeStaffMember(userId) {
-    if (!confirm('Remove this staff member?')) return;
+  async fireStaffMember(userId, event) {
+    if (!confirm('Fire this staff member?')) return;
+    
+    // TOUGH explosion animation
+    if (event) {
+      const rect = event.target.getBoundingClientRect();
+      const x = rect.left + rect.width / 2;
+      const y = rect.top + rect.height / 2;
+      
+      // 1. Violent screen shake
+      document.body.animate([
+        { transform: 'translate(0, 0)' },
+        { transform: 'translate(-12px, -8px) rotate(-1deg)' },
+        { transform: 'translate(10px, 12px) rotate(1deg)' },
+        { transform: 'translate(-14px, 8px) rotate(-1deg)' },
+        { transform: 'translate(8px, -10px) rotate(1deg)' },
+        { transform: 'translate(0, 0) rotate(0)' }
+      ], { duration: 400, easing: 'ease-in-out' });
+
+      // 2. Red flash
+      const flash = document.createElement('div');
+      flash.style.position = 'fixed';
+      flash.style.top = '0'; flash.style.left = '0'; 
+      flash.style.width = '100vw'; flash.style.height = '100vh';
+      flash.style.backgroundColor = 'rgba(232, 65, 24, 0.5)';
+      flash.style.zIndex = '99999';
+      flash.style.pointerEvents = 'none';
+      document.body.appendChild(flash);
+      flash.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 500 }).onfinish = () => flash.remove();
+      
+      // 3. Debris & Fire Particles
+      const colors = ['#e84118', '#c23616', '#2f3640', '#353b48', '#fbc531'];
+      for (let i = 0; i < 70; i++) {
+        const particle = document.createElement('div');
+        particle.style.position = 'fixed';
+        particle.style.left = x + 'px';
+        particle.style.top = y + 'px';
+        const size = Math.random() * 12 + 4; // 4px to 16px jagged debris
+        particle.style.width = size + 'px';
+        particle.style.height = size + 'px';
+        particle.style.borderRadius = Math.random() > 0.4 ? '0' : '3px'; // mix of blocks and chunks
+        particle.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+        particle.style.pointerEvents = 'none';
+        particle.style.zIndex = '99998';
+        particle.style.boxShadow = '0 0 8px rgba(0,0,0,0.5)';
+        document.body.appendChild(particle);
+
+        const angle = Math.random() * Math.PI * 2;
+        const velocity = 80 + Math.random() * 250;
+        const tx = Math.cos(angle) * velocity;
+        const ty = Math.sin(angle) * velocity - 150; // Throw upwards
+        const rot = Math.random() * 1080 - 540;
+
+        particle.animate([
+          { transform: 'translate(-50%, -50%) rotate(0deg) scale(1)', opacity: 1, offset: 0 },
+          { transform: `translate(calc(-50% + ${tx}px), calc(-50% + ${ty}px)) rotate(${rot/2}deg) scale(0.8)`, opacity: 1, offset: 0.4 },
+          { transform: `translate(calc(-50% + ${tx * 1.5}px), calc(-50% + ${ty + 400}px)) rotate(${rot}deg) scale(0.2)`, opacity: 0, offset: 1 }
+        ], {
+          duration: 700 + Math.random() * 600,
+          easing: 'cubic-bezier(.25,.8,.25,1)'
+        }).onfinish = () => particle.remove();
+      }
+      
+      // 4. Violent row drop / trapdoor
+      const row = event.target.closest('tr');
+      if (row) {
+        row.style.transformOrigin = 'center center';
+        row.style.transition = 'transform 0.5s cubic-bezier(.55,.085,.68,.53), opacity 0.5s ease-in, filter 0.5s';
+        row.style.transform = 'translateY(150px) scale(0.8) rotate(10deg)';
+        row.style.filter = 'blur(4px) grayscale(100%)';
+        row.style.opacity = '0';
+        row.style.pointerEvents = 'none';
+      }
+    }
+
     try {
+      // Delay longer to let the massive animation play out
+      await new Promise(r => setTimeout(r, 600));
       await DataStore.removeStaffMember(userId);
       Admin.render(document.getElementById('main-content'));
     } catch (error) {
       alert(error.message);
+      Admin.render(document.getElementById('main-content')); // reset UI
     }
   }
 };

@@ -1963,4 +1963,89 @@ router.delete('/work/flagged/:id', requireAuth, requireStaff, requirePermission(
   }
 });
 
+const { spawn } = require('child_process');
+
+let outreachProcess = null;
+let outreachLogs = [];
+
+// --- Outreach Routes ---
+router.post('/outreach/run', requireAuth, requireStaff, (req, res) => {
+    // Only allow admin (or anisohaney specifically if you want stricter checks)
+    if (req.user.role !== 'admin' && req.user.encrypted_fields?.username !== 'anisohaney') {
+        return res.status(403).json({ error: 'Only admins can run the pipeline' });
+    }
+    
+    if (outreachProcess) {
+        return res.status(400).json({ error: 'Pipeline already running' });
+    }
+    
+    outreachLogs = [];
+    const cwd = path.join(__dirname, '../../');
+    outreachProcess = spawn('node', ['outreach_agent/index.js'], { cwd });
+    
+    outreachProcess.stdout.on('data', data => outreachLogs.push(data.toString()));
+    outreachProcess.stderr.on('data', data => outreachLogs.push(data.toString()));
+    
+    outreachProcess.on('close', code => {
+        outreachProcess = null;
+        outreachLogs.push(`\n[Pipeline exited with code ${code}]`);
+    });
+    
+    res.json({ success: true });
+});
+
+router.get('/outreach/status', requireAuth, requireStaff, (req, res) => {
+    res.json({
+        running: !!outreachProcess,
+        logs: outreachLogs.join('')
+    });
+});
+
+router.get('/outreach', requireAuth, requireStaff, async (req, res) => {
+    try {
+        const p = path.join(__dirname, '../../outreach_agent/data/outreached.json');
+        let data = [];
+        try {
+            const raw = await require('fs').promises.readFile(p, 'utf8');
+            data = JSON.parse(raw);
+            console.log(`[API] Outreach GET: found ${data.length} records`);
+        } catch(e) {
+            console.error('Error reading outreached.json:', e);
+        }
+        res.json(data);
+    } catch(err) {
+        res.status(500).json({ error: 'Failed to read outreach data' });
+    }
+});
+
+router.patch('/outreach', requireAuth, requireStaff, async (req, res) => {
+    try {
+        const { name, completed } = req.body;
+        if (!name) return res.status(400).json({ error: 'Name required' });
+        
+        const p = path.join(__dirname, '../../outreach_agent/data/outreached.json');
+        let data = [];
+        try {
+            const raw = await require('fs').promises.readFile(p, 'utf8');
+            data = JSON.parse(raw);
+        } catch(e) {}
+        
+        let found = false;
+        data = data.map(org => {
+            if (org.name === name) {
+                found = true;
+                return { ...org, completed: !!completed };
+            }
+            return org;
+        });
+        
+        if (!found) return res.status(404).json({ error: 'Org not found' });
+        
+        await require('fs').promises.writeFile(p, JSON.stringify(data, null, 2));
+        res.json({ success: true });
+    } catch(err) {
+        res.status(500).json({ error: 'Failed to update outreach data' });
+    }
+});
+
 module.exports = router;

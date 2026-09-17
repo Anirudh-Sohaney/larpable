@@ -1,0 +1,288 @@
+[
+  {
+    "name": "Scientific Minds of America",
+    "description": "Student-led nonprofit promoting STEM tutoring",
+    "leadership": [
+      {
+        "name": "Arjun Kanjarpane",
+        "title": "Founder"
+      },
+      {
+        "name": "Rajvi Shah",
+        "title": "CEO"
+      }
+    ],
+    "emails": [
+      "contact@smoa.co"
+    ],
+    "completed": false
+  },
+  {
+    "name": "Kits4Kids Naperville",
+    "description": "High schoolers providing pediatric care kits",
+    "leadership": [
+      {
+        "name": "Raya Ajmere",
+        "title": "Co-founder"
+      },
+      {
+        "name": "Abby May",
+        "title": "Co-founder"
+      }
+    ],
+    "emails": [
+      "contact@kits4kids.org"
+    ]
+  },
+  {
+    "name": "Kickoff",
+    "description": "Student-led platform building professional skills for teens",
+    "leadership": [
+      {
+        "name": "Selina Paperwalla",
+        "title": "Founder"
+      }
+    ],
+    "emails": []
+  },
+  {
+    "name": "HEAL Project",
+    "description": "Youth-led nonprofit for teen health education",
+    "leadership": [],
+    "emails": []
+  },
+  {
+    "name": "Empowered Smiles Initiative",
+    "description": "Student-run nonprofit distributing dental hygiene kits",
+    "leadership": [
+      {
+        "name": "Kenneth Jin",
+        "title": "Co-Founder & Co-President"
+      },
+      {
+        "name": "Peter Lee",
+        "title": "Co-Founder & Co-President"
+      },
+      {
+        "name": "Emma Li",
+        "title": "Vice President"
+      },
+      {
+        "name": "Evan Tsang",
+        "title": "Fundraising and Kit Director"
+      }
+    ],
+    "emails": [
+      "empoweredsmilesinitiative@gmail.com"
+    ]
+  },
+  {
+    "name": "Youth for Innocence",
+    "description": "Student nonprofit advocating for wrongful convictions",
+    "leadership": [],
+    "emails": [
+      "contact@youthforinnocence.org"
+    ]
+  },
+  {
+    "name": "Empathy in Medicine Initiative",
+    "description": "Student-led healthcare empathy training nonprofit",
+    "leadership": [
+      {
+        "name": "Kevin Lin",
+        "title": "Founder"
+      }
+    ],
+    "emails": [
+      "contact@empathyinmedicine.org",
+      "hello@empathyinmedicine.org",
+      "research@empathyinmedicine.org"
+    ]
+  },
+  {
+    "name": "The Teen Brain Project",
+    "description": "Youth-led neuropsychology mental health organization",
+    "leadership": [
+      {
+        "name": "u/Bright-General-4678",
+        "title": "Founder"
+      }
+    ],
+    "emails": []
+  },
+  {
+    "name": "Period Equity Project",
+    "description": "Youth-led fight against period poverty",
+    "leadership": [
+      {
+        "name": "Laura Strausfeld",
+        "title": "Co-founder & Executive Director"
+      },
+      {
+        "name": "Jennifer Weiss-Wolf",
+        "title": "Co-founder"
+      }
+    ],
+    "emails": [
+      "laura@periodlaw.org",
+      "jennifer.weiss-wolf@nyu.edu"
+    ]
+  },
+  {
+    "name": "Hearts for the Homeless International",
+    "description": "Student-led homeless health screenings nonprofit",
+    "leadership": [
+      {
+        "name": "Andrew Aboujaoude, MD",
+        "title": "Founder and President"
+      },
+      {
+        "name": "Jennifer Carvel",
+        "title": "Co-Founder"
+      },
+      {
+        "name": "Alexis Ghersi",
+        "title": "Co-Founder"
+      }
+    ],
+    "emails": [
+      "hr@h4hinternational.org",
+      "andrew@h4hinternational.org",
+      "jennifer@h4hinternational.org"
+    ]
+  },
+  {
+    "name": "MEDLIFE",
+    "description": "Student-led chapters empowering communities through medicine education",
+    "leadership": [
+      {
+        "name": "Nick Ellis, MD",
+        "title": "Founder & Executive Director"
+      },
+      {
+        "name": "Juan Vanegas",
+        "title": "Co-Founder"
+      },
+      {
+        "name": "Tim Anson",
+        "title": "Director of MED International"
+      }
+    ],
+    "emails": [
+      "info@medlifemovement.org",
+      "trips@medlifemovement.org",
+      "volunteeraffairs@medlifemovement.org"
+    ]
+  },
+  {
+    "name": "All The Same Organization",
+    "description": "Youth-led nonprofit advancing equitable access to essential resources",
+    "leadership": [
+      {
+        "name": "Vivian Ho",
+        "title": "Founder & President (CEO)"
+      },
+      {
+        "name": "Anika Luangaphay",
+        "title": "Co-Founder & Vice President"
+      },
+      {
+        "name": "Eshita Agrawal",
+        "title": "Executive Director & Outreach Director"
+      }
+    ],
+    "emails": [
+      "allthesameorg@gmail.com",
+      "volunteer.allthesame@gmail.com"
+    ]
+  },
+  {
+    "name": "EthicWise AI",
+    "description": "Nonprofit teaching students to create ethical AI knowledge",
+    "leadership": [
+      {
+        "name": "Emmalee Sargent",
+        "title": "Founder"
+      }
+    ],
+    "emails": [
+      "contact@ethicwiseai.org",
+      "washington.chapter@ethicwiseai.org",
+      "massachusetts.chapter@ethicwiseai.org"
+    ]
+  },
+  {
+    "name": "Patina Network",
+    "description": "Nonprofit uplifting AANHPI students through mentorship and community",
+    "leadership": [
+      {
+        "name": "Celina Hipolito",
+        "title": "Co-Founder & Executive Director"
+      },
+      {
+        "name": "Andrea Matsudaira",
+        "title": "Vice Chair"
+      },
+      {
+        "name": "Henry Chen",
+        "title": "Board Co-Chair"
+      }
+    ],
+    "emails": [
+      "hi@patinanetwork.org",
+      "kevinma@patinanetwork.org",
+      "andrea@patinanetwork.org"
+    ]
+  },
+  {
+    "name": "BuildHer",
+    "description": "Expands girls' access to STEM",
+    "leadership": [
+      {
+        "name": "Gabby Aston",
+        "title": "Founder & Executive Director"
+      }
+    ],
+    "emails": [
+      "buildherus@gmail.com"
+    ]
+  },
+  {
+    "name": "Youth Architecture Opportunities",
+    "description": "Opens architecture pathways for students",
+    "leadership": [
+      {
+        "name": "Jason Hong",
+        "title": "President, CEO & Founder"
+      }
+    ],
+    "emails": [
+      "hello@youtharchitectureopportunities.org"
+    ]
+  },
+  {
+    "name": "Stembark",
+    "description": "Expands inclusive STEM access for youth",
+    "leadership": [],
+    "emails": [
+      "stembarkglobal@gmail.com"
+    ]
+  },
+  {
+    "name": "The Unfold Project",
+    "description": "Uses creative expression to support mental health",
+    "leadership": [
+      {
+        "name": "Radhika Kotecha",
+        "title": "Founder"
+      },
+      {
+        "name": "Amelia Cruz",
+        "title": "Founder"
+      }
+    ],
+    "emails": [
+      "theunfoldproject25@gmail.com"
+    ]
+  }
+]

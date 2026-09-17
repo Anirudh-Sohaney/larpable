@@ -122,7 +122,7 @@ const Admin = {
           </td>
           <td style="font-size:0.78rem; color:var(--sp-muted);">${Utils.formatDate(member.addedAt)}</td>
           <td>
-            ${!isSelf ? `<button class="sp-btn" onclick="App.removeStaffMember('${member.userId}')" style="font-size:0.72rem; color:var(--sp-red); border-color:var(--sp-red);">Remove</button>` : ''}
+            ${!isSelf ? `<button class="sp-btn" onclick="App.fireStaffMember('${member.userId}', event)" style="font-size:0.72rem; color:var(--sp-red); border-color:var(--sp-red);">Fire</button>` : ''}
           </td>
         </tr>
       `;
