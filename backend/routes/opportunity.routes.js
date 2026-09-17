@@ -58,7 +58,7 @@ router.get('/', optionalAuth, async (req, res) => {
     // moderator approves (or removes) them.
     opportunities = opportunities.filter(o => !o.flagged);
 
-    const enriched = await Promise.all(opportunities.map(opp => enrichOppWithCoords(opp)));
+    const enriched = await Promise.all(opportunities.map(opp => enrichOppWithCoords(opp, req.user)));
     
     res.json({ opportunities: enriched });
   } catch (e) {
@@ -73,7 +73,7 @@ router.get('/mine', requireAuth, async (req, res) => {
     const allOpps = await store.getAllOpportunities(null);
     const mine = allOpps.filter(o => o.created_by === req.user.id && !o.flagged);
     
-    const enriched = await Promise.all(mine.map(opp => enrichOppWithCoords(opp)));
+    const enriched = await Promise.all(mine.map(opp => enrichOppWithCoords(opp, req.user)));
     
     res.json({ opportunities: enriched });
   } catch (e) {
@@ -98,6 +98,39 @@ router.get('/:id', optionalAuth, async (req, res) => {
     
     // store.getOpportunity() already decrypts — use fields directly
     const decrypted = opp.encrypted_fields || {};
+    
+    // Clear read states
+    if (req.user && decrypted.comments) {
+      let changed = false;
+      
+      // Clear OP read
+      if (req.user.id === opp.created_by) {
+        for (const c of decrypted.comments) {
+          if (c.read_by_op === false) {
+            c.read_by_op = true;
+            changed = true;
+          }
+        }
+      }
+      
+      // Clear comment author read
+      for (const c of decrypted.comments) {
+        if (c.user_id === req.user.id && Array.isArray(c.replies)) {
+          for (const r of c.replies) {
+            if (r.read_by_parent_author === false) {
+              r.read_by_parent_author = true;
+              changed = true;
+            }
+          }
+        }
+      }
+      
+      if (changed) {
+        opp.encrypted_fields = require('../crypto').encryptObject(decrypted);
+        // Don't block
+        store.saveOpportunity(opp.id, opp).catch(() => {});
+      }
+    }
     
     let issuer = null;
     if (opp.created_by) {
@@ -199,6 +232,123 @@ router.post('/', requireAuth, async (req, res) => {
   }
 });
 
+
+// ── POST /api/opportunities/:id/comments ─────────────────────
+router.post('/:id/comments', requireAuth, async (req, res) => {
+  try {
+    const opp = await store.getById('opportunities.json', req.params.id);
+    if (!opp) return res.status(404).json({ error: 'Opportunity not found' });
+    
+    // Held-from-feed posts are only visible to their author (and admins).
+    if (opp.flagged && opp.created_by !== req.user.id && req.user.id !== 'admin_larpable') {
+      return res.status(404).json({ error: 'Opportunity not found' });
+    }
+
+    const text = req.body.text || '';
+    if (!text.trim()) {
+      return res.status(400).json({ error: 'Comment cannot be empty' });
+    }
+
+    const words = text.trim().split(/\s+/);
+    if (words.length > 200) {
+      return res.status(400).json({ error: 'Comment exceeds 200 words limit' });
+    }
+
+    // Apply profanity filter
+    const scan = scanFields({ text });
+    if (scan.flagged) {
+      return res.status(400).json({ error: 'Profanity detected. Comment not accepted.' });
+    }
+
+    const currentFields = decryptObject(opp.encrypted_fields || {});
+    const comments = currentFields.comments || [];
+    
+    // Get user details for author name
+    const userFields = decryptObject(req.user.encrypted_fields || {});
+    const authorName = [userFields.firstName || userFields.first_name, userFields.lastName || userFields.last_name].filter(Boolean).join(' ') || req.user.username || 'Anonymous';
+
+    const newComment = {
+      id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
+      user_id: req.user.id,
+      user_name: authorName,
+      text: sanitizeObject({ text }).text,
+      created_at: new Date().toISOString(),
+      read_by_op: req.user.id === opp.created_by
+    };
+
+    comments.push(newComment);
+    currentFields.comments = comments;
+
+    opp.encrypted_fields = encryptObject(currentFields);
+    await store.saveOpportunity(req.params.id, opp);
+
+    res.json({ ok: true, comment: newComment });
+  } catch (e) {
+    console.error('Add comment error:', e);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+
+// ── POST /api/opportunities/:id/comments/:commentId/replies ──
+router.post('/:id/comments/:commentId/replies', requireAuth, async (req, res) => {
+  try {
+    const opp = await store.getById('opportunities.json', req.params.id);
+    if (!opp) return res.status(404).json({ error: 'Opportunity not found' });
+    
+    if (opp.flagged && opp.created_by !== req.user.id && req.user.id !== 'admin_larpable') {
+      return res.status(404).json({ error: 'Opportunity not found' });
+    }
+
+    const text = req.body.text || '';
+    if (!text.trim()) {
+      return res.status(400).json({ error: 'Reply cannot be empty' });
+    }
+
+    const words = text.trim().split(/\s+/);
+    if (words.length > 200) {
+      return res.status(400).json({ error: 'Reply exceeds 200 words limit' });
+    }
+
+    const scan = scanFields({ text });
+    if (scan.flagged) {
+      return res.status(400).json({ error: 'Profanity detected. Reply not accepted.' });
+    }
+
+    const currentFields = decryptObject(opp.encrypted_fields || {});
+    const comments = currentFields.comments || [];
+    
+    const comment = comments.find(c => c.id === req.params.commentId);
+    if (!comment) {
+      return res.status(404).json({ error: 'Comment not found' });
+    }
+
+    const userFields = decryptObject(req.user.encrypted_fields || {});
+    const authorName = [userFields.firstName || userFields.first_name, userFields.lastName || userFields.last_name].filter(Boolean).join(' ') || req.user.username || 'Anonymous';
+
+    const newReply = {
+      id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
+      user_id: req.user.id,
+      user_name: authorName,
+      text: sanitizeObject({ text }).text,
+      created_at: new Date().toISOString(),
+      read_by_parent_author: req.user.id === comment.user_id
+    };
+
+    if (!comment.replies) comment.replies = [];
+    comment.replies.push(newReply);
+    
+    currentFields.comments = comments;
+    opp.encrypted_fields = encryptObject(currentFields);
+    await store.saveOpportunity(req.params.id, opp);
+
+    res.json({ ok: true, reply: newReply });
+  } catch (e) {
+    console.error('Add reply error:', e);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // ── PATCH /api/opportunities/:id ─────────────────────────────
 router.patch('/:id', requireAuth, async (req, res) => {
   try {
@@ -289,11 +439,25 @@ function formatPosted(isoString) {
   return `${Math.floor(diffDays / 7)} weeks ago`;
 }
 
-function enrichOpp(opp) {
+function enrichOpp(opp, user) {
   // store.getAllOpportunities() already decrypts, so use fields directly
   const f = opp.encrypted_fields || opp;
+  
+  let unread_reply_comment_id = null;
+  if (user && Array.isArray(f.comments)) {
+    for (const c of f.comments) {
+      if (c.user_id === user.id) {
+        if (Array.isArray(c.replies) && c.replies.some(r => r.read_by_parent_author === false)) {
+          unread_reply_comment_id = c.id;
+          break;
+        }
+      }
+    }
+  }
+
   return {
     id: opp.id,
+    unread_reply_comment_id,
     type: opp.type,
     title: f.title || '',
     issuer_name: f.issuer_name || '',
@@ -312,7 +476,8 @@ function enrichOpp(opp) {
     flagged: !!opp.flagged,
     created_by: opp.created_by || '',
     created_at: opp.created_at || '',
-    posted: opp.created_at ? formatPosted(opp.created_at) : 'Recently'
+    posted: opp.created_at ? formatPosted(opp.created_at) : 'Recently',
+    has_unread_comments: Array.isArray(f.comments) ? f.comments.some(c => c.read_by_op === false) : false
   };
 }
 
@@ -320,8 +485,8 @@ function enrichOpp(opp) {
  * Enrich an opportunity with lat/long, deriving from location if missing.
  * Persists derived coordinates back to the store.
  */
-async function enrichOppWithCoords(opp) {
-  const enriched = enrichOpp(opp);
+async function enrichOppWithCoords(opp, user) {
+  const enriched = enrichOpp(opp, user);
 
   // If lat/long already present, return as-is
   if (enriched.latitude && enriched.longitude) return enriched;

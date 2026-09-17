@@ -50,7 +50,7 @@ const App = {
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
           <span>Create</span>
         </a>
-        <a href="/feed?mine=1" class="d-nav-item ${location.search.includes('mine=1') ? 'is-active' : ''}">
+        <a href="/feed?mine=1" id="nav-yours-tab" class="d-nav-item ${location.search.includes('mine=1') ? 'is-active' : ''}" style="position:relative;">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
           <span>Yours</span>
         </a>
@@ -70,6 +70,29 @@ const App = {
        if (main) main.appendChild(nav);
        else document.body.appendChild(nav);
 
+       if (user) {
+         const updateNavBadge = () => {
+           fetch('/api/opportunities/mine', { credentials: 'same-origin' })
+             .then(r => r.json())
+             .then(data => {
+               const yoursBtn = document.getElementById('nav-yours-tab');
+               if (!yoursBtn) return;
+               
+               let badge = yoursBtn.querySelector('.nav-yours-badge');
+               const hasUnread = data.opportunities && data.opportunities.some(o => o.has_unread_comments);
+               
+               if (hasUnread && !badge) {
+                 yoursBtn.insertAdjacentHTML('beforeend', `<span class="nav-yours-badge" style="position:absolute; top:4px; right:12px; background:#dc3545; color:white; font-size:0.6rem; font-weight:bold; border-radius:50%; width:14px; height:14px; display:flex; align-items:center; justify-content:center;">!</span>`);
+               } else if (!hasUnread && badge) {
+                 badge.remove();
+               }
+             }).catch(() => {});
+         };
+         
+         updateNavBadge();
+         setInterval(updateNavBadge, 4000);
+       }
+       
        const profileBtn = document.getElementById('bottom-nav-profile-btn');
        const profileMenu = document.getElementById('bottom-nav-profile-menu');
        if (profileBtn && profileMenu) {

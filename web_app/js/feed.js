@@ -21,6 +21,30 @@ const Feed = {
     } catch {}
     Filters.fillSelects();
     this.render();
+
+    // Live update polling for unread comments and replies
+    setInterval(async () => {
+      try {
+        const endpoint = this.showingYours ? '/api/opportunities/mine' : '/api/opportunities';
+        const newData = await fetch(endpoint, { credentials: 'same-origin' }).then(r => r.json());
+        if (!newData.opportunities) return;
+        
+        let changed = false;
+        for (const newOpp of newData.opportunities) {
+          const oldOpp = this.opportunities.find(o => o.id === newOpp.id);
+          if (oldOpp) {
+            if (oldOpp.has_unread_comments !== newOpp.has_unread_comments || oldOpp.unread_reply_comment_id !== newOpp.unread_reply_comment_id) {
+              oldOpp.has_unread_comments = newOpp.has_unread_comments;
+              oldOpp.unread_reply_comment_id = newOpp.unread_reply_comment_id;
+              changed = true;
+            }
+          }
+        }
+        if (changed) {
+          this.render();
+        }
+      } catch (e) {}
+    }, 4000);
   },
 
   computeDistances() {
@@ -78,6 +102,11 @@ const Feed = {
     if (this.currentSort === 'foryou') rows.sort((a, b) => (this.matchScores[b.id] || 0) - (this.matchScores[a.id] || 0));
     if (this.currentSort === 'closest') rows.sort((a, b) => (this.distanceMap[a.id] ?? Infinity) - (this.distanceMap[b.id] ?? Infinity));
     if (selectedTotal) rows.sort((a, b) => (Filters.matchCounts[b.id] || 0) - (Filters.matchCounts[a.id] || 0));
+    
+    rows.sort((a, b) => (b.unread_reply_comment_id ? 1 : 0) - (a.unread_reply_comment_id ? 1 : 0));
+    if (this.showingYours) {
+      rows.sort((a, b) => (b.has_unread_comments ? 1 : 0) - (a.has_unread_comments ? 1 : 0));
+    }
 
     const clear = document.getElementById('clear');
     if (clear) clear.hidden = !(q || type || selectedTotal);
@@ -129,9 +158,12 @@ const Feed = {
       links ? Utils.meta('↗', 'Contact', links + (links === 1 ? ' link' : ' links')) : ''
     ].filter(Boolean).join('');
 
-    return `<a class="d-opp-card" href="/opportunity?id=${encodeURIComponent(o.id)}">
+    return `<a class="d-opp-card" href="/opportunity?id=${encodeURIComponent(o.id)}${o.unread_reply_comment_id ? '#comment-' + o.unread_reply_comment_id : (o.has_unread_comments ? '#comments' : '')}" style="${o.has_unread_comments || o.unread_reply_comment_id ? 'border-color: #dc3545;' : ''}">
       <div class="d-opp-top">
-        <div class="d-opp-title">${Utils.escapeHtml(o.title || 'Untitled')}</div>
+        <div class="d-opp-title">
+          ${(o.has_unread_comments || o.unread_reply_comment_id) ? `<span style="display:inline-block; margin-right:4px; background:#dc3545; color:white; font-size:0.65rem; font-weight:bold; border-radius:50%; width:16px; height:16px; text-align:center; line-height:16px;">!</span>` : ''}
+          ${Utils.escapeHtml(o.title || 'Untitled')}
+        </div>
         <div style="display:flex;gap:0.35rem;align-items:center;">
           ${selected ? `<span class="d-badge d-badge--match">${hits}/${selected} matched</span>` : ''}
           ${showDist ? `<span class="d-badge d-badge--match">${this.distanceMap[o.id] === 0 ? 'Remote' : Math.round(this.distanceMap[o.id]) + ' mi'}</span>` : ''}
