@@ -38,7 +38,7 @@ const App = {
        const nav = document.createElement('nav');
        nav.className = 'd-bottom-nav';
        nav.innerHTML = `
-        <a href="/feed" class="d-nav-item ${location.pathname==='/feed' && !location.search.includes('saved=true') ? 'is-active' : ''}">
+        <a href="/feed" class="d-nav-item ${location.pathname==='/feed' && !location.search.includes('saved=true') && !location.search.includes('mine=1') ? 'is-active' : ''}">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
           <span>Feed</span>
         </a>
@@ -49,6 +49,10 @@ const App = {
         <a href="/create_student" class="d-nav-item ${location.pathname==='/create_student' ? 'is-active' : ''}">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
           <span>Create</span>
+        </a>
+        <a href="/feed?mine=1" class="d-nav-item ${location.search.includes('mine=1') ? 'is-active' : ''}">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+          <span>Yours</span>
         </a>
         <div class="d-nav-item-wrap" style="position:relative; flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;">
           <button type="button" class="d-nav-item ${location.pathname==='/profile' ? 'is-active' : ''}" id="bottom-nav-profile-btn" style="border: none; background: transparent; width: 100%; cursor: pointer;">
