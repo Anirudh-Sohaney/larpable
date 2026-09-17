@@ -3,21 +3,23 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
+  "engines": {
+    "node": ">=18.17"
+  },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node --check index.js && node --check agent_core.js && node --check tools.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@google/generative-ai": "^0.24.1",
-    "@opencode-ai/sdk": "^1.18.31",
-    "ai": "^7.0.105",
-    "ai-sdk-provider-opencode-sdk": "^4.1.0",
-    "axios": "^1.20.0",
-    "cheerio": "^1.2.0",
-    "dotenv": "^17.4.2",
-    "openai": "^7.17.0",
-    "zod": "^4.6.5"
+    "@opencode-ai/sdk": "1.18.31",
+    "ai": "6.0.285",
+    "ai-sdk-provider-opencode-sdk": "3.0.6",
+    "axios": "1.20.0",
+    "cheerio": "1.0.0",
+    "dotenv": "17.4.2",
+    "opencode-ai": "1.18.31",
+    "zod": "4.6.5"
   }
 }

@@ -20,25 +20,9 @@
   </style>
 </head>
 <body>
-  <header class="d-header">
-    <a href="/feed" class="d-logo">LARPABLE.</a>
-    <div class="d-header-right">
-      <a href="/create_student" class="d-btn d-btn-sm" style="font-size:0.82rem;">+ Create</a>
-      <div class="d-user-menu">
-        <button class="d-user-btn" type="button">
-          <span class="d-user-avatar" id="header-avatar"></span>
-          <span class="d-user-name" id="header-username"></span>
-        </button>
-        <div class="d-user-dropdown">
-          <a href="/profile">My Profile</a>
-          <a href="/staff" id="staff-portal-link" style="display:none;">Staff Portal</a>
-          <hr>
-          <button onclick="App.logout()">Log out</button>
-        </div>
-      </div>
-    </div>
-  </header>
-  <main class="d-detail" id="detail"><div class="d-empty">Loading opportunity...</div></main>
+  <main class="d-detail">
+    <div id="detail"><div class="d-empty">Loading opportunity...</div></div>
+  </main>
   <script src="/js/utils.js"></script><script src="/js/data.js"></script><script src="/js/app.js"></script>
   <script>
     const esc = value => { const d = document.createElement('div'); d.textContent = value == null ? '' : String(value); return d.innerHTML; };

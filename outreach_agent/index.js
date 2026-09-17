@@ -1,5 +1,10 @@
 const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '../.env') });
+// The OpenCode SDK launches the `opencode` command. Include the copy installed
+// by the root npm workspace so deployments do not need a global CLI install.
+process.env.PATH = [path.join(__dirname, '..', 'node_modules', '.bin'), process.env.PATH]
+    .filter(Boolean)
+    .join(path.delimiter);
 const fs = require('fs');
 const { runAgent } = require('./agent_core');
 

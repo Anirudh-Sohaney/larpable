@@ -477,7 +477,8 @@ function enrichOpp(opp, user) {
     created_by: opp.created_by || '',
     created_at: opp.created_at || '',
     posted: opp.created_at ? formatPosted(opp.created_at) : 'Recently',
-    has_unread_comments: Array.isArray(f.comments) ? f.comments.some(c => c.read_by_op === false) : false
+    has_unread_comments: !!user && user.id === opp.created_by
+      && Array.isArray(f.comments) && f.comments.some(c => c.read_by_op === false)
   };
 }
 
