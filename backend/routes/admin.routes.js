@@ -13,6 +13,7 @@ const auth = require('../auth');
 const store = require('../store');
 const { decryptObject, encryptObject } = require('../crypto');
 const { geocode, geocodeStructured } = require('../geocode');
+const { removeUserFeedback } = require('../feedback');
 
 const COOKIE_NAME = 'larpable_session';
 
@@ -97,7 +98,10 @@ router.delete('/:id', requireAdmin, async (req, res) => {
       return sessions;
     });
     
-    // 3. Delete user record
+    // 3. Delete feedback and prompt history owned by this user
+    await removeUserFeedback(store, userId);
+
+    // 4. Delete user record
     await store.remove('users.json', userId);
     
     res.json({ ok: true });

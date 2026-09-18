@@ -31,6 +31,7 @@ const auth = require('../../backend/auth');
 const store = require('../../backend/store');
 const crypto = require('../../backend/crypto');
 const { applyApproval } = require('../../backend/profanity');
+const { FEEDBACK_FILE, normalizeFeedbackData, removeUserFeedback } = require('../../backend/feedback');
 const path = require('path');
 const fs = require('fs');
 
@@ -1043,10 +1044,10 @@ router.get('/inbox', requireAuth, requireStaff, async (req, res) => {
     const userId = req.user.id;
     const staffData = await store.read(STAFF_FILE);
     
-    // Get last portal open time — use previous_open to compare against goals
-    // (last_opened is updated in the same request, so it would always be "now")
+    // The current portal records this visit only after the inbox response has
+    // rendered, so last_opened is the previous visit's per-staff boundary.
     const portalOpen = staffData.staff_portal_opens?.[userId];
-    const lastOpened = portalOpen?.previous_open;
+    const lastOpened = portalOpen?.last_opened;
     
     // Get all user goals assigned to this user
     const userGoals = staffData.user_goals?.[userId] || {};
@@ -1064,6 +1065,11 @@ router.get('/inbox', requireAuth, requireStaff, async (req, res) => {
     // Find new team goals (created after last open)
     const newTeamGoals = lastOpened
       ? teamGoalsArray.filter(g => new Date(g.created_at) > new Date(lastOpened) && !g.completed)
+      : [];
+
+    const feedbackData = normalizeFeedbackData(await store.read(FEEDBACK_FILE));
+    const newFeedback = lastOpened
+      ? Object.values(feedbackData.records).filter(item => Date.parse(item?.created_at) > Date.parse(lastOpened))
       : [];
     
     // Urgency alerts for incomplete goals
@@ -1134,15 +1140,63 @@ router.get('/inbox', requireAuth, requireStaff, async (req, res) => {
       return 0;
     });
     
+    const items = [
+      ...newTasks.map(goal => ({ type: 'task', message: goal.title || 'New task assigned to you' })),
+      ...newTeamGoals.map(goal => ({ type: 'team goal', message: goal.title || 'New team goal' }))
+    ];
+    if (newFeedback.length) {
+      items.unshift({
+        type: 'feedback',
+        message: newFeedback.length > 2 ? '2+ new feedbacks' : `${newFeedback.length} new feedback${newFeedback.length === 1 ? '' : 's'}`,
+        action: 'work'
+      });
+    }
+
     res.json({
       newTasks: newTasks.length,
       newTeamGoals: newTeamGoals.length,
       newTeamGoalTitles: newTeamGoals.map(g => g.title),
-      urgencyAlerts
+      newFeedback: newFeedback.length,
+      urgencyAlerts,
+      items,
+      approaching: urgencyAlerts
     });
   } catch (e) {
     console.error('Get inbox error:', e);
     res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// ── GET /api/staff/work/feedback ─────────────────────────────
+// Feedback is available to every authenticated staff member. Other Work
+// sections keep their existing permission checks.
+router.get('/work/feedback', requireAuth, requireStaff, async (req, res) => {
+  try {
+    const data = normalizeFeedbackData(await store.read(FEEDBACK_FILE));
+    const feedback = Object.entries(data.records)
+      .filter(([, record]) => record && typeof record === 'object')
+      .map(([id, record]) => {
+        let fields = {};
+        try {
+          fields = record.encrypted_fields ? crypto.decryptObject(record.encrypted_fields) : {};
+        } catch (error) {
+          console.error(`Could not decrypt feedback ${id}:`, error.message);
+        }
+        const { encrypted_fields, ...publicRecord } = record;
+        return {
+          id,
+          ...publicRecord,
+          username: fields.username || record.username || '',
+          display_name: fields.display_name || record.display_name || '',
+          opportunity_title: fields.opportunity_title || record.opportunity_title || '',
+          text: fields.text || record.text || ''
+        };
+      })
+      .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at));
+    res.json({ feedback });
+  } catch (error) {
+    console.error('Get staff feedback error:', error);
+    res.status(500).json({ error: 'Could not load feedback.' });
   }
 });
 
@@ -1801,6 +1855,9 @@ router.delete('/work/users/:id', requireAuth, requireStaff, requireStaffAdmin, a
         return o;
       });
     }
+
+    // Drop feedback and future prompt state for the removed account.
+    await removeUserFeedback(store, userId);
 
     // Revoke staff access
     if (member) {

@@ -39,7 +39,7 @@ const RATE_LIMIT_MAX_AUTH = 300;  // auth: test suite needs ~200+ auth requests
 const RATE_LIMIT_MAX_API = 500;   // api: 40 users × multiple requests each
 
 // Cleanup stale buckets every 5 minutes
-setInterval(() => {
+const rateLimitCleanup = setInterval(() => {
   const now = Date.now();
   for (const [key, bucket] of rateLimitBuckets) {
     if (now - bucket.windowStart > RATE_LIMIT_WINDOW_MS * 2) {
@@ -47,6 +47,7 @@ setInterval(() => {
     }
   }
 }, 5 * 60 * 1000);
+rateLimitCleanup.unref();
 
 /**
  * Simple per-IP rate limiter middleware.
@@ -119,6 +120,7 @@ const authRoutes = require('./backend/routes/auth.routes');
 const opportunityRoutes = require('./backend/routes/opportunity.routes');
 const userRoutes = require('./backend/routes/user.routes');
 const legalRoutes = require('./backend/routes/legal.routes');
+const feedbackRoutes = require('./backend/routes/feedback.routes');
 const matching = require('./backend/matching');
 
 // Rate-limit auth endpoints (Issue #10 fix)
@@ -128,6 +130,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/opportunities', rateLimit('api'), opportunityRoutes);
 app.use('/api/users', rateLimit('api'), userRoutes);
 app.use('/api/legal', rateLimit('api'), legalRoutes);
+app.use('/api/feedback', rateLimit('api'), feedbackRoutes);
 
 // Admin routes (must come before user routes to avoid conflict)
 const adminRoutes = require('./backend/routes/admin.routes');
@@ -354,8 +357,12 @@ function startServer(port) {
       console.error('Server error:', err);
     }
   });
+  return server;
 }
-startServer(PORT);
+
+if (require.main === module) startServer(PORT);
+
+module.exports = { app, startServer };
 
 // ── Production deploy recorder ───────────────────────────────
 // After each auto-deploy the restarted server records the deployed SHA as a

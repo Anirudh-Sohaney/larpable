@@ -116,12 +116,12 @@ const App = {
 
   /**
    * Show/hide sidebar + mobile entries that depend on permissions.
-   * Admin section only for the platform admin; the Work tab only for staff
-   * holding a platform-control permission (skills_control or user_view).
+   * Admin remains limited to the platform admin. Work is visible to every
+   * staff member because its feedback section requires no extra permission;
+   * the other sections enforce their own permissions.
    */
   updateNavVisibility() {
-    const canWork = this.can('skills_control') || this.can('user_view') ||
-      this.can('opportunities_control') || this.can('flagged_control');
+    const canWork = true;
     document.getElementById('work-nav').style.display = canWork ? '' : 'none';
     document.getElementById('more-work-nav').style.display = canWork ? '' : 'none';
     document.getElementById('admin-badge').style.display = this.isStaffAdmin ? '' : 'none';

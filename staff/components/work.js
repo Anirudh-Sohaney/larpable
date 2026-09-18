@@ -1,9 +1,8 @@
 /**
  * LARPABLE Staff Portal — Work Component
  *
- * Platform controls, shown only to staff holding a platform-control
- * permission (admins always have them). Each control is gated by its own
- * permission:
+ * Platform controls are gated by their individual permissions (admins always
+ * have them). Feedback is the universal staff section.
  *
  *   - skills_control: the skills / interests / fields vocabulary that powers
  *     the matching algorithm and the searchable pickers across the site.
@@ -23,6 +22,8 @@
  *    by the profanity filter lands here immediately; approve it to publish it
  *    (clears the flag so it shows in the public feed like any other post) or
  *    delete it to remove it from all data.
+ *  - feedback: available to every staff member, newest first, with a star
+ *    filter and a full-detail popup.
  *
  * INTEGRATION:
  *   GET  /api/staff/work/taxonomy          (skills_control)
@@ -35,6 +36,7 @@
  *   GET  /api/staff/work/flagged            (flagged_control)
  *   POST /api/staff/work/flagged/:id/approve (flagged_control)
  *   DELETE /api/staff/work/flagged/:id      (flagged_control)
+ *   GET  /api/staff/work/feedback           (all staff)
  */
 
 const Work = {
@@ -56,7 +58,10 @@ const Work = {
     oVisible: 70,
     flagged: null,
     fSearch: '',
-    fVisible: 70
+    fVisible: 70,
+    feedback: null,
+    feedbackRating: 'all',
+    feedbackVisible: 70
   },
 
   kinds() {
@@ -95,20 +100,37 @@ const Work = {
     return response.json();
   },
 
+  async fetchFeedback() {
+    const response = await fetch('/api/staff/work/feedback', { credentials: 'include', cache: 'no-store' });
+    if (!response.ok) throw new Error('Could not load feedback.');
+    return response.json();
+  },
+
   async render(container) {
     const canSkills = App.can('skills_control');
     const canUsers = App.can('user_view');
     const canOpps = App.can('opportunities_control');
     const canFlagged = App.can('flagged_control');
-    if (!canSkills && !canUsers && !canOpps && !canFlagged) {
-      container.innerHTML = '<div class="sp-tab-content"><div class="sp-empty">Access denied. A platform-control permission is required.</div></div>';
-      return;
-    }
-
     container.innerHTML = `
       <div class="sp-tab-content">
         <div class="sp-section-header">
           <h2 class="sp-section-title">WORK</h2>
+        </div>
+
+        <div class="sp-admin-section" id="work-feedback-section">
+          <div class="sp-admin-section-title">FEEDBACK</div>
+          <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:12px;">
+            <select class="sp-form-input" id="work-feedback-rating" style="max-width:180px;" onchange="Work.handleFeedbackRating(this.value)">
+              <option value="all"${this.state.feedbackRating === 'all' ? ' selected' : ''}>All star ratings</option>
+              <option value="5"${this.state.feedbackRating === '5' ? ' selected' : ''}>5 stars</option>
+              <option value="4"${this.state.feedbackRating === '4' ? ' selected' : ''}>4 stars</option>
+              <option value="3"${this.state.feedbackRating === '3' ? ' selected' : ''}>3 stars</option>
+              <option value="2"${this.state.feedbackRating === '2' ? ' selected' : ''}>2 stars</option>
+              <option value="1"${this.state.feedbackRating === '1' ? ' selected' : ''}>1 star</option>
+            </select>
+            <span style="font-size:0.78rem; color:var(--sp-muted);" id="work-feedback-count"></span>
+          </div>
+          <div class="sp-users-list" id="work-feedback-list" style="max-height:380px; overflow-y:auto; border:1px solid var(--sp-border); border-radius:var(--sp-radius);"><div class="sp-empty" style="padding:24px;">Loading…</div></div>
         </div>
 
         ${canSkills ? `
@@ -198,6 +220,15 @@ const Work = {
         ` : ''}
       </div>
     `;
+
+    try {
+      const result = await this.fetchFeedback();
+      this.state.feedback = result.feedback || [];
+      this.renderFeedback();
+    } catch (error) {
+      const el = document.getElementById('work-feedback-list');
+      if (el) el.innerHTML = `<div class="sp-empty" style="padding:24px;">${Utils.escapeHtml(error.message)}</div>`;
+    }
 
     if (canSkills) {
       this.state.loading = true;
@@ -377,6 +408,94 @@ const Work = {
   },
 
   // ── User View ──────────────────────────────────────────────
+
+  handleFeedbackRating(value) {
+    this.state.feedbackRating = value;
+    this.state.feedbackVisible = 70;
+    this.renderFeedback();
+  },
+
+  matchedFeedback() {
+    return (this.state.feedback || [])
+      .filter(item => this.state.feedbackRating === 'all' || Number(item.rating) === Number(this.state.feedbackRating))
+      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  },
+
+  showMoreFeedback() {
+    this.state.feedbackVisible = Math.min(this.state.feedbackVisible + 80, 150);
+    this.renderFeedback();
+  },
+
+  feedbackRating(value) {
+    const rating = Math.round(Number(value));
+    return Number.isFinite(rating) ? Math.max(0, Math.min(5, rating)) : 0;
+  },
+
+  renderFeedback() {
+    const container = document.getElementById('work-feedback-list');
+    const countEl = document.getElementById('work-feedback-count');
+    if (!container || !countEl) return;
+    const matches = this.matchedFeedback();
+    countEl.textContent = `${matches.length} / ${(this.state.feedback || []).length}`;
+    if (!matches.length) {
+      container.innerHTML = '<div class="sp-empty" style="padding:24px;">No feedback found.</div>';
+      return;
+    }
+    const shown = matches.slice(0, this.state.feedbackVisible);
+    container.innerHTML = shown.map(item => `
+      <div class="sp-work-row sp-user-row" onclick="Work.openFeedback('${item.id}')">
+        <div style="min-width:0;">
+          <div style="font-size:0.88rem; font-weight:600;">${Utils.escapeHtml(item.display_name || item.username || item.user_id || 'Unknown user')}</div>
+          <div style="font-size:0.72rem; color:var(--sp-muted); margin-top:2px;">${Utils.escapeHtml(item.kind === 'post' ? 'Post feedback' : 'LARPABLE feedback')} · ${Utils.formatDate(item.created_at)}</div>
+        </div>
+        <div style="font-size:0.88rem; color:#e2a400; flex-shrink:0;" aria-label="${this.feedbackRating(item.rating)} out of 5 stars">${'★'.repeat(this.feedbackRating(item.rating))}${'☆'.repeat(5 - this.feedbackRating(item.rating))}</div>
+      </div>
+    `).join('');
+    if (matches.length > shown.length) {
+      container.insertAdjacentHTML('beforeend', `<div style="text-align:center; margin-top:4px;"><button class="sp-btn" onclick="Work.showMoreFeedback()">Show more (${matches.length - shown.length} remaining)</button></div>`);
+    }
+  },
+
+  openFeedback(id) {
+    const item = (this.state.feedback || []).find(entry => entry.id === id);
+    if (!item) return;
+    const outcomeLabels = {
+      helped: 'The post brought benefits or help',
+      not_yet: 'The post has not helped yet',
+      found_help: 'Found help',
+      found_opportunity_to_help: 'Found an opportunity to help',
+      both: 'Found help and an opportunity to help',
+      neither_yet: 'Has not found either yet'
+    };
+    const overlay = document.createElement('div');
+    overlay.className = 'sp-modal-overlay open';
+    overlay.id = 'work-feedback-modal';
+    overlay.innerHTML = `
+      <div class="sp-modal">
+        <div class="sp-modal-header">
+          <h3 class="sp-modal-title">Feedback from ${Utils.escapeHtml(item.display_name || item.username || 'Unknown user')}</h3>
+          <button class="sp-modal-close" onclick="Work.closeFeedbackModal()">&times;</button>
+        </div>
+        <div style="font-size:1.3rem; color:#e2a400; margin-bottom:14px;" aria-label="${this.feedbackRating(item.rating)} out of 5 stars">${'★'.repeat(this.feedbackRating(item.rating))}${'☆'.repeat(5 - this.feedbackRating(item.rating))}</div>
+        <div class="sp-feedback-detail"><span>Type</span><strong>${item.kind === 'post' ? 'Post feedback' : 'LARPABLE feedback'}</strong></div>
+        <div class="sp-feedback-detail"><span>Submitted</span><strong>${Utils.formatDate(item.created_at)}</strong></div>
+        <div class="sp-feedback-detail"><span>User</span><strong>${Utils.escapeHtml(item.username ? `@${item.username}` : item.user_id || '—')}</strong></div>
+        <div class="sp-feedback-detail"><span>Result</span><strong>${Utils.escapeHtml(outcomeLabels[item.outcome] || item.outcome || '—')}</strong></div>
+        ${item.opportunity_title ? `<div class="sp-feedback-detail"><span>Post</span><strong>${Utils.escapeHtml(item.opportunity_title)}</strong></div>` : ''}
+        <div style="margin-top:18px;">
+          <div style="font-size:0.72rem; font-weight:600; color:var(--sp-muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:7px;">Written feedback</div>
+          <div style="font-size:0.88rem; line-height:1.6; white-space:pre-wrap;">${Utils.escapeHtml(item.text || 'No written feedback was provided.')}</div>
+        </div>
+        <div class="sp-form-actions"><button class="sp-btn" onclick="Work.closeFeedbackModal()">Close</button></div>
+      </div>`;
+    overlay.addEventListener('click', event => { if (event.target === overlay) this.closeFeedbackModal(); });
+    document.body.appendChild(overlay);
+  },
+
+  closeFeedbackModal() {
+    document.getElementById('work-feedback-modal')?.remove();
+  },
+
   userDisplayName(user) {
     return [user.first_name, user.last_name].filter(Boolean).join(' ') || user.username || user.id;
   },

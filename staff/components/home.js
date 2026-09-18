@@ -28,7 +28,7 @@ const Home = {
   inboxMarkup(inbox) {
     const items = [...(inbox.items || []), ...(inbox.approaching || [])];
     if (!items.length) return `<div class="sp-inbox-live"><div><strong>Latest inbox</strong><span>Nothing new since your last portal visit.</span></div><i>✓</i></div>`;
-    return `<div class="sp-inbox-live"><div><strong>Latest inbox</strong><span>${items.slice(0, 6).map(item => `<span class="sp-inbox-line"><b>${this.esc(item.type)}</b> ${this.esc(item.message)}${item.deadline ? ` · due ${this.esc(item.deadline)}` : ''}</span>`).join('')}</span></div><i>${items.length}</i></div>`;
+    return `<div class="sp-inbox-live"><div><strong>Latest inbox</strong><span>${items.slice(0, 6).map(item => `<span class="sp-inbox-line"${item.action === 'work' ? ' role="button" tabindex="0" onclick="App.navigate(\'work\')" onkeydown="if(event.key===\'Enter\')App.navigate(\'work\')" style="cursor:pointer"' : ''}><b>${this.esc(item.type)}</b> ${this.esc(item.message)}${item.deadline ? ` · due ${this.esc(item.deadline)}` : ''}</span>`).join('')}</span></div><i>${items.length}</i></div>`;
   },
   renderData(container, data, inbox) {
     const t = data.totals;

@@ -14,6 +14,7 @@ const auth = require('../auth');
 const store = require('../store');
 const { encryptObject, decryptObject } = require('../crypto');
 const { isEmailVerified, consumeVerifiedEmail } = require('./verify.routes');
+const { removeUserFeedback } = require('../feedback');
 
 const COOKIE_NAME = 'larpable_session';
 
@@ -183,10 +184,13 @@ router.delete('/me', requireAuth, async (req, res) => {
       return sessions;
     });
 
-    // 3. Delete user record
+    // 3. Delete feedback and prompt history owned by this user
+    await removeUserFeedback(store, userId);
+
+    // 4. Delete user record
     await store.remove('users.json', userId);
 
-    // 4. Clear session cookie
+    // 5. Clear session cookie
     res.clearCookie(COOKIE_NAME, { path: '/' });
     res.json({ ok: true });
   } catch (e) {

@@ -36,7 +36,7 @@ const verifiedEmails = new Map();
 const VERIFIED_TTL_MS = 30 * 60 * 1000;   // 30 minutes
 
 // Purge expired codes periodically
-setInterval(() => {
+const verificationCleanup = setInterval(() => {
   const now = Date.now();
   for (const [email, entry] of verifications) {
     if (now > entry.expiresAt) verifications.delete(email);
@@ -45,6 +45,7 @@ setInterval(() => {
     if (now - at > VERIFIED_TTL_MS) verifiedEmails.delete(email);
   }
 }, 60 * 1000);
+verificationCleanup.unref();
 
 function generateCode() {
   return String(Math.floor(100000 + Math.random() * 900000));

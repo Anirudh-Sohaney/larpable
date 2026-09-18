@@ -1341,3 +1341,4 @@ body {
   margin: 0 6px 6px 0;
   color: var(--sp-font);
 }
+.sp-feedback-detail{display:flex;justify-content:space-between;gap:18px;padding:8px 0;border-bottom:1px solid var(--sp-border);font-size:.82rem}.sp-feedback-detail span{color:var(--sp-muted);flex-shrink:0}.sp-feedback-detail strong{text-align:right;word-break:break-word}

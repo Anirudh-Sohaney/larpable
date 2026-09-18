@@ -11,7 +11,8 @@
   ],
   "scripts": {
     "start": "node server.js",
-    "dev": "node --watch server.js"
+    "dev": "node --watch server.js",
+    "test:feedback": "node test_feedback.js"
   },
   "dependencies": {
     "cookie-parser": "^1.4.6",
