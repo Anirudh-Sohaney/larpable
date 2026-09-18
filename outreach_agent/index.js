@@ -6,7 +6,7 @@ process.env.PATH = [path.join(__dirname, '..', 'node_modules', '.bin'), process.
     .filter(Boolean)
     .join(path.delimiter);
 const fs = require('fs');
-const { runAgent } = require('./agent_core');
+const { runAgent, dispose } = require('./agent_core');
 
 const OPP_PATH = path.join(process.env.DATA_DIR || '/var/www/larpable_data', 'opportunities.json');
 const OUTREACH_PATH = path.join(__dirname, 'data', 'outreached.json');
@@ -144,4 +144,9 @@ Use your search tools to find personal, business, or general inquiry emails (e.g
     console.log(`\nSaved ${finalResults.length} new organizations to outreach_agent/data/outreached.json`);
 }
 
-main().catch(console.error);
+main()
+    .catch(error => {
+        console.error(error);
+        process.exitCode = 1;
+    })
+    .finally(dispose);

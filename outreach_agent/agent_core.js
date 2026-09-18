@@ -84,3 +84,4 @@ User Request: ${prompt}\n`;
 }
 
 module.exports = { runAgent };
+module.exports.dispose = () => opencode.dispose();

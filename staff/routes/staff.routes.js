@@ -2038,13 +2038,20 @@ router.post('/outreach/run', requireAuth, requireStaff, (req, res) => {
     
     outreachLogs = [];
     const cwd = path.join(__dirname, '../../');
-    outreachProcess = spawn('node', ['outreach_agent/index.js'], { cwd });
+    const child = spawn('node', ['outreach_agent/index.js'], { cwd });
+    outreachProcess = child;
+
+    child.stdout.on('data', data => outreachLogs.push(data.toString()));
+    child.stderr.on('data', data => outreachLogs.push(data.toString()));
+
+    child.on('error', err => {
+        outreachLogs.push(`\n[Pipeline failed to start: ${err.message}]`);
+        if (outreachProcess === child) outreachProcess = null;
+    });
     
-    outreachProcess.stdout.on('data', data => outreachLogs.push(data.toString()));
-    outreachProcess.stderr.on('data', data => outreachLogs.push(data.toString()));
-    
-    outreachProcess.on('close', code => {
-        outreachProcess = null;
+    child.on('close', code => {
+        // An error event may already have reset the active process state.
+        if (outreachProcess === child) outreachProcess = null;
         outreachLogs.push(`\n[Pipeline exited with code ${code}]`);
     });
     
