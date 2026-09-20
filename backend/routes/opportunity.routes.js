@@ -24,6 +24,10 @@ const { encryptObject, decryptObject } = require('../crypto');
 const { sanitizeObject } = require('../sanitize');
 const { geocode } = require('../geocode');
 const { scanFields, applyFlag, flagNotice } = require('../profanity');
+const { normalizeOpportunitySkills } = require('../skill-normalization');
+
+const OPPORTUNITY_PREFERENCES = new Set(['volunteering', 'paid', 'unpaid']);
+const DEFAULT_OPPORTUNITY_PREFERENCE = { project: 'unpaid', nonprofit: 'volunteering', company: 'paid' };
 
 // ── Middleware: require auth ──────────────────────────────────
 async function requireAuth(req, res, next) {
@@ -177,6 +181,11 @@ router.post('/', requireAuth, async (req, res) => {
     // Sanitize all input fields (prevent XSS)
     const cleanFields = sanitizeObject(fields);
 
+    const opportunityPreference = cleanFields.opportunity_preference || DEFAULT_OPPORTUNITY_PREFERENCE[type];
+    if (!OPPORTUNITY_PREFERENCES.has(opportunityPreference)) {
+      return res.status(400).json({ error: 'Invalid opportunity preference' });
+    }
+
     const oppId = auth.generateOpportunityId(cleanFields.title, Date.now().toString());
     
     // Build issuer info from user profile
@@ -199,8 +208,9 @@ router.post('/', requireAuth, async (req, res) => {
         latitude: cleanFields.latitude || null,
         longitude: cleanFields.longitude || null,
         contact_links: Array.isArray(cleanFields.contact_links) ? cleanFields.contact_links.filter(l => l && l.trim()) : (cleanFields.contact ? [cleanFields.contact] : []),
-        skills: cleanFields.skills || [],
+        skills: normalizeOpportunitySkills(cleanFields.skills || []),
         details: cleanFields.details || '',
+        opportunity_preference: opportunityPreference,
         // Nonprofit-specific
         ...(type === 'nonprofit' && {
           nonprofit_field: cleanFields.nonprofit_field || ''
@@ -368,14 +378,26 @@ router.patch('/:id', requireAuth, async (req, res) => {
     // Merge updates — whitelist of safe fields only (Issue #8 fix)
     // 'created_by', 'id', 'created_at' are NEVER overwritable.
     // 'type' is handled separately below.
-    const allowedFields = ['title', 'description', 'looking_for', 'location', 'remote', 'contact_links', 'skills', 'details', 'nonprofit_field', 'industry'];
+    const allowedFields = ['title', 'description', 'looking_for', 'location', 'remote', 'contact_links', 'skills', 'details', 'nonprofit_field', 'industry', 'opportunity_preference'];
     const updates = {};
     for (const key of allowedFields) {
       if (req.body[key] !== undefined) {
         updates[key] = req.body[key];
       }
     }
+    if (updates.opportunity_preference !== undefined && !OPPORTUNITY_PREFERENCES.has(updates.opportunity_preference)) {
+      return res.status(400).json({ error: 'Invalid opportunity preference' });
+    }
+    const nextType = req.body.type && ['project', 'nonprofit', 'company'].includes(req.body.type)
+      ? req.body.type
+      : opp.type;
     const updatedFields = { ...currentFields, ...sanitizeObject(updates) };
+    if (updates.skills !== undefined) {
+      updatedFields.skills = normalizeOpportunitySkills(updatedFields.skills);
+    }
+    if (!OPPORTUNITY_PREFERENCES.has(updatedFields.opportunity_preference)) {
+      updatedFields.opportunity_preference = DEFAULT_OPPORTUNITY_PREFERENCE[nextType] || 'unpaid';
+    }
     
     // Edits are re-scanned too, so profanity can't slip in after approval.
     const scan = scanFields(updatedFields);
@@ -385,9 +407,7 @@ router.patch('/:id', requireAuth, async (req, res) => {
     opp.encrypted_fields = encryptObject(updatedFields);
     
     // Type can only be changed to valid values
-    if (req.body.type && ['project', 'nonprofit', 'company'].includes(req.body.type)) {
-      opp.type = req.body.type;
-    }
+    opp.type = nextType;
     
     await store.saveOpportunity(req.params.id, opp);
     
@@ -471,6 +491,7 @@ function enrichOpp(opp, user) {
     contact_links: Array.isArray(f.contact_links) ? f.contact_links : (f.contact ? [f.contact] : []),
     skills: f.skills || [],
     details: f.details || '',
+    opportunity_preference: f.opportunity_preference || DEFAULT_OPPORTUNITY_PREFERENCE[opp.type] || 'unpaid',
     nonprofit_field: f.nonprofit_field || '',
     industry: f.industry || '',
     flagged: !!opp.flagged,

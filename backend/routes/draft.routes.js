@@ -23,9 +23,11 @@ const store = require('../store');
 const { encryptObject } = require('../crypto');
 const { sanitizeObject } = require('../sanitize');
 const { scanFields, applyFlag, flagNotice } = require('../profanity');
+const { normalizeOpportunitySkills } = require('../skill-normalization');
 
 const DRAFTS_FILE = 'drafts.json';
 const MAX_DRAFTS = 5;
+const DEFAULT_OPPORTUNITY_PREFERENCE = { project: 'unpaid', nonprofit: 'volunteering', company: 'paid' };
 
 // ── Middleware: require auth ──────────────────────────────────
 async function requireAuth(req, res, next) {
@@ -206,8 +208,11 @@ router.post('/:id/publish', requireAuth, async (req, res) => {
         location: fields.location || '',
         remote: fields.remote !== undefined ? fields.remote : true,
         contact_links: Array.isArray(fields.contact_links) ? fields.contact_links.filter(l => l && l.trim()) : (fields.contact ? [fields.contact] : []),
-        skills: fields.skills || [],
+        skills: normalizeOpportunitySkills(fields.skills || []),
         details: fields.details || '',
+        opportunity_preference: ['volunteering', 'paid', 'unpaid'].includes(fields.opportunity_preference)
+          ? fields.opportunity_preference
+          : DEFAULT_OPPORTUNITY_PREFERENCE[type],
         ...(type === 'nonprofit' && { nonprofit_field: fields.nonprofit_field || '' }),
         ...(type === 'company' && { industry: fields.industry || '' })
       }

@@ -27,6 +27,10 @@ const aliases = {
 function canonicalField(value) { return aliases[String(value || '').toLowerCase()] || value; }
 function canonicalSkill(value) { return skillAliases[String(value || '').toLowerCase()] || value; }
 function canonicalInterest(value) { return interestAliases[String(value || '').toLowerCase()] || value; }
+function normalizeOpportunityPreference(value) {
+  const normalized = String(value || '').toLowerCase();
+  return normalized === 'volunteer' ? 'volunteering' : normalized;
+}
 function vector(kind, value) { return V[kind]?.[value] || null; }
 function cosine(a, b) {
   if (!a || !b) return 0;
@@ -78,7 +82,15 @@ function rank(user, opportunities) {
   return Object.fromEntries((opportunities || []).map(o => {
     const matchScore = score(user, o);
     const dScore = computeDistanceScore(userLat, userLon, o.latitude || null, o.longitude || null, o.remote);
-    const blended = Math.round((matchScore * 0.86 + (dScore / 10) * 0.14) * 10000) / 10000;
+    const baseScore = matchScore * 0.86 + (dScore / 10) * 0.14;
+    const userPreference = normalizeOpportunityPreference(user?.opportunity_preference);
+    const postPreference = normalizeOpportunityPreference(o.opportunity_preference);
+    const preferenceScore = userPreference === 'all' || !userPreference
+      ? 1
+      : (userPreference === postPreference ? 1 : 0);
+    const blended = userPreference === 'all' || !userPreference
+      ? baseScore
+      : baseScore * 0.70 + preferenceScore * 0.30;
     return [o.id, blended];
   }));
 }

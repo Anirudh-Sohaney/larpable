@@ -17,6 +17,7 @@ const { isEmailVerified, consumeVerifiedEmail } = require('./verify.routes');
 const { removeUserFeedback } = require('../feedback');
 
 const COOKIE_NAME = 'larpable_session';
+const OPPORTUNITY_PREFERENCES = new Set(['paid', 'unpaid', 'volunteer', 'all']);
 
 // ── Middleware: require auth ──────────────────────────────────
 async function requireAuth(req, res, next) {
@@ -79,6 +80,7 @@ router.get('/me', requireAuth, async (req, res) => {
     longitude,
     skills: fields.skills || [],
     interests: fields.interests || [],
+    opportunity_preference: fields.opportunity_preference || 'all',
     saved_posts: fields.saved_posts || []
   });
 });
@@ -93,7 +95,7 @@ router.patch('/me', requireAuth, async (req, res) => {
     }
 
     // Allowed fields (username, type, created_at are NEVER overwritable)
-    const allowed = ['first_name', 'last_name', 'email', 'age', 'grade', 'location', 'city', 'state', 'country', 'latitude', 'longitude', 'skills', 'interests'];
+    const allowed = ['first_name', 'last_name', 'email', 'age', 'grade', 'location', 'city', 'state', 'country', 'latitude', 'longitude', 'skills', 'interests', 'opportunity_preference'];
     const currentFields = decryptObject(rawUser.encrypted_fields || {});
 
     // Changing to a new email requires proof of ownership (same stamp as
@@ -110,6 +112,10 @@ router.patch('/me', requireAuth, async (req, res) => {
       if (req.body[key] !== undefined) {
         updates[key] = req.body[key];
       }
+    }
+
+    if (updates.opportunity_preference !== undefined && !OPPORTUNITY_PREFERENCES.has(updates.opportunity_preference)) {
+      return res.status(400).json({ error: 'Invalid opportunity preference' });
     }
 
     const merged = { ...currentFields, ...updates };

@@ -24,6 +24,7 @@ const DataStore = {
       latitude: u.latitude || null, longitude: u.longitude || null,
       skills: Array.isArray(u.skills) ? [...u.skills] : [],
       interests: Array.isArray(u.interests) ? [...u.interests] : [],
+      opportunity_preference: u.opportunity_preference || 'all',
       saved_posts: Array.isArray(u.saved_posts) ? [...u.saved_posts] : [],
       type: u.type || 'student', role: u.role || (u.type === 'admin' ? 'admin' : 'student'),
       staff_access: !!u.staff_access
@@ -115,12 +116,20 @@ const DataStore = {
     for (let i = 0; i < opportunities.length; i += 50) {
       const batch = opportunities.slice(i, i + 50).map(o => ({
         id: o.id, skills: o.skills || [], industry: o.industry || o.nonprofit_field || '', type: o.type,
-        latitude: o.latitude || null, longitude: o.longitude || null, remote: o.remote
+        latitude: o.latitude || null, longitude: o.longitude || null, remote: o.remote,
+        opportunity_preference: o.opportunity_preference || 'unpaid'
       }));
       try {
         const data = await this.request('/api/match/rank', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ user: { skills: user.skills, interests: user.interests }, opportunities: batch })
+          body: JSON.stringify({
+            user: {
+              skills: user.skills,
+              interests: user.interests,
+              opportunity_preference: user.opportunity_preference || 'all'
+            },
+            opportunities: batch
+          })
         });
         for (const item of data.ranked || []) scores[item.opportunity.id] = item.score;
       } catch {
@@ -133,7 +142,18 @@ const DataStore = {
   localScore(opp) {
     const skills = new Set((this.currentUser?.skills || []).map(s => s.toLowerCase()));
     const required = opp.skills || [];
-    if (!required.length) return 0;
-    return Math.round(required.filter(s => skills.has(String(s).toLowerCase())).length / required.length * 100) / 100;
+    const skillScore = required.length
+      ? required.filter(s => skills.has(String(s).toLowerCase())).length / required.length
+      : 0;
+    const userPreference = String(this.currentUser?.opportunity_preference || 'all').toLowerCase();
+    const normalizedUserPreference = userPreference === 'volunteer' ? 'volunteering' : userPreference;
+    const postPreference = String(opp.opportunity_preference || 'unpaid').toLowerCase();
+    const preferenceScore = normalizedUserPreference === 'all'
+      ? 1
+      : (normalizedUserPreference === postPreference ? 1 : 0);
+    const result = normalizedUserPreference === 'all'
+      ? skillScore
+      : skillScore * 0.70 + preferenceScore * 0.30;
+    return Math.round(result * 100) / 100;
   }
 };

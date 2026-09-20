@@ -18,6 +18,7 @@ const COOKIE_NAME = 'larpable_session';
 const COOKIE_MAX_AGE = 30 * 24 * 60 * 60 * 1000; // 30 days
 const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 const DEFAULT_LEGAL_VERSIONS = { terms: { version: '2026-08-27' }, privacy: { version: '2026-08-27' } };
+const OPPORTUNITY_PREFERENCES = new Set(['paid', 'unpaid', 'volunteer', 'all']);
 
 const COOKIE_OPTIONS = {
   httpOnly: true,
@@ -61,6 +62,12 @@ router.post('/signup', async (req, res) => {
     }
     if (!profile.skills || profile.skills.length < 3) {
       return res.status(400).json({ error: 'Select at least 3 skills' });
+    }
+
+    if (profile.opportunity_preference === undefined) {
+      profile.opportunity_preference = 'all';
+    } else if (!OPPORTUNITY_PREFERENCES.has(profile.opportunity_preference)) {
+      return res.status(400).json({ error: 'Invalid opportunity preference' });
     }
     
     // Validate age and grade are required

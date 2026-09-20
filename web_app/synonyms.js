@@ -597,6 +597,7 @@ const CANONICAL_SYNONYMS = {
 // Safe aliases for labels introduced by the redesign. Each target already
 // exists in the deployed taxonomy; values are normalized in memory only.
 Object.assign(CANONICAL_SYNONYMS, {
+  'Programming': ['coding'],
   'Artificial Intelligence': ['ai / machine learning'],
   'Mobile Apps': ['mobile development'],
   'Computer Vision': ['computer vision'],
@@ -612,7 +613,23 @@ Object.assign(CANONICAL_SYNONYMS, {
   'Education & Learning': ['education & learning'],
   'Arts, Design & Media': ['arts, design & media'],
   'Humanities & Social Sciences': ['humanities & social sciences'],
-  'Environment, Agriculture & Sports': ['environment, agriculture & sports']
+  'Environment, Agriculture & Sports': ['environment, agriculture & sports'],
+
+  // Current deployed taxonomy labels. Keep these aliases alongside the
+  // legacy labels above so UI search works against the labels users can
+  // actually select today.
+  'Food, Agriculture & Athletics': [
+    'agriculture', 'agritech', 'farming', 'farm', 'agri',
+    'gardening', 'horticulture', 'food systems'
+  ],
+  'Horticulture': [
+    'plant cultivation', 'garden design', 'plant science',
+    'gardening', 'horticulture', 'nursery work'
+  ],
+  'Agriculture': [
+    'gardening', 'farming', 'cultivation', 'horticulture',
+    'agronomy', 'agriculture'
+  ]
 });
 
 // New canonical labels map to the closest labels in the deployed taxonomy.

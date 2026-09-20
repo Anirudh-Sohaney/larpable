@@ -149,6 +149,10 @@ const Feed = {
     const mine = this.showingYours && (o.created_by || o.issuer_id) === DataStore.getCurrentUser()?.id;
     const isSaved = DataStore.getCurrentUser()?.saved_posts?.includes(o.id);
     const TYPE = { project: 'Project', nonprofit: 'Nonprofit', company: 'Company' };
+    const preference = o.opportunity_preference === 'volunteer' ? 'volunteering' : o.opportunity_preference;
+    const preferenceBadge = preference === 'paid' || preference === 'volunteering'
+      ? `<span class="d-badge d-badge--${preference}">${preference === 'paid' ? 'Paid' : 'Volunteering'}</span>`
+      : '';
 
     const bits = [
       o.looking_for ? Utils.meta('◦', 'Looking for', '<strong>' + Utils.escapeHtml(o.looking_for) + '</strong>') : '',
@@ -167,6 +171,7 @@ const Feed = {
         <div style="display:flex;gap:0.35rem;align-items:center;">
           ${selected ? `<span class="d-badge d-badge--match">${hits}/${selected} matched</span>` : ''}
           ${showDist ? `<span class="d-badge d-badge--match">${this.distanceMap[o.id] === 0 ? 'Remote' : Math.round(this.distanceMap[o.id]) + ' mi'}</span>` : ''}
+          ${preferenceBadge}
           <span class="d-badge d-badge--${o.type || 'project'}">${TYPE[o.type] || 'Project'}</span>
         </div>
       </div>

@@ -42,6 +42,16 @@
     .type-btn .label { font-size: 0.78rem; font-weight: 600; color: var(--muted); }
     .type-btn.is-active .label { color: var(--accent); }
 
+    /* Opportunity preference */
+    .opportunity-preference-options { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .opportunity-preference-btn {
+      padding: 10px 8px; border: 1.5px solid var(--border); border-radius: 8px;
+      background: var(--card); color: var(--muted); font: inherit; font-size: 0.8rem;
+      font-weight: 600; cursor: pointer; transition: all 0.15s;
+    }
+    .opportunity-preference-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .opportunity-preference-btn.is-active { border-color: var(--accent); background: var(--coral-bg); color: var(--accent); }
+
     /* Form */
     .form { display: flex; flex-direction: column; gap: 18px; }
 
@@ -278,6 +288,16 @@
         <div class="error-msg" id="skills-error">Select at least 3 skills</div>
       </div>
 
+      <!-- OPPORTUNITY PREFERENCE -->
+      <div class="field">
+        <label>Type of collaboration</label>
+        <div class="opportunity-preference-options" id="opportunity-preference-options" role="group" aria-label="Type of collaboration">
+          <button type="button" class="opportunity-preference-btn is-active" data-opportunity-preference="unpaid">Unpaid</button>
+          <button type="button" class="opportunity-preference-btn" data-opportunity-preference="paid">Paid</button>
+          <button type="button" class="opportunity-preference-btn" data-opportunity-preference="volunteering">Volunteering</button>
+        </div>
+      </div>
+
       <!-- BRIEF DESCRIPTION (all types) -->
       <div class="field">
         <label for="description">Brief description <span class="word-count" id="desc-count">0 / 15</span></label>
@@ -334,30 +354,9 @@
   </div>
 
   <script>
-    // ─── SKILLS DATA (same as signup) ───
-    const SKILL_CATEGORIES = {
-      "Programming Languages": ["Python", "JavaScript", "TypeScript", "Java", "C / C++", "C#", "Go", "Rust", "Swift", "Kotlin", "Ruby", "PHP", "Scala", "R", "MATLAB", "Lua", "Perl", "Dart", "Assembly", "Haskell", "Clojure", "Elixir"],
-      "Web & Frontend": ["HTML / CSS", "React", "Vue.js", "Angular", "Svelte", "Next.js", "Tailwind CSS", "Bootstrap", "jQuery", "WebGL", "Three.js", "SASS / SCSS"],
-      "Backend & Infrastructure": ["Node.js", "Express.js", "Django", "Flask", "Spring Boot", "Ruby on Rails", "ASP.NET", "FastAPI", "GraphQL", "REST APIs", "gRPC", "Nginx", "Apache"],
-      "DevOps & Cloud": ["AWS", "Google Cloud", "Azure", "Docker", "Kubernetes", "CI/CD", "Terraform", "Linux Admin", "Shell / Bash", "Ansible", "Jenkins", "GitHub Actions"],
-      "Data & AI": ["SQL", "MongoDB", "PostgreSQL", "Redis", "Elasticsearch", "Data Science", "Machine Learning", "Deep Learning", "NLP", "Computer Vision", "TensorFlow", "PyTorch", "Pandas", "NumPy", "Tableau", "Power BI"],
-      "Mobile Development": ["React Native", "Flutter", "SwiftUI", "Jetpack Compose", "iOS Dev", "Android Dev", "Xamarin"],
-      "Design & Creative": ["UI/UX Design", "Figma", "Adobe Photoshop", "Adobe Illustrator", "Sketch", "InVision", "Motion Graphics", "3D Modeling", "Blender", "AutoCAD"],
-      "Writing & Communication": ["Technical Writing", "Copywriting", "Content Strategy", "SEO", "Social Media", "Public Speaking", "Grant Writing", "Documentation"],
-      "Business & Leadership": ["Project Management", "Agile / Scrum", "Product Management", "Marketing Strategy", "Financial Modeling", "Pitch Deck", "Sales", "Negotiation", "Team Leadership", "Strategic Planning"],
-      "Science & Math": ["Physics", "Chemistry", "Biology", "Statistics", "Calculus", "Linear Algebra", "Research Methods", "Lab Techniques"],
-      "Culinary & Food": ["Cooking", "Baking", "Food Safety", "Menu Planning", "Meal Prep", "Catering", "Nutrition Knowledge", "Food Photography"],
-      "Mechanical & Trades": ["CAD / SolidWorks", "3D Printing", "Welding", "Woodworking", "Electrical Wiring", "Plumbing", "CNC Machining", "Robotics"],
-      "Aviation & Marine": ["Pilot Knowledge", "Drone Operation", "Aviation Safety", "Marine Navigation", "Sailing", "Aircraft Maintenance"],
-      "Languages & Culture": ["Spanish", "Mandarin", "French", "German", "Japanese", "Arabic", "Portuguese", "ASL", "Translation", "Cultural Competency"],
-      "Fitness & Outdoors": ["Personal Training", "Yoga", "First Aid / CPR", "Wilderness Survival", "Rock Climbing", "Swimming", "Coaching"]
-    };
-
-    const allSkills = [];
-    for (const [cat, skills] of Object.entries(SKILL_CATEGORIES)) {
-      skills.forEach(s => allSkills.push(s));
-    }
-    allSkills.sort();
+    // Skills come from the same canonical taxonomy used by signup.
+    let allSkills = [];
+    let skillSynonyms = {};
 
     // Build skill chips
     const skillsGrid = document.getElementById('skills-grid');
@@ -368,7 +367,7 @@
     function renderSkills(filter = '') {
       const fl = filter.toLowerCase();
       skillsGrid.innerHTML = allSkills
-        .filter(s => !fl || s.toLowerCase().includes(fl))
+        .filter(s => !fl || s.toLowerCase().includes(fl) || (skillSynonyms[s] || []).some(alias => alias.toLowerCase().includes(fl)))
         .map(s => {
           const id = 'sk-' + s.replace(/[^a-zA-Z0-9]/g, '-');
           const checked = selectedSkills.includes(s);
@@ -403,8 +402,20 @@
       cnt.className = 'chip-count' + (selectedSkills.length === MAX_SKILLS ? ' at-limit' : '');
     }
 
-    renderSkills();
     document.getElementById('skill-search').addEventListener('input', (e) => renderSkills(e.target.value));
+
+    fetch('/api/match/entities').then(response => {
+      if (!response.ok) throw new Error('Could not load the current skills list.');
+      return response.json();
+    }).then(taxonomy => {
+      if (!Array.isArray(taxonomy.skills)) throw new Error('Invalid skills list.');
+      allSkills = [...taxonomy.skills].sort((a, b) => a.localeCompare(b));
+      skillSynonyms = taxonomy.skill_synonyms || {};
+      renderSkills(document.getElementById('skill-search').value);
+    }).catch(error => {
+      skillsGrid.textContent = error.message;
+      skillsGrid.style.color = 'var(--error)';
+    });
 
     // ─── WORD COUNT HELPERS ───
     function countWords(val) { return val.trim() ? val.trim().split(/\s+/).length : 0; }
@@ -465,12 +476,29 @@
 
     // ─── TYPE SELECTOR ───
     let selectedType = 'project';
+    let selectedOpportunityPreference = 'unpaid';
+    const opportunityPreferenceDefaults = { project: 'unpaid', nonprofit: 'volunteering', company: 'paid' };
+
+    function setOpportunityPreference(preference) {
+      selectedOpportunityPreference = preference;
+      document.querySelectorAll('[data-opportunity-preference]').forEach(button => {
+        const active = button.dataset.opportunityPreference === preference;
+        button.classList.toggle('is-active', active);
+        button.setAttribute('aria-pressed', String(active));
+      });
+    }
+
+    document.querySelectorAll('[data-opportunity-preference]').forEach(button => {
+      button.addEventListener('click', () => setOpportunityPreference(button.dataset.opportunityPreference));
+    });
+
     function selectType(type, btn) {
       selectedType = type;
       document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('is-active'));
       btn.classList.add('is-active');
       document.querySelectorAll('.type-section').forEach(s => s.classList.remove('active'));
       document.getElementById('section-' + type).classList.add('active');
+      setOpportunityPreference(opportunityPreferenceDefaults[type]);
     }
 
     // ─── REMOTE / LOCATION ───
@@ -596,6 +624,7 @@
         longitude: (!remoteCheck.checked && selectedLocation) ? selectedLocation.lon : null,
         contact_links: contactLinks
       };
+      body.opportunity_preference = selectedOpportunityPreference;
 
       if (selectedType === 'project') {
         body.title = (document.getElementById('project-title').value || '').trim();
@@ -735,6 +764,9 @@
         // Select type
         const typeBtn = document.querySelector(`.type-btn[onclick*="'${type}'"]`);
         if (typeBtn) selectType(type, typeBtn);
+        if (['paid', 'unpaid', 'volunteering'].includes(f.opportunity_preference)) {
+          setOpportunityPreference(f.opportunity_preference);
+        }
 
         // Fill type-specific fields
         if (type === 'project') {
@@ -848,6 +880,7 @@
         type: selectedType,
         looking_for: lookingFor.value.trim(),
         skills: selectedSkills,
+        opportunity_preference: selectedOpportunityPreference,
         description: desc.value.trim(),
         details: document.getElementById('details').value.trim(),
         remote: remoteCheck.checked,
@@ -933,6 +966,9 @@
         // Select type
         const typeBtn = document.querySelector(`.type-btn[onclick*="'${type}'"]`);
         if (typeBtn) selectType(type, typeBtn);
+        if (['paid', 'unpaid', 'volunteering'].includes(f.opportunity_preference)) {
+          setOpportunityPreference(f.opportunity_preference);
+        }
 
         // Fill type-specific fields
         if (type === 'project') {
