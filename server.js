@@ -259,7 +259,6 @@ app.use((req, res, next) => {
 // Staff dashboard protection - only accessible to authorized staff members
 // Serve staff page (HTML) when hitting /staff exactly
 const store = require('./backend/store');
-const { isAdminCredentials } = require('./backend/admin');
 
 // Redirect /staff (no trailing slash) → /staff/ so relative URLs resolve correctly
 app.get(/^\/staff$/, (req, res) => res.redirect(301, '/staff/'));

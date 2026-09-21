@@ -55,12 +55,6 @@ function bestAgainst(kind, target, candidates) {
   if (!tv || !candidates?.length) return 0;
   return Math.max(...candidates.map(x => x === target ? 1 : semantic(tv, vector(kind, x))));
 }
-function bestCross(targetKind, target, candidateKind, candidates) {
-  const tv = vector(targetKind, target);
-  if (!tv || !candidates?.length) return 0;
-  return Math.max(...candidates.map(x => semantic(tv, vector(candidateKind, x))));
-}
-
 function score(user, opportunity) {
   const userSkills = (user?.skills || []).map(canonicalSkill), interests = (user?.interests || []).map(canonicalInterest);
   const required = (opportunity?.skills || opportunity?.required_skills || []).map(canonicalSkill);

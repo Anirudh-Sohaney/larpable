@@ -5,7 +5,7 @@
  * Uses cosine similarity over BGE embedding vectors.
  */
 
-const { entitySimilarity, matchScore, rankOpportunities, score, rank, computeDistanceScore, computeDistanceMiles, haversineDistance, CONFIG, dimensions, model } = require('./similarity');
+const { entitySimilarity, score, rank, computeDistanceScore, computeDistanceMiles, haversineDistance, CONFIG, dimensions, model } = require('./similarity');
 const taxonomy = require('./taxonomy.json');
 
 module.exports = {
