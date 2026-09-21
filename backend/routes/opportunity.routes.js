@@ -24,7 +24,6 @@ const { encryptObject, decryptObject } = require('../crypto');
 const { sanitizeObject } = require('../sanitize');
 const { geocode } = require('../geocode');
 const { scanFields, applyFlag, flagNotice } = require('../profanity');
-const { normalizeOpportunitySkills } = require('../skill-normalization');
 
 const OPPORTUNITY_PREFERENCES = new Set(['volunteering', 'paid', 'unpaid']);
 const DEFAULT_OPPORTUNITY_PREFERENCE = { project: 'unpaid', nonprofit: 'volunteering', company: 'paid' };
@@ -208,7 +207,7 @@ router.post('/', requireAuth, async (req, res) => {
         latitude: cleanFields.latitude || null,
         longitude: cleanFields.longitude || null,
         contact_links: Array.isArray(cleanFields.contact_links) ? cleanFields.contact_links.filter(l => l && l.trim()) : (cleanFields.contact ? [cleanFields.contact] : []),
-        skills: normalizeOpportunitySkills(cleanFields.skills || []),
+        skills: cleanFields.skills || [],
         details: cleanFields.details || '',
         opportunity_preference: opportunityPreference,
         // Nonprofit-specific
@@ -392,9 +391,6 @@ router.patch('/:id', requireAuth, async (req, res) => {
       ? req.body.type
       : opp.type;
     const updatedFields = { ...currentFields, ...sanitizeObject(updates) };
-    if (updates.skills !== undefined) {
-      updatedFields.skills = normalizeOpportunitySkills(updatedFields.skills);
-    }
     if (!OPPORTUNITY_PREFERENCES.has(updatedFields.opportunity_preference)) {
       updatedFields.opportunity_preference = DEFAULT_OPPORTUNITY_PREFERENCE[nextType] || 'unpaid';
     }

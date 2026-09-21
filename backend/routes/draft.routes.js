@@ -23,7 +23,6 @@ const store = require('../store');
 const { encryptObject } = require('../crypto');
 const { sanitizeObject } = require('../sanitize');
 const { scanFields, applyFlag, flagNotice } = require('../profanity');
-const { normalizeOpportunitySkills } = require('../skill-normalization');
 
 const DRAFTS_FILE = 'drafts.json';
 const MAX_DRAFTS = 5;
@@ -208,7 +207,7 @@ router.post('/:id/publish', requireAuth, async (req, res) => {
         location: fields.location || '',
         remote: fields.remote !== undefined ? fields.remote : true,
         contact_links: Array.isArray(fields.contact_links) ? fields.contact_links.filter(l => l && l.trim()) : (fields.contact ? [fields.contact] : []),
-        skills: normalizeOpportunitySkills(fields.skills || []),
+        skills: fields.skills || [],
         details: fields.details || '',
         opportunity_preference: ['volunteering', 'paid', 'unpaid'].includes(fields.opportunity_preference)
           ? fields.opportunity_preference

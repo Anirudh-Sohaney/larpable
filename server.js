@@ -260,10 +260,6 @@ app.use((req, res, next) => {
 // Serve staff page (HTML) when hitting /staff exactly
 const store = require('./backend/store');
 const { isAdminCredentials } = require('./backend/admin');
-const { ensureOpportunityPreference } = require('./backend/migrations/ensure-opportunity-preference');
-const { ensureOpportunityPostPreference } = require('./backend/migrations/ensure-opportunity-post-preference');
-const { normalizeOpportunityPostSkills } = require('./backend/migrations/normalize-opportunity-skills');
-const { applyOpportunityPreferenceOverrides } = require('./backend/migrations/apply-opportunity-preference-overrides');
 
 // Redirect /staff (no trailing slash) → /staff/ so relative URLs resolve correctly
 app.get(/^\/staff$/, (req, res) => res.redirect(301, '/staff/'));
@@ -341,29 +337,6 @@ app.get('/staff/', async (req, res) => {
 app.use('/staff', express.static(path.join(__dirname, 'staff')));
 
 // ── Start Server ─────────────────────────────────────────────
-let startupMigrationsStarted = false;
-
-async function runStartupDataMigrations() {
-  if (startupMigrationsStarted) return;
-  startupMigrationsStarted = true;
-
-  try {
-    const usersUpdated = await ensureOpportunityPreference();
-    if (usersUpdated > 0) console.log(`Opportunity preference migration: updated ${usersUpdated} user(s)`);
-
-    const postPreferencesUpdated = await ensureOpportunityPostPreference();
-    if (postPreferencesUpdated > 0) console.log(`Opportunity post preference migration: updated ${postPreferencesUpdated} post(s)`);
-
-    const preferenceOverridesUpdated = await applyOpportunityPreferenceOverrides();
-    if (preferenceOverridesUpdated > 0) console.log(`Opportunity preference overrides: updated ${preferenceOverridesUpdated} post(s)`);
-
-    const postSkillsUpdated = await normalizeOpportunityPostSkills();
-    if (postSkillsUpdated > 0) console.log(`Opportunity skill migration: updated ${postSkillsUpdated} post(s)`);
-  } catch (err) {
-    console.error('Startup data migration error:', err.message);
-  }
-}
-
 function startServer(port) {
   const server = app.listen(port, HOST, () => {
     console.log(`\n  ┌─────────────────────────────────────┐`);
@@ -375,7 +348,6 @@ function startServer(port) {
     console.log(`  │  Data:      backend/data/*.json      │`);
     console.log(`  │  Env:       ${IS_PRODUCTION ? 'production' : 'development'}              │`);
     console.log(`  └─────────────────────────────────────┘\n`);
-    runStartupDataMigrations();
   });
 
   server.on('error', (err) => {
