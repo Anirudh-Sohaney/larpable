@@ -149,7 +149,12 @@ const Feed = {
     const mine = this.showingYours && (o.created_by || o.issuer_id) === DataStore.getCurrentUser()?.id;
     const isSaved = DataStore.getCurrentUser()?.saved_posts?.includes(o.id);
     const TYPE = { project: 'Project', nonprofit: 'Nonprofit', company: 'Company' };
-    const preference = o.opportunity_preference === 'volunteer' ? 'volunteering' : o.opportunity_preference;
+    const rawPreference = String(o.opportunity_preference || '').toLowerCase();
+    const preference = rawPreference === 'volunteer'
+      ? 'volunteering'
+      : (rawPreference === 'paid' || rawPreference === 'volunteering' || rawPreference === 'unpaid'
+          ? rawPreference
+          : (o.type === 'nonprofit' ? 'volunteering' : ''));
     const preferenceBadge = preference === 'paid' || preference === 'volunteering'
       ? `<span class="d-badge d-badge--${preference}">${preference === 'paid' ? 'Paid' : 'Volunteering'}</span>`
       : '';
