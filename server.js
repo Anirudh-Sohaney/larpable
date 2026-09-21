@@ -263,6 +263,7 @@ const { isAdminCredentials } = require('./backend/admin');
 const { ensureOpportunityPreference } = require('./backend/migrations/ensure-opportunity-preference');
 const { ensureOpportunityPostPreference } = require('./backend/migrations/ensure-opportunity-post-preference');
 const { normalizeOpportunityPostSkills } = require('./backend/migrations/normalize-opportunity-skills');
+const { applyOpportunityPreferenceOverrides } = require('./backend/migrations/apply-opportunity-preference-overrides');
 
 // Redirect /staff (no trailing slash) → /staff/ so relative URLs resolve correctly
 app.get(/^\/staff$/, (req, res) => res.redirect(301, '/staff/'));
@@ -352,6 +353,9 @@ async function runStartupDataMigrations() {
 
     const postPreferencesUpdated = await ensureOpportunityPostPreference();
     if (postPreferencesUpdated > 0) console.log(`Opportunity post preference migration: updated ${postPreferencesUpdated} post(s)`);
+
+    const preferenceOverridesUpdated = await applyOpportunityPreferenceOverrides();
+    if (preferenceOverridesUpdated > 0) console.log(`Opportunity preference overrides: updated ${preferenceOverridesUpdated} post(s)`);
 
     const postSkillsUpdated = await normalizeOpportunityPostSkills();
     if (postSkillsUpdated > 0) console.log(`Opportunity skill migration: updated ${postSkillsUpdated} post(s)`);
