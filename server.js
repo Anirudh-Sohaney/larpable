@@ -259,7 +259,6 @@ app.use((req, res, next) => {
 // Staff dashboard protection - only accessible to authorized staff members
 // Serve staff page (HTML) when hitting /staff exactly
 const store = require('./backend/store');
-const { adaptExistingData } = require('./backend/migrations/adapt-existing-data');
 
 // Redirect /staff (no trailing slash) → /staff/ so relative URLs resolve correctly
 app.get(/^\/staff$/, (req, res) => res.redirect(301, '/staff/'));
@@ -361,15 +360,7 @@ function startServer(port) {
   return server;
 }
 
-if (require.main === module) {
-  const prepare = IS_PRODUCTION
-    ? adaptExistingData().then(counts => console.log('Existing data adaptation complete:', counts))
-    : Promise.resolve();
-  prepare.then(() => startServer(PORT)).catch(err => {
-    console.error('Existing data adaptation failed; server will not start:', err.message);
-    process.exitCode = 1;
-  });
-}
+if (require.main === module) startServer(PORT);
 
 module.exports = { app, startServer };
 
