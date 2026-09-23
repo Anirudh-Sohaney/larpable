@@ -15,6 +15,10 @@ const cookieParser = require('cookie-parser');
 const path = require('path');
 
 const app = express();
+// The production app sits behind Nginx on the same host. Trust only loopback
+// proxies so Express can use Nginx's forwarded client address for per-IP
+// rate limiting without trusting arbitrary client-supplied proxy headers.
+app.set('trust proxy', 'loopback');
 const PORT = process.env.PORT || 9194;
 const HOST = process.env.HOST || '0.0.0.0';
 const IS_PRODUCTION = process.env.NODE_ENV === 'production';
