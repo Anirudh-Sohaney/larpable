@@ -185,7 +185,9 @@ router.post('/', requireAuth, async (req, res) => {
       return res.status(400).json({ error: 'Invalid opportunity preference' });
     }
 
-    const oppId = auth.generateOpportunityId(cleanFields.title, Date.now().toString());
+    // A timestamp alone can collide when two identical posts arrive in the
+    // same millisecond; random IDs keep one creation from replacing another.
+    const oppId = 'opp_' + require('crypto').randomBytes(12).toString('hex');
     
     // Build issuer info from user profile
     const userFields = decryptObject(req.user.encrypted_fields || {});
@@ -269,9 +271,6 @@ router.post('/:id/comments', requireAuth, async (req, res) => {
       return res.status(400).json({ error: 'Profanity detected. Comment not accepted.' });
     }
 
-    const currentFields = decryptObject(opp.encrypted_fields || {});
-    const comments = currentFields.comments || [];
-    
     // Get user details for author name
     const userFields = decryptObject(req.user.encrypted_fields || {});
     const authorName = [userFields.firstName || userFields.first_name, userFields.lastName || userFields.last_name].filter(Boolean).join(' ') || req.user.username || 'Anonymous';
@@ -285,16 +284,23 @@ router.post('/:id/comments', requireAuth, async (req, res) => {
       read_by_op: req.user.id === opp.created_by
     };
 
-    comments.push(newComment);
-    currentFields.comments = comments;
-
-    opp.encrypted_fields = encryptObject(currentFields);
-    await store.saveOpportunity(req.params.id, opp);
+    await store.atomicUpdate('opportunities.json', opportunities => {
+      const latest = opportunities[req.params.id];
+      if (!latest || (latest.flagged && latest.created_by !== req.user.id && req.user.id !== 'admin_larpable')) {
+        throw Object.assign(new Error('Opportunity not found'), { status: 404, expectedStoreConflict: true });
+      }
+      const currentFields = decryptObject(latest.encrypted_fields || {});
+      const comments = Array.isArray(currentFields.comments) ? currentFields.comments : [];
+      comments.push(newComment);
+      currentFields.comments = comments;
+      latest.encrypted_fields = encryptObject(currentFields);
+      return opportunities;
+    });
 
     res.json({ ok: true, comment: newComment });
   } catch (e) {
     console.error('Add comment error:', e);
-    res.status(500).json({ error: 'Server error' });
+    res.status(e.status || 500).json({ error: e.status ? e.message : 'Server error' });
   }
 });
 
@@ -324,10 +330,8 @@ router.post('/:id/comments/:commentId/replies', requireAuth, async (req, res) =>
       return res.status(400).json({ error: 'Profanity detected. Reply not accepted.' });
     }
 
-    const currentFields = decryptObject(opp.encrypted_fields || {});
-    const comments = currentFields.comments || [];
-    
-    const comment = comments.find(c => c.id === req.params.commentId);
+    const initialFields = decryptObject(opp.encrypted_fields || {});
+    const comment = (initialFields.comments || []).find(c => c.id === req.params.commentId);
     if (!comment) {
       return res.status(404).json({ error: 'Comment not found' });
     }
@@ -344,17 +348,26 @@ router.post('/:id/comments/:commentId/replies', requireAuth, async (req, res) =>
       read_by_parent_author: req.user.id === comment.user_id
     };
 
-    if (!comment.replies) comment.replies = [];
-    comment.replies.push(newReply);
-    
-    currentFields.comments = comments;
-    opp.encrypted_fields = encryptObject(currentFields);
-    await store.saveOpportunity(req.params.id, opp);
+    await store.atomicUpdate('opportunities.json', opportunities => {
+      const latest = opportunities[req.params.id];
+      if (!latest || (latest.flagged && latest.created_by !== req.user.id && req.user.id !== 'admin_larpable')) {
+        throw Object.assign(new Error('Opportunity not found'), { status: 404, expectedStoreConflict: true });
+      }
+      const currentFields = decryptObject(latest.encrypted_fields || {});
+      const comments = Array.isArray(currentFields.comments) ? currentFields.comments : [];
+      const latestComment = comments.find(c => c.id === req.params.commentId);
+      if (!latestComment) throw Object.assign(new Error('Comment not found'), { status: 404, expectedStoreConflict: true });
+      if (!Array.isArray(latestComment.replies)) latestComment.replies = [];
+      latestComment.replies.push(newReply);
+      currentFields.comments = comments;
+      latest.encrypted_fields = encryptObject(currentFields);
+      return opportunities;
+    });
 
     res.json({ ok: true, reply: newReply });
   } catch (e) {
     console.error('Add reply error:', e);
-    res.status(500).json({ error: 'Server error' });
+    res.status(e.status || 500).json({ error: e.status ? e.message : 'Server error' });
   }
 });
 
@@ -371,9 +384,6 @@ router.patch('/:id', requireAuth, async (req, res) => {
       return res.status(403).json({ error: 'Not authorized' });
     }
     
-    // Get current decrypted fields
-    const currentFields = decryptObject(opp.encrypted_fields || {});
-    
     // Merge updates — whitelist of safe fields only (Issue #8 fix)
     // 'created_by', 'id', 'created_at' are NEVER overwritable.
     // 'type' is handled separately below.
@@ -387,32 +397,34 @@ router.patch('/:id', requireAuth, async (req, res) => {
     if (updates.opportunity_preference !== undefined && !OPPORTUNITY_PREFERENCES.has(updates.opportunity_preference)) {
       return res.status(400).json({ error: 'Invalid opportunity preference' });
     }
-    const nextType = req.body.type && ['project', 'nonprofit', 'company'].includes(req.body.type)
-      ? req.body.type
-      : opp.type;
-    const updatedFields = { ...currentFields, ...sanitizeObject(updates) };
-    if (!OPPORTUNITY_PREFERENCES.has(updatedFields.opportunity_preference)) {
-      updatedFields.opportunity_preference = DEFAULT_OPPORTUNITY_PREFERENCE[nextType] || 'unpaid';
-    }
-    
-    // Edits are re-scanned too, so profanity can't slip in after approval.
-    const scan = scanFields(updatedFields);
-    applyFlag(opp, scan, new Date().toISOString());
-
-    // Re-encrypt
-    opp.encrypted_fields = encryptObject(updatedFields);
-    
-    // Type can only be changed to valid values
-    opp.type = nextType;
-    
-    await store.saveOpportunity(req.params.id, opp);
+    let scan;
+    await store.atomicUpdate('opportunities.json', opportunities => {
+      const latest = opportunities[req.params.id];
+      if (!latest) throw Object.assign(new Error('Opportunity not found'), { status: 404, expectedStoreConflict: true });
+      if (latest.created_by !== req.user.id && req.user.id !== 'admin_larpable') {
+        throw Object.assign(new Error('Not authorized'), { status: 403, expectedStoreConflict: true });
+      }
+      const currentFields = decryptObject(latest.encrypted_fields || {});
+      const nextType = req.body.type && ['project', 'nonprofit', 'company'].includes(req.body.type)
+        ? req.body.type
+        : latest.type;
+      const updatedFields = { ...currentFields, ...sanitizeObject(updates) };
+      if (!OPPORTUNITY_PREFERENCES.has(updatedFields.opportunity_preference)) {
+        updatedFields.opportunity_preference = DEFAULT_OPPORTUNITY_PREFERENCE[nextType] || 'unpaid';
+      }
+      scan = scanFields(updatedFields);
+      applyFlag(latest, scan, new Date().toISOString());
+      latest.encrypted_fields = encryptObject(updatedFields);
+      latest.type = nextType;
+      return opportunities;
+    });
     
     res.json(scan.flagged
       ? { ok: true, flagged: true, message: flagNotice(scan.terms) }
       : { ok: true });
   } catch (e) {
     console.error('Update opportunity error:', e);
-    res.status(500).json({ error: 'Server error' });
+    res.status(e.status || 500).json({ error: e.status ? e.message : 'Server error' });
   }
 });
 

@@ -91,7 +91,6 @@ const App = {
          };
          
          updateNavBadge();
-         setInterval(updateNavBadge, 4000);
        }
        
        const profileBtn = document.getElementById('bottom-nav-profile-btn');

@@ -12,7 +12,7 @@
 const express = require('express');
 const router = express.Router();
 const auth = require('../auth');
-const { emailExists, isEmailVerified, consumeVerifiedEmail } = require('./verify.routes');
+const { emailExists, claimVerifiedEmail, releaseVerifiedEmail, consumeVerifiedEmail } = require('./verify.routes');
 
 const COOKIE_NAME = 'larpable_session';
 const COOKIE_MAX_AGE = 30 * 24 * 60 * 60 * 1000; // 30 days
@@ -29,18 +29,30 @@ const COOKIE_OPTIONS = {
   ...(IS_PRODUCTION && { secure: true })
 };
 
+function requestAbortSignal(req, res) {
+  const controller = new AbortController();
+  res.once('close', () => {
+    if (!res.writableEnded) controller.abort();
+  });
+  return controller.signal;
+}
+
 // ── POST /api/auth/signup ────────────────────────────────────
 router.post('/signup', async (req, res) => {
+  let reservedSignupEmail = '';
   try {
+    if (!req.body || typeof req.body !== 'object' || Array.isArray(req.body)) {
+      return res.status(400).json({ error: 'A JSON object is required' });
+    }
     const { username, password, type, legal_agreed, ...profile } = req.body;
     
     // Validate required fields
-    if (!username || !password || !type) {
+    if (typeof username !== 'string' || typeof password !== 'string' || !type) {
       return res.status(400).json({ error: 'Username, password, and type are required' });
     }
     
     // Require legal agreement
-    if (!legal_agreed) {
+    if (legal_agreed !== true) {
       return res.status(400).json({ error: 'You must agree to the Terms of Service and Privacy Policy' });
     }
     
@@ -48,8 +60,8 @@ router.post('/signup', async (req, res) => {
       return res.status(400).json({ error: 'Username must be 3-30 characters' });
     }
     
-    if (password.length < 6) {
-      return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    if (password.length < 6 || password.length > 1024) {
+      return res.status(400).json({ error: 'Password must be 6-1024 characters' });
     }
     
     if (type !== 'student') {
@@ -57,10 +69,10 @@ router.post('/signup', async (req, res) => {
     }
     
     // Validate min interests and skills
-    if (!profile.interests || profile.interests.length < 3) {
+    if (!Array.isArray(profile.interests) || profile.interests.length < 3 || profile.interests.length > 100 || profile.interests.some(value => typeof value !== 'string' || value.length > 120)) {
       return res.status(400).json({ error: 'Select at least 3 interests' });
     }
-    if (!profile.skills || profile.skills.length < 3) {
+    if (!Array.isArray(profile.skills) || profile.skills.length < 3 || profile.skills.length > 100 || profile.skills.some(value => typeof value !== 'string' || value.length > 120)) {
       return res.status(400).json({ error: 'Select at least 3 skills' });
     }
 
@@ -89,35 +101,42 @@ router.post('/signup', async (req, res) => {
     // address can be stored that way.) Stamp is consumed after success so
     // failed validations don't burn it.
     const signupEmail = profile.email ? String(profile.email).trim().toLowerCase() : '';
-    if (signupEmail && !isEmailVerified(signupEmail)) {
+    if (signupEmail && !claimVerifiedEmail(signupEmail)) {
       return res.status(403).json({ error: 'Please verify your email before signing up' });
     }
+    if (signupEmail) reservedSignupEmail = signupEmail;
 
-    const result = await auth.signup({ username, password, type, profile });
-    if (signupEmail) consumeVerifiedEmail(signupEmail);
-    
-    // Record legal agreement for this user
+    const store = require('../store');
+    let versions;
     try {
-      const store = require('../store');
-      const versions = await store.read('legal_versions.json');
-      const legalVersions = versions.terms?.version && versions.privacy?.version ? versions : DEFAULT_LEGAL_VERSIONS;
-      const rawUser = await store.getRawUser(result.userId);
-      if (rawUser) {
-        rawUser.legal_agreements = {
-          terms_version: legalVersions.terms.version,
-          privacy_version: legalVersions.privacy.version,
-          agreed_at: new Date().toISOString()
-        };
-        await store.saveUser(result.userId, rawUser);
-      }
+      versions = await store.read('legal_versions.json');
     } catch (e) {
-      console.error('Failed to record legal agreement:', e);
+      console.error('Could not read legal versions:', e);
+      if (reservedSignupEmail) releaseVerifiedEmail(reservedSignupEmail);
+      return res.status(503).json({ error: 'Signup temporarily unavailable' });
+    }
+    const legalVersions = versions.terms?.version && versions.privacy?.version ? versions : DEFAULT_LEGAL_VERSIONS;
+    const legalAgreement = {
+      terms_version: legalVersions.terms.version,
+      privacy_version: legalVersions.privacy.version,
+      agreed_at: new Date().toISOString()
+    };
+    const result = await auth.signup({ username, password, type, profile, legalAgreement, signal: requestAbortSignal(req, res) });
+    if (signupEmail) {
+      consumeVerifiedEmail(signupEmail);
+      reservedSignupEmail = '';
     }
     
     res.cookie(COOKIE_NAME, result.token, COOKIE_OPTIONS);
     
     res.json({ userId: result.userId, type });
   } catch (e) {
+    if (reservedSignupEmail) releaseVerifiedEmail(reservedSignupEmail);
+    if (e.code === 'AUTH_WORK_CANCELLED') return;
+    if (e.code === 'AUTH_WORK_QUEUE_FULL') {
+      res.set('Retry-After', '2');
+      return res.status(503).json({ error: 'Authentication is busy. Please try again shortly.', retryAfter: 2 });
+    }
     if (e.message === 'Username already taken') {
       return res.status(409).json({ error: e.message });
     }
@@ -129,18 +148,29 @@ router.post('/signup', async (req, res) => {
 // ── POST /api/auth/login ─────────────────────────────────────
 router.post('/login', async (req, res) => {
   try {
+    if (!req.body || typeof req.body !== 'object' || Array.isArray(req.body)) {
+      return res.status(400).json({ error: 'A JSON object is required' });
+    }
     const { username, password } = req.body;
     
-    if (!username || !password) {
+    if (typeof username !== 'string' || typeof password !== 'string' || !username || !password) {
       return res.status(400).json({ error: 'Username and password are required' });
     }
+    if (username.length > 256 || password.length > 1024) {
+      return res.status(400).json({ error: 'Credentials are too long' });
+    }
     
-    const result = await auth.login(username, password);
+    const result = await auth.login(username, password, requestAbortSignal(req, res));
     
     res.cookie(COOKIE_NAME, result.token, COOKIE_OPTIONS);
     
     res.json({ userId: result.userId, type: result.user.type, role: result.user.role || 'student' });
   } catch (e) {
+    if (e.code === 'AUTH_WORK_CANCELLED') return;
+    if (e.code === 'AUTH_WORK_QUEUE_FULL') {
+      res.set('Retry-After', '2');
+      return res.status(503).json({ error: 'Authentication is busy. Please try again shortly.', retryAfter: 2 });
+    }
     if (e.message === 'Invalid username or password') {
       return res.status(401).json({ error: e.message });
     }

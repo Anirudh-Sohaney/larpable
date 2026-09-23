@@ -357,6 +357,7 @@
     // Skills come from the same canonical taxonomy used by signup.
     let allSkills = [];
     let skillSynonyms = {};
+    let skillAliases = {};
 
     // Build skill chips
     const skillsGrid = document.getElementById('skills-grid');
@@ -394,6 +395,7 @@
         });
       });
       updateSkillCount();
+      showUnrecognizedSavedSkills();
     }
 
     function updateSkillCount() {
@@ -402,16 +404,56 @@
       cnt.className = 'chip-count' + (selectedSkills.length === MAX_SKILLS ? ' at-limit' : '');
     }
 
+    function canonicalizeSelectedSkills(values) {
+      const canonicalByName = new Map(allSkills.map(skill => [skill.toLowerCase(), skill]));
+      const result = [];
+      for (const value of Array.isArray(values) ? values : []) {
+        if (typeof value !== 'string') continue;
+        const canonical = canonicalByName.get(value.toLowerCase()) || skillAliases[value.toLowerCase()] || value;
+        if (!result.includes(canonical)) result.push(canonical);
+      }
+      return result;
+    }
+
+    function showUnrecognizedSavedSkills() {
+      let notice = document.getElementById('legacy-skills-notice');
+      if (!notice) {
+        notice = document.createElement('p');
+        notice.id = 'legacy-skills-notice';
+        notice.className = 'hint';
+        skillsGrid.after(notice);
+      }
+      const unknown = selectedSkills.filter(skill => !allSkills.includes(skill));
+      notice.replaceChildren();
+      if (!unknown.length) return;
+      notice.append('Saved skills not in the current list (preserved unless removed): ');
+      unknown.forEach((skill, index) => {
+        if (index) notice.append(', ');
+        const remove = document.createElement('button');
+        remove.type = 'button';
+        remove.textContent = `${skill} ×`;
+        remove.setAttribute('aria-label', `Remove saved skill ${skill}`);
+        remove.addEventListener('click', () => {
+          selectedSkills = selectedSkills.filter(value => value !== skill);
+          renderSkills(document.getElementById('skill-search').value);
+        });
+        notice.appendChild(remove);
+      });
+    }
+
     document.getElementById('skill-search').addEventListener('input', (e) => renderSkills(e.target.value));
 
-    fetch('/api/match/entities').then(response => {
+    const skillsReady = fetch('/api/match/entities', { cache: 'no-store' }).then(response => {
       if (!response.ok) throw new Error('Could not load the current skills list.');
       return response.json();
     }).then(taxonomy => {
       if (!Array.isArray(taxonomy.skills)) throw new Error('Invalid skills list.');
       allSkills = [...taxonomy.skills].sort((a, b) => a.localeCompare(b));
       skillSynonyms = taxonomy.skill_synonyms || {};
+      skillAliases = Object.fromEntries(Object.entries(taxonomy.skill_aliases || {}).map(([alias, canonical]) => [alias.toLowerCase(), canonical]));
+      selectedSkills = canonicalizeSelectedSkills(selectedSkills);
       renderSkills(document.getElementById('skill-search').value);
+      showUnrecognizedSavedSkills();
     }).catch(error => {
       skillsGrid.textContent = error.message;
       skillsGrid.style.color = 'var(--error)';
@@ -788,8 +830,10 @@
 
         // Skills
         const skills = f.skills || [];
-        selectedSkills = [...skills];
+        await skillsReady.catch(() => {});
+        selectedSkills = canonicalizeSelectedSkills(skills);
         renderSkills();
+        showUnrecognizedSavedSkills();
 
         // Description
         document.getElementById('description').value = f.description || '';
@@ -990,8 +1034,10 @@
 
         // Skills
         const skills = f.skills || [];
-        selectedSkills = [...skills];
+        await skillsReady.catch(() => {});
+        selectedSkills = canonicalizeSelectedSkills(skills);
         renderSkills();
+        showUnrecognizedSavedSkills();
 
         // Description
         document.getElementById('description').value = f.description || '';

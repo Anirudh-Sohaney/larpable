@@ -9,7 +9,7 @@
  * All store operations are async (non-blocking I/O).
  */
 
-const { sha256, sha256Lookup, verifyHash, generateToken, hashToken, encryptObject, decryptObject } = require('./crypto');
+const { sha256, sha256Lookup, hashPassword, verifyPassword, generateToken, hashToken, encryptObject, decryptObject } = require('./crypto');
 const { sanitizeObject } = require('./sanitize');
 const store = require('./store');
 
@@ -34,6 +34,13 @@ function generateOpportunityId(title, timestamp) {
   return 'opp_' + hash.substring(0, 12);
 }
 
+function assertRequestActive(signal) {
+  if (!signal?.aborted) return;
+  const cancelled = new Error('Authentication request cancelled.');
+  cancelled.code = 'AUTH_WORK_CANCELLED';
+  throw cancelled;
+}
+
 // ── Signup ───────────────────────────────────────────────────
 
 /**
@@ -46,7 +53,7 @@ function generateOpportunityId(title, timestamp) {
  * @returns {Promise<{ userId: string, token: string }>}
  * @throws {Error} if username already taken
  */
-async function signup({ username, password, type, profile }) {
+async function signup({ username, password, type, profile, legalAgreement, signal }) {
   // Hash username (deterministic lookup hash, no salt needed)
   const usernameHash = sha256Lookup(username);
   
@@ -57,7 +64,8 @@ async function signup({ username, password, type, profile }) {
   }
   
   // Hash password
-  const { hash: passwordHash, salt: passwordSalt } = sha256(password);
+  const passwordRecord = await hashPassword(password, signal);
+  assertRequestActive(signal);
   
   // Generate user ID
   const userId = generateUserId(usernameHash);
@@ -74,17 +82,35 @@ async function signup({ username, password, type, profile }) {
   // Build user record
   const userRecord = {
     username_hash: usernameHash,
-    password_hash: passwordHash,
-    password_salt: passwordSalt,
+    password_hash: passwordRecord.hash,
+    password_salt: passwordRecord.salt,
+    password_hash_scheme: passwordRecord.scheme,
     type: type,
     created_at: new Date().toISOString(),
-    encrypted_fields: encryptedProfile
+    encrypted_fields: encryptedProfile,
+    ...(legalAgreement && { legal_agreements: legalAgreement })
   };
   
-  // Save user
-  await store.saveUser(userId, userRecord);
+  // Re-check uniqueness inside the serialized write. The earlier lookup is a
+  // fast path; this closes the race between simultaneous signups and prevents
+  // one request from replacing another account's profile.
+  await store.atomicUpdate('users.json', users => {
+    if (Object.values(users).some(user => user.username_hash === usernameHash)) {
+      const conflict = new Error('Username already taken');
+      conflict.expectedStoreConflict = true;
+      throw conflict;
+    }
+    if (users[userId]) {
+      const conflict = new Error('User identifier collision');
+      conflict.expectedStoreConflict = true;
+      throw conflict;
+    }
+    users[userId] = userRecord;
+    return users;
+  });
   
   // Create session
+  assertRequestActive(signal);
   const token = await createSession(userId);
   
   return { userId, token };
@@ -99,12 +125,13 @@ async function signup({ username, password, type, profile }) {
  * @returns {Promise<{ userId: string, token: string, user: Object }>}
  * @throws {Error} if credentials invalid
  */
-async function login(username, password) {
+async function login(username, password, signal) {
   // Check for admin credentials first
   const { isAdminCredentials, getAdminUserData } = require('./admin');
   if (isAdminCredentials(username, password)) {
     // Create a special admin session
     const adminId = 'admin_larpable';
+    assertRequestActive(signal);
     const token = await createSession(adminId);
     const adminUser = getAdminUserData();
     adminUser.id = adminId;
@@ -116,31 +143,55 @@ async function login(username, password) {
   
   const found = await store.findUserByUsernameHash(usernameHash);
   if (!found) {
+    // Do comparable password work for unknown usernames to reduce account
+    // enumeration through response timing.
+    await verifyPassword(password, '0'.repeat(128), 'bGFycGFibGUtZHVtbXktc2FsdA==', 'scrypt', signal);
     throw new Error('Invalid username or password');
   }
   
   // Verify password
-  const valid = verifyHash(password, found.record.password_hash, found.record.password_salt);
+  const valid = await verifyPassword(password, found.record.password_hash, found.record.password_salt, found.record.password_hash_scheme, signal);
   if (!valid) {
     throw new Error('Invalid username or password');
   }
 
-  // Backfill username into encrypted_fields for pre-update users
-  try {
-    const rawUser = await store.getRawUser(found.id);
-    if (rawUser) {
-      const decrypted = decryptObject(rawUser.encrypted_fields || {});
-      if (!decrypted.username) {
-        decrypted.username = username;
-        rawUser.encrypted_fields = encryptObject(decrypted);
-        await store.saveUser(found.id, rawUser);
-      }
+  // Opportunistically upgrade legacy fast hashes without changing user data.
+  // Use atomicUpdate so this metadata change cannot overwrite a simultaneous
+  // profile edit. Existing SHA-256 records remain valid until a successful login.
+  const storedFields = decryptObject(found.record.encrypted_fields || {});
+  const needsUsernameBackfill = !storedFields.username;
+  const needsPasswordUpgrade = found.record.password_hash_scheme !== 'scrypt';
+  let upgradedPassword;
+  if (needsPasswordUpgrade) upgradedPassword = await hashPassword(password, signal);
+  assertRequestActive(signal);
+  if (needsPasswordUpgrade || needsUsernameBackfill) {
+    try {
+      await store.atomicUpdate('users.json', users => {
+        const latest = users[found.id];
+        if (!latest) return users;
+        const fields = decryptObject(latest.encrypted_fields || {});
+        let changed = false;
+        if (!fields.username) {
+          fields.username = username;
+          latest.encrypted_fields = encryptObject(fields);
+          changed = true;
+        }
+        if (upgradedPassword && latest.password_hash === found.record.password_hash) {
+          latest.password_hash = upgradedPassword.hash;
+          latest.password_salt = upgradedPassword.salt;
+          latest.password_hash_scheme = upgradedPassword.scheme;
+          changed = true;
+        }
+        if (changed) users[found.id] = latest;
+        return users;
+      });
+    } catch (e) {
+      console.error('Login metadata update error:', e);
     }
-  } catch (e) {
-    console.error('Username backfill error:', e);
   }
   
   // Create session
+  assertRequestActive(signal);
   const token = await createSession(found.id);
   
   // Get decrypted user

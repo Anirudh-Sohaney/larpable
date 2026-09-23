@@ -21,30 +21,8 @@ const Feed = {
     } catch {}
     Filters.fillSelects();
     this.render();
-
-    // Live update polling for unread comments and replies
-    setInterval(async () => {
-      try {
-        const endpoint = this.showingYours ? '/api/opportunities/mine' : '/api/opportunities';
-        const newData = await fetch(endpoint, { credentials: 'same-origin' }).then(r => r.json());
-        if (!newData.opportunities) return;
-        
-        let changed = false;
-        for (const newOpp of newData.opportunities) {
-          const oldOpp = this.opportunities.find(o => o.id === newOpp.id);
-          if (oldOpp) {
-            if (oldOpp.has_unread_comments !== newOpp.has_unread_comments || oldOpp.unread_reply_comment_id !== newOpp.unread_reply_comment_id) {
-              oldOpp.has_unread_comments = newOpp.has_unread_comments;
-              oldOpp.unread_reply_comment_id = newOpp.unread_reply_comment_id;
-              changed = true;
-            }
-          }
-        }
-        if (changed) {
-          this.render();
-        }
-      } catch (e) {}
-    }, 4000);
+    // Feed data and unread-comment state refresh on page load/explicit refresh.
+    // Avoid a background full-feed request every few seconds per open tab.
   },
 
   computeDistances() {

@@ -14,6 +14,8 @@
  */
 
 const express = require('express');
+const { randomInt } = require('crypto');
+const fs = require('fs').promises;
 const verifyRouter = express.Router();
 const validateRouter = express.Router();
 const store = require('../store');
@@ -21,6 +23,7 @@ const { sha256Lookup, decryptObject } = require('../crypto');
 
 const CODE_TTL_MS = 3 * 60 * 1000;   // 3 minutes
 const MAX_ATTEMPTS = 5;
+const RESEND_COOLDOWN_MS = 60 * 1000;
 const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
 const RESEND_API_URL = 'https://api.resend.com/emails';
@@ -33,6 +36,10 @@ const verifications = new Map();
 // Consumed by signup / email-change so an address can't be stored
 // without proof of ownership (frontend step order alone is bypassable).
 const verifiedEmails = new Map();
+const claimedVerifiedEmails = new Set();
+let emailIndex = null;
+let emailIndexSignature = null;
+let emailIndexPromise = null;
 const VERIFIED_TTL_MS = 30 * 60 * 1000;   // 30 minutes
 
 // Purge expired codes periodically
@@ -48,23 +55,33 @@ const verificationCleanup = setInterval(() => {
 verificationCleanup.unref();
 
 function generateCode() {
-  return String(Math.floor(100000 + Math.random() * 900000));
+  return String(randomInt(100000, 1000000));
 }
 
 function hashCode(code) {
   return sha256Lookup('verify_code:' + code);
 }
 
+function hashesMatch(left, right) {
+  const a = Buffer.from(String(left || ''), 'hex');
+  const b = Buffer.from(String(right || ''), 'hex');
+  return a.length === 32 && b.length === 32 && require('crypto').timingSafeEqual(a, b);
+}
+
 function issueCode(email) {
+  if (IS_PRODUCTION && !RESEND_API_KEY) {
+    throw new Error('Email verification provider is not configured');
+  }
   const code = generateCode();
   verifications.set(email, {
     codeHash: hashCode(code),
+    createdAt: Date.now(),
     expiresAt: Date.now() + CODE_TTL_MS,
     attempts: 0
   });
   // Fire-and-forget delivery; the response never blocks on the provider.
   sendVerificationEmail(email, code).catch(err => {
-    console.error(`[verify] delivery failed for ${email}:`, err.message);
+    console.error('[verify] delivery failed:', err.message);
   });
   const body = { expiresIn: CODE_TTL_MS / 1000, expiresAt: Date.now() + CODE_TTL_MS };
   if (!IS_PRODUCTION) body.devCode = code;
@@ -75,22 +92,49 @@ function issueCode(email) {
  * Check if an email is already associated with a registered account.
  * Emails live inside encrypted fields, so every record is decrypted and
  * compared case-insensitively (same approach as demo/server.js emailExists).
- * Fail-open on read errors so a transient store failure can't lock out signup.
+ * Fail closed on read errors: an unreadable user file must never permit a
+ * duplicate account email to be registered.
  */
 async function emailExists(email) {
-  try {
-    const wanted = String(email || '').trim().toLowerCase();
-    if (!wanted) return false;
-    const users = await store.getAll('users.json');
-    for (const record of Object.values(users)) {
-      const fields = (decryptObject(record).encrypted_fields) || {};
-      if (fields.email && String(fields.email).trim().toLowerCase() === wanted) return true;
-    }
-    return false;
-  } catch (e) {
-    console.error('[verify] emailExists scan failed:', e.message);
-    return false;
+  const wanted = String(email || '').trim().toLowerCase();
+  if (!wanted) return false;
+  const signature = await usersFileSignature();
+  if (emailIndex && signature === emailIndexSignature) return emailIndex.has(wanted);
+
+  if (!emailIndexPromise) {
+    emailIndexPromise = buildEmailIndex().finally(() => { emailIndexPromise = null; });
   }
+  const index = await emailIndexPromise;
+  return index.has(wanted);
+}
+
+async function usersFileSignature() {
+  try {
+    const stat = await fs.stat(store.filePath('users.json'), { bigint: true });
+    return `${stat.ino}:${stat.size}:${stat.mtimeNs}`;
+  } catch (error) {
+    if (error.code === 'ENOENT') return 'missing';
+    throw error;
+  }
+}
+
+async function buildEmailIndex() {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const before = await usersFileSignature();
+    const users = await store.getAll('users.json');
+    const emails = new Set();
+    for (const record of Object.values(users)) {
+      const fields = decryptObject(record.encrypted_fields || {});
+      if (fields.email) emails.add(String(fields.email).trim().toLowerCase());
+    }
+    const after = await usersFileSignature();
+    if (before === after) {
+      emailIndex = emails;
+      emailIndexSignature = after;
+      return emails;
+    }
+  }
+  throw new Error('User records changed repeatedly while checking email uniqueness');
 }
 
 /**
@@ -99,7 +143,8 @@ async function emailExists(email) {
  */
 async function sendVerificationEmail(toEmail, code) {
   if (!RESEND_API_KEY) {
-    console.log(`[verify] verification code for ${toEmail}: ${code}`);
+    if (IS_PRODUCTION) throw new Error('Email verification provider is not configured');
+    console.log('[verify] development code issued');
     return { delivered: false, reason: 'no-provider' };
   }
   const res = await fetch(RESEND_API_URL, {
@@ -113,27 +158,32 @@ async function sendVerificationEmail(toEmail, code) {
     })
   });
   if (!res.ok) throw new Error('Resend HTTP ' + res.status);
-  console.log(`[verify] verification email sent to ${toEmail}`);
+  console.log('[verify] verification email sent');
   return { delivered: true };
 }
 
 // ── POST /api/verify/email ───────────────────────────────────
 verifyRouter.post('/email', async (req, res) => {
-  const email = String(req.body && req.body.email || '').trim().toLowerCase();
-  if (!email || !/.+@.+\..+/.test(email)) {
-    return res.status(400).json({ error: 'A valid email address is required' });
-  }
+  try {
+    const email = String(req.body && req.body.email || '').trim().toLowerCase();
+    if (!email || email.length > 254 || !/.+@.+\..+/.test(email)) {
+      return res.status(400).json({ error: 'A valid email address is required' });
+    }
 
-  if (await emailExists(email)) {
-    return res.status(409).json({ error: 'Email already associated with an account' });
-  }
+    if (await emailExists(email)) {
+      return res.status(409).json({ error: 'Email already associated with an account' });
+    }
 
-  const existing = verifications.get(email);
-  if (existing && existing.expiresAt > Date.now()) {
-    return res.status(400).json({ error: 'Verification already pending', expiresAt: existing.expiresAt });
-  }
+    const existing = verifications.get(email);
+    if (existing && existing.expiresAt > Date.now()) {
+      return res.status(400).json({ error: 'Verification already pending', expiresAt: existing.expiresAt });
+    }
 
-  res.json(issueCode(email));
+    res.json(issueCode(email));
+  } catch (e) {
+    console.error('[verify] email lookup failed:', e.message);
+    res.status(503).json({ error: 'Email verification is temporarily unavailable' });
+  }
 });
 
 // ── POST /api/verify/code ────────────────────────────────────
@@ -149,7 +199,7 @@ verifyRouter.post('/code', (req, res) => {
     verifications.delete(email);
     return res.status(400).json({ error: 'code_expired' });
   }
-  if (hashCode(code) !== entry.codeHash) {
+  if (!hashesMatch(hashCode(code), entry.codeHash)) {
     entry.attempts++;
     if (entry.attempts >= MAX_ATTEMPTS) {
       verifications.delete(email);
@@ -169,7 +219,22 @@ verifyRouter.post('/resend', (req, res) => {
   if (!email) {
     return res.status(400).json({ error: 'Email is required' });
   }
-  res.json(issueCode(email));
+  if (email.length > 254 || !/.+@.+\..+/.test(email)) {
+    return res.status(400).json({ error: 'A valid email address is required' });
+  }
+  const existing = verifications.get(email);
+  if (!existing) return res.status(400).json({ error: 'No verification pending for this email' });
+  const retryAfter = Math.ceil((existing.createdAt + RESEND_COOLDOWN_MS - Date.now()) / 1000);
+  if (retryAfter > 0) {
+    res.set('Retry-After', String(retryAfter));
+    return res.status(429).json({ error: 'Please wait before requesting another code', retryAfter });
+  }
+  try {
+    res.json(issueCode(email));
+  } catch (e) {
+    console.error('[verify] resend unavailable:', e.message);
+    res.status(503).json({ error: 'Email verification is temporarily unavailable' });
+  }
 });
 
 // ── GET /api/validate/username/:username ─────────────────────
@@ -201,6 +266,17 @@ function isEmailVerified(email) {
   return true;
 }
 
+function claimVerifiedEmail(email) {
+  const key = String(email || '').trim().toLowerCase();
+  if (!isEmailVerified(key) || claimedVerifiedEmails.has(key)) return false;
+  claimedVerifiedEmails.add(key);
+  return true;
+}
+
+function releaseVerifiedEmail(email) {
+  claimedVerifiedEmails.delete(String(email || '').trim().toLowerCase());
+}
+
 /**
  * Consume a verification stamp (single use — call after a successful write).
  */
@@ -208,7 +284,8 @@ function consumeVerifiedEmail(email) {
   const key = String(email || '').trim().toLowerCase();
   const ok = isEmailVerified(key);
   if (ok) verifiedEmails.delete(key);
+  claimedVerifiedEmails.delete(key);
   return ok;
 }
 
-module.exports = { verify: verifyRouter, validate: validateRouter, emailExists, isEmailVerified, consumeVerifiedEmail };
+module.exports = { verify: verifyRouter, validate: validateRouter, emailExists, isEmailVerified, claimVerifiedEmail, releaseVerifiedEmail, consumeVerifiedEmail };

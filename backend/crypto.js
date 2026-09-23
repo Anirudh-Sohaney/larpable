@@ -6,11 +6,16 @@
  */
 
 const crypto = require('crypto');
+const { promisify } = require('util');
+const { runAuthWork } = require('./auth_work_queue');
 
 const ALGORITHM = 'aes-256-gcm';
 const SALT_BYTES = 16;
 const IV_BYTES = 12;
 const KEY_BYTES = 32;
+const scryptAsync = promisify(crypto.scrypt);
+const PASSWORD_SCRYPT = Object.freeze({ N: 1 << 14, r: 8, p: 1, maxmem: 64 * 1024 * 1024 });
+const PASSWORD_KEY_BYTES = 64;
 
 // ── Load encryption key from env ──────────────────────────────
 function getEncryptionKey() {
@@ -68,7 +73,34 @@ function sha256Lookup(value) {
  */
 function verifyHash(value, storedHash, salt) {
   const { hash } = sha256(value, salt);
-  return hash === storedHash;
+  if (typeof storedHash !== 'string' || !/^[a-f0-9]{64}$/i.test(storedHash)) return false;
+  return crypto.timingSafeEqual(Buffer.from(hash, 'hex'), Buffer.from(storedHash, 'hex'));
+}
+
+/** Hash a password with scrypt, bounded so bursts cannot saturate the host. */
+function hashPassword(value, signal) {
+  return runAuthWork(async () => {
+    const salt = crypto.randomBytes(SALT_BYTES).toString('base64');
+    const derived = await scryptAsync(String(value), salt, PASSWORD_KEY_BYTES, PASSWORD_SCRYPT);
+    return { hash: derived.toString('hex'), salt, scheme: 'scrypt' };
+  }, signal);
+}
+
+/** Verify current scrypt hashes and legacy salted-SHA256 hashes during migration. */
+function verifyPassword(value, storedHash, salt, scheme, signal) {
+  if (scheme !== 'scrypt') {
+    return Promise.resolve(verifyHash(value, storedHash, salt));
+  }
+  return runAuthWork(async () => {
+    if (typeof storedHash !== 'string' || !/^[a-f0-9]{128}$/i.test(storedHash)) return false;
+    let derived;
+    try {
+      derived = await scryptAsync(String(value), String(salt || ''), PASSWORD_KEY_BYTES, PASSWORD_SCRYPT);
+    } catch {
+      return false;
+    }
+    return crypto.timingSafeEqual(derived, Buffer.from(storedHash, 'hex'));
+  }, signal);
 }
 
 /**
@@ -188,6 +220,8 @@ module.exports = {
   sha256,
   sha256Lookup,
   verifyHash,
+  hashPassword,
+  verifyPassword,
   generateToken,
   hashToken,
   encrypt,

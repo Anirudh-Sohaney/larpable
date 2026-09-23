@@ -49,11 +49,14 @@ function getWriteQueue(filePath) {
  */
 function enqueueWrite(filePath, asyncFn) {
   const queue = getWriteQueue(filePath);
-  const newQueue = queue.then(asyncFn).catch(err => {
-    console.error(`Write queue error for ${filePath}:`, err);
+  const operation = queue.then(asyncFn);
+  const nextQueue = operation.catch(err => {
+    if (!err.expectedStoreConflict) console.error(`Write queue error for ${filePath}:`, err);
   });
-  writeQueues.set(filePath, newQueue);
-  return newQueue;
+  // Keep the queue usable after a failed write, but return the original
+  // rejection so callers never report success when persistence failed.
+  writeQueues.set(filePath, nextQueue);
+  return operation;
 }
 
 // ── Core Async I/O ───────────────────────────────────────────
@@ -301,7 +304,9 @@ async function atomicUpdate(filename, modifier) {
   const tmp = fp + '.tmp.' + process.pid;
   let result;
   await enqueueWrite(fp, async () => {
-    const data = await fsp.readFile(fp, 'utf8').then(JSON.parse).catch(() => ({}));
+    // Only a genuinely missing file is an empty collection. Parse, permission,
+    // and I/O errors must abort the update rather than overwrite data with {}.
+    const data = await read(filename);
     result = await modifier(data);
     await ensureDataDir();
     await fsp.writeFile(tmp, JSON.stringify(result, null, 2), 'utf8');

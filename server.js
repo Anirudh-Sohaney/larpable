@@ -32,7 +32,9 @@ const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
       `http://localhost:${PORT}`,
       `http://127.0.0.1:${PORT}`,
       `http://larpable.me`,
-      `https://larpable.me`
+      `https://larpable.me`,
+      `http://www.larpable.me`,
+      `https://www.larpable.me`
     ];
 
 // ── Rate Limiter (in-memory, per-IP) ─────────────────────────
@@ -41,6 +43,7 @@ const rateLimitBuckets = new Map();
 const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
 const RATE_LIMIT_MAX_AUTH = 300;  // auth: test suite needs ~200+ auth requests
 const RATE_LIMIT_MAX_API = 500;   // api: 40 users × multiple requests each
+const RATE_LIMIT_MAX_BUCKETS = 50000;
 
 // Cleanup stale buckets every 5 minutes
 const rateLimitCleanup = setInterval(() => {
@@ -66,6 +69,15 @@ function rateLimit(namespace) {
 
     let bucket = rateLimitBuckets.get(key);
     if (!bucket || now - bucket.windowStart > RATE_LIMIT_WINDOW_MS) {
+      if (!bucket && rateLimitBuckets.size >= RATE_LIMIT_MAX_BUCKETS) {
+        for (const [staleKey, staleBucket] of rateLimitBuckets) {
+          if (now - staleBucket.windowStart > RATE_LIMIT_WINDOW_MS * 2) rateLimitBuckets.delete(staleKey);
+        }
+        if (rateLimitBuckets.size >= RATE_LIMIT_MAX_BUCKETS) {
+          res.set('Retry-After', '60');
+          return res.status(503).json({ error: 'Service is busy. Please try again shortly.', retryAfter: 60 });
+        }
+      }
       bucket = { windowStart: now, count: 0 };
       rateLimitBuckets.set(key, bucket);
     }
@@ -78,9 +90,11 @@ function rateLimit(namespace) {
     res.set('X-RateLimit-Reset', String(Math.ceil((bucket.windowStart + RATE_LIMIT_WINDOW_MS) / 1000)));
 
     if (bucket.count > max) {
+      const retryAfter = Math.ceil((bucket.windowStart + RATE_LIMIT_WINDOW_MS - now) / 1000);
+      res.set('Retry-After', String(retryAfter));
       return res.status(429).json({
         error: 'Too many requests. Try again later.',
-        retryAfter: Math.ceil((bucket.windowStart + RATE_LIMIT_WINDOW_MS - now) / 1000)
+        retryAfter
       });
     }
 
@@ -90,19 +104,22 @@ function rateLimit(namespace) {
 
 // ── Middleware ────────────────────────────────────────────────
 app.use(cookieParser(process.env.COOKIE_SECRET));
-app.use(express.json({ limit: '1mb' }));
-
-// Handle body-parser errors (malformed JSON) with 400 instead of 500
-app.use((err, req, res, next) => {
-  if (err.type === 'entity.parse.failed') {
-    return res.status(400).json({ error: 'Invalid JSON in request body' });
-  }
-  next(err);
-});
 
 // CORS — only allow whitelisted origins (Issue #5 fix)
 app.use((req, res, next) => {
   const origin = req.headers.origin;
+  let sameHostOrigin = false;
+  if (origin) {
+    try {
+      const parsedOrigin = new URL(origin);
+      sameHostOrigin = ['http:', 'https:'].includes(parsedOrigin.protocol)
+        && parsedOrigin.host.toLowerCase() === String(req.headers.host || '').toLowerCase();
+    } catch {}
+  }
+
+  if (origin && !ALLOWED_ORIGINS.includes(origin) && !sameHostOrigin) {
+    return res.status(403).json({ error: 'Origin not allowed' });
+  }
 
   if (origin && ALLOWED_ORIGINS.includes(origin)) {
     res.header('Access-Control-Allow-Origin', origin);
@@ -119,6 +136,33 @@ app.use((req, res, next) => {
   next();
 });
 
+// Apply rate limits before parsing request bodies. This protects CPU and
+// memory from large/hostile payloads while keeping the existing per-IP caps.
+app.use('/api/auth', rateLimit('auth'));
+app.use('/api/verify', rateLimit('auth'));
+app.use('/api/validate', rateLimit('auth'));
+app.use('/api/opportunities', rateLimit('api'));
+app.use('/api/users', rateLimit('api'));
+app.use('/api/legal', rateLimit('api'));
+app.use('/api/feedback', rateLimit('api'));
+app.use('/api/admin', rateLimit('api'));
+app.use('/api/drafts', rateLimit('api'));
+app.use('/api/staff', rateLimit('api'));
+app.use('/api/match', rateLimit('api'));
+
+app.use(express.json({ limit: '1mb' }));
+
+// Malformed and oversized bodies are client errors rather than generic 500s.
+app.use((err, req, res, next) => {
+  if (err.type === 'entity.parse.failed') {
+    return res.status(400).json({ error: 'Invalid JSON in request body' });
+  }
+  if (err.type === 'entity.too.large') {
+    return res.status(413).json({ error: 'Request body is too large' });
+  }
+  next(err);
+});
+
 // ── API Routes ───────────────────────────────────────────────
 const authRoutes = require('./backend/routes/auth.routes');
 const opportunityRoutes = require('./backend/routes/opportunity.routes');
@@ -127,32 +171,32 @@ const legalRoutes = require('./backend/routes/legal.routes');
 const feedbackRoutes = require('./backend/routes/feedback.routes');
 const matching = require('./backend/matching');
 
-// Rate-limit auth endpoints (Issue #10 fix)
-app.use('/api/auth', rateLimit('auth'));
 app.use('/api/auth', authRoutes);
 
-app.use('/api/opportunities', rateLimit('api'), opportunityRoutes);
-app.use('/api/users', rateLimit('api'), userRoutes);
-app.use('/api/legal', rateLimit('api'), legalRoutes);
-app.use('/api/feedback', rateLimit('api'), feedbackRoutes);
+app.use('/api/opportunities', opportunityRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/legal', legalRoutes);
+app.use('/api/feedback', feedbackRoutes);
 
 // Admin routes (must come before user routes to avoid conflict)
 const adminRoutes = require('./backend/routes/admin.routes');
 const draftRoutes = require('./backend/routes/draft.routes');
-app.use('/api/admin', rateLimit('api'), adminRoutes);
-app.use('/api/drafts', rateLimit('api'), draftRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/drafts', draftRoutes);
 
 // Staff routes
 const staffRoutes = require('./staff/routes/staff.routes');
-app.use('/api/staff', rateLimit('api'), staffRoutes);
+app.use('/api/staff', staffRoutes);
 
 // Verification + validation routes (email codes live in memory only)
 const verifyRoutes = require('./backend/routes/verify.routes');
-app.use('/api/verify', rateLimit('auth'), verifyRoutes.verify);
-app.use('/api/validate', rateLimit('auth'), verifyRoutes.validate);
+app.use('/api/verify', verifyRoutes.verify);
+app.use('/api/validate', verifyRoutes.validate);
 
 // ── Matching API ─────────────────────────────────────────────
 const { CANONICAL_SYNONYMS } = require('./web_app/synonyms');
+const skillTaxonomy = require('./backend/matching/taxonomy.json');
+const { synonyms: canonicalSkillSynonyms } = require('./backend/matching/skill_synonyms.json');
 
 app.get('/api/match/entities', (req, res) => {
   const entities = [];
@@ -165,7 +209,9 @@ app.get('/api/match/entities', (req, res) => {
     for (const item of items) {
       entities.push({ name: item, type: 'skill', category: cat });
       skills.push(item);
-      skillSynonymMap[item] = CANONICAL_SYNONYMS[item] || [];
+      // Use the same canonical skill/synonym catalog as the matching vectors.
+      // The browser-only synonym table is not the authoritative skill set.
+      skillSynonymMap[item] = canonicalSkillSynonyms[item] || [];
     }
   }
   for (const [cat, items] of Object.entries(matching.categories.interests)) {
@@ -181,6 +227,7 @@ app.get('/api/match/entities', (req, res) => {
     entities,
     interests,
     skills,
+    skill_aliases: skillTaxonomy.skill_aliases || {},
     taxonomy_synonyms: { synonyms: { interests: interestSynonymMap } },
     skill_synonyms: skillSynonymMap
   });
@@ -195,7 +242,7 @@ app.get('/api/match/similarity', (req, res) => {
 
 // Issue #4 fix: require auth + cap array size on rank endpoint
 const auth = require('./backend/auth');
-app.post('/api/match/rank', rateLimit('api'), async (req, res) => {
+app.post('/api/match/rank', async (req, res) => {
   try {
     // Require authentication
     const token = req.cookies?.['larpable_session'];
