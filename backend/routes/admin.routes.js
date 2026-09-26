@@ -14,6 +14,7 @@ const store = require('../store');
 const { decryptObject, encryptObject } = require('../crypto');
 const { geocode, geocodeStructured } = require('../geocode');
 const { removeUserFeedback } = require('../feedback');
+const applicationsStore = require('../applications');
 
 const COOKIE_NAME = 'larpable_session';
 
@@ -62,7 +63,8 @@ router.get('/:id', requireAdmin, async (req, res) => {
       state: fields.state || '',
       country: fields.country || '',
       skills: fields.skills || [],
-      interests: fields.interests || []
+      interests: fields.interests || [],
+      experiences: Array.isArray(fields.experiences) ? fields.experiences : []
     });
   } catch (e) {
     console.error('Admin get user error:', e);
@@ -82,9 +84,10 @@ router.delete('/:id', requireAdmin, async (req, res) => {
     
     // 1. Delete all opportunities created by this user
     const allOpps = await store.getAllOpportunities();
-    for (const [oppId, opp] of Object.entries(allOpps)) {
+    for (const opp of allOpps) {
       if (opp.created_by === userId) {
-        await store.deleteOpportunity(oppId);
+        await store.deleteOpportunity(opp.id);
+        await applicationsStore.removeOpportunity(opp.id);
       }
     }
     
@@ -100,6 +103,7 @@ router.delete('/:id', requireAdmin, async (req, res) => {
     
     // 3. Delete feedback and prompt history owned by this user
     await removeUserFeedback(store, userId);
+    await applicationsStore.removeUser(userId);
 
     // 4. Delete user record
     await store.remove('users.json', userId);
@@ -139,10 +143,14 @@ router.post('/migrate-coords', requireAdmin, async (req, res) => {
       try {
         const coords = await geocodeStructured(city, state, country);
         if (coords) {
-          fields.latitude = coords.lat;
-          fields.longitude = coords.lon;
-          rawUser.encrypted_fields = encryptObject(fields);
-          await store.saveUser(userId, rawUser);
+          await store.atomicUpdate('users.json', users => {
+            const current = users[userId];
+            if (!current) return users;
+            const currentFields = decryptObject(current.encrypted_fields || {});
+            if (currentFields.latitude && currentFields.longitude) return users;
+            current.encrypted_fields = encryptObject({ ...currentFields, latitude: coords.lat, longitude: coords.lon });
+            return users;
+          });
           usersUpdated++;
         } else {
           usersFailed++;
@@ -166,10 +174,14 @@ router.post('/migrate-coords', requireAdmin, async (req, res) => {
       try {
         const coords = await geocode(location);
         if (coords) {
-          fields.latitude = coords.lat;
-          fields.longitude = coords.lon;
-          rawOpp.encrypted_fields = encryptObject(fields);
-          await store.saveOpportunity(oppId, rawOpp);
+          await store.atomicUpdate('opportunities.json', opportunities => {
+            const current = opportunities[oppId];
+            if (!current) return opportunities;
+            const currentFields = decryptObject(current.encrypted_fields || {});
+            if (currentFields.latitude && currentFields.longitude) return opportunities;
+            current.encrypted_fields = encryptObject({ ...currentFields, latitude: coords.lat, longitude: coords.lon });
+            return opportunities;
+          });
           oppsUpdated++;
         } else {
           oppsFailed++;

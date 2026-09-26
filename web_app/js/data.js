@@ -24,6 +24,7 @@ const DataStore = {
       latitude: u.latitude || null, longitude: u.longitude || null,
       skills: Array.isArray(u.skills) ? [...u.skills] : [],
       interests: Array.isArray(u.interests) ? [...u.interests] : [],
+      experiences: Array.isArray(u.experiences) ? u.experiences.map(experience => ({ ...experience, skills: Array.isArray(experience.skills) ? [...experience.skills] : [] })) : [],
       opportunity_preference: u.opportunity_preference || 'all',
       saved_posts: Array.isArray(u.saved_posts) ? [...u.saved_posts] : [],
       type: u.type || 'student', role: u.role || (u.type === 'admin' ? 'admin' : 'student'),

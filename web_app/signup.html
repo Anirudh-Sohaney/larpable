@@ -121,90 +121,6 @@
       grid-template-columns: 1fr 1fr;
       gap: 16px;
     }
-    .d-autocomplete-wrap { position: relative; }
-    .d-autocomplete-search {
-      width: 100%;
-      padding: 11px 13px;
-      border: 1.5px solid var(--border);
-      border-radius: 10px;
-      font-size: 0.85rem;
-      background: var(--bg-primary);
-      color: var(--fg-primary);
-      outline: none;
-    }
-    .d-autocomplete-search:focus {
-      border-color: var(--accent);
-      box-shadow: 0 0 0 3px rgba(255, 107, 107, 0.1);
-    }
-    .d-autocomplete-search::placeholder { color: var(--fg-tertiary); }
-    .d-autocomplete-dropdown {
-      display: none;
-      position: absolute;
-      top: calc(100% + 5px);
-      left: 0;
-      right: 0;
-      z-index: 20;
-      /* Six full options plus half of the next option remain visible. */
-      height: 221px;
-      max-height: 221px;
-      overflow-y: auto;
-      padding: 6px;
-      border: 1.5px solid var(--border);
-      border-radius: 10px;
-      background: var(--bg-secondary);
-      box-shadow: 0 8px 20px rgba(30, 27, 24, 0.1);
-    }
-    .d-autocomplete-option {
-      display: block;
-      width: 100%;
-      height: 34px;
-      padding: 9px 10px;
-      border: 0;
-      border-radius: 7px;
-      background: transparent;
-      color: var(--fg-secondary);
-      text-align: left;
-      font: inherit;
-      font-size: 0.82rem;
-      cursor: pointer;
-    }
-    .d-autocomplete-option:hover,
-    .d-autocomplete-option.is-active {
-      background: var(--bg-primary);
-      color: var(--fg-primary);
-    }
-    .d-autocomplete-empty {
-      padding: 9px 10px;
-      color: var(--fg-tertiary);
-      font-size: 0.78rem;
-    }
-    .d-selected-chips {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      min-height: 0;
-      margin-top: 8px;
-    }
-    .d-selected-chip {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 6px 9px 6px 11px;
-      border: 1px solid var(--accent);
-      border-radius: 20px;
-      background: var(--accent-light);
-      color: var(--accent);
-      font-size: 0.76rem;
-    }
-    .d-selected-chip button {
-      padding: 0;
-      border: 0;
-      background: transparent;
-      color: inherit;
-      font-size: 1rem;
-      line-height: 1;
-      cursor: pointer;
-    }
     .d-chip-count {
       font-size: 0.82rem;
       color: var(--fg-secondary);
@@ -504,6 +420,12 @@
             </div>
           </div>
 
+          <div class="d-form-group">
+            <label class="d-label">Experience <span style="font-weight:400;color:var(--fg-tertiary);">(optional)</span></label>
+            <p style="font-size:.78rem;color:var(--fg-tertiary);margin-bottom:8px;">Add up to 5 projects, internships, or jobs. Each needs a 10–150 word description and 1–3 skills.</p>
+            <div id="signup-experiences"></div>
+          </div>
+
           <div class="d-legal-check">
             <input type="checkbox" id="su-legal">
             <label for="su-legal">I agree to the <a onclick="openLegal('terms')">Terms of Service</a> and acknowledge the <a onclick="openLegal('privacy')">Privacy Policy</a>.</label>
@@ -545,6 +467,7 @@
 
   <script src="/legal-filter.js"></script>
   <script src="/synonyms.js"></script>
+  <script src="/js/experience-editor.js"></script>
   <script>
     // Already logged in → straight to the feed
     (async () => {
@@ -561,6 +484,7 @@
     const selectedInterests = new Set();
     const selectedSkills = new Set();
     let opportunityPreference = 'all';
+    ExperienceEditor.mount('signup-experiences');
 
     const stepDots = document.querySelectorAll('.d-step-dot');
     const panels = document.querySelectorAll('.d-step-panel');
@@ -830,6 +754,9 @@
         showError('Please select between 3 and 15 skills.');
         return;
       }
+      let experiences;
+      try { experiences = ExperienceEditor.get('signup-experiences'); }
+      catch (error) { showError(error.message); return; }
 
       const username = document.getElementById('su-username').value.trim();
       const password = document.getElementById('su-password').value;
@@ -866,6 +793,7 @@
             longitude: locData ? locData.lon : null,
             skills: [...selectedSkills],
             interests: [...selectedInterests],
+            experiences,
             opportunity_preference: opportunityPreference,
             legal_agreed: true
           })
@@ -1111,6 +1039,7 @@
       if (!Array.isArray(taxonomy.interests) || !Array.isArray(taxonomy.skills)) throw new Error('Invalid taxonomy response.');
       setupPicker(taxonomy.interests, 'interest-search', 'interest-chips', 'interest-selected', selectedInterests, 5, 'interest-count', taxonomy.taxonomy_synonyms?.synonyms?.interests || {});
       setupPicker(taxonomy.skills, 'skill-search', 'skill-chips', 'skill-selected', selectedSkills, 15, 'skill-count', taxonomy.skill_synonyms || {});
+      ExperienceEditor.setSkills('signup-experiences', taxonomy.skills);
     }).catch(error => {
       ['interest-chips', 'skill-chips'].forEach(id => {
         const dropdown = document.getElementById(id);

@@ -80,7 +80,7 @@ const App = {
                if (!yoursBtn) return;
                
                let badge = yoursBtn.querySelector('.nav-yours-badge');
-               const hasUnread = data.opportunities && data.opportunities.some(o => o.has_unread_comments);
+               const hasUnread = data.opportunities && data.opportunities.some(o => o.has_unread_comments || o.has_unread_applications);
                
                if (hasUnread && !badge) {
                  yoursBtn.insertAdjacentHTML('beforeend', `<span class="nav-yours-badge" style="position:absolute; top:4px; right:12px; background:#dc3545; color:white; font-size:0.6rem; font-weight:bold; border-radius:50%; width:14px; height:14px; display:flex; align-items:center; justify-content:center;">!</span>`);

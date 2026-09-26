@@ -62,8 +62,11 @@
         <label class="d-label" style="display:flex; justify-content:space-between;">
           Interests <span id="p-int-count" style="font-weight:500; color:var(--fg-tertiary);">0 / 5</span>
         </label>
-        <input type="text" class="d-input d-chipsearch" id="p-int-search" placeholder="Search interests...">
-        <div class="d-chipgrid-wrap" id="p-int-wrapper"></div>
+        <div class="d-autocomplete-wrap" id="p-int-picker">
+          <input type="text" class="d-autocomplete-search" id="p-int-search" placeholder="Start typing an interest..." autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="p-int-options">
+          <div class="d-autocomplete-dropdown" id="p-int-options" role="listbox"></div>
+        </div>
+        <div class="d-selected-chips" id="p-int-selected" aria-live="polite"></div>
         <div class="d-chipminhint" id="p-int-min-hint">Select at least 3 interests</div>
       </div>
 
@@ -72,8 +75,11 @@
         <label class="d-label" style="display:flex; justify-content:space-between;">
           Skills <span id="p-sk-count" style="font-weight:500; color:var(--fg-tertiary);">0 / 15</span>
         </label>
-        <input type="text" class="d-input d-chipsearch" id="p-sk-search" placeholder="Search skills...">
-        <div class="d-chipgrid-wrap" id="p-sk-wrapper"></div>
+        <div class="d-autocomplete-wrap" id="p-sk-picker">
+          <input type="text" class="d-autocomplete-search" id="p-sk-search" placeholder="Start typing a skill..." autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="p-sk-options">
+          <div class="d-autocomplete-dropdown" id="p-sk-options" role="listbox"></div>
+        </div>
+        <div class="d-selected-chips" id="p-sk-selected" aria-live="polite"></div>
         <div class="d-chipminhint" id="p-sk-min-hint">Select at least 3 skills</div>
       </div>
 
@@ -88,9 +94,15 @@
         </select>
       </div>
 
+      <div class="d-form-group">
+        <label class="d-label">Experience</label>
+        <p style="font-size:.78rem;color:var(--fg-tertiary);margin-bottom:8px;">Edit up to 5 projects, internships, or jobs.</p>
+        <div id="profile-experiences"></div>
+      </div>
+
       <!-- Actions -->
       <div style="display:flex; gap:8px; margin-top:20px; align-items:center;">
-        <button class="d-btn d-btn-accent" id="save-btn">Save changes</button>
+        <button class="d-btn d-btn-accent" id="save-btn" disabled>Save changes</button>
         <a href="/feed" class="d-btn">Cancel</a>
         <span id="save-msg" style="font-size:0.82rem; color:var(--success); font-weight:600; display:none;">&#10003; Profile saved</span>
       </div>
@@ -122,10 +134,12 @@
     </div>
   </div>
 
-  <script src="/js/utils.js"></script><script src="/js/data.js"></script><script src="/js/app.js"></script>
+  <script src="/js/utils.js"></script><script src="/js/data.js"></script><script src="/js/app.js"></script><script src="/js/experience-editor.js"></script>
   <script>
     const SKILL_MAX = 15, SKILL_MIN = 3;
     const INTEREST_MAX = 5, INTEREST_MIN = 3;
+    const profilePickers = {};
+    let profileUser = null;
 
     (async () => {
       await App.init();
@@ -134,6 +148,7 @@
 
       const user = App.currentUser;
       if (!user) return;
+      profileUser = user;
 
       // Profile header
       const fullName = (user.firstName || '') + ' ' + (user.lastName || '');
@@ -146,14 +161,15 @@
       document.getElementById('p-last').value = user.lastName || '';
       document.getElementById('p-location').value = user.location || '';
       document.getElementById('p-opportunity-preference').value = user.opportunity_preference || 'all';
+      ExperienceEditor.mount('profile-experiences', user.experiences || []);
 
-      // Load taxonomy and build chip grids
-      await loadTaxonomyAndBuild(user.interests || [], user.skills || []);
+      profilePickers.interests = setupProfilePicker('p-int', user.interests || [], INTEREST_MAX, INTEREST_MIN);
+      profilePickers.skills = setupProfilePicker('p-sk', user.skills || [], SKILL_MAX, SKILL_MIN);
+      document.getElementById('save-btn').disabled = false;
+      await loadTaxonomy();
     })();
 
-    function esc(str) { const d = document.createElement('div'); d.textContent = str || ''; return d.innerHTML; }
-
-    async function loadTaxonomyAndBuild(userInterests, userSkills) {
+    async function loadTaxonomy() {
       let taxonomy;
       try {
         const res = await fetch('/api/match/entities', { credentials: 'include' });
@@ -163,92 +179,108 @@
         return;
       }
 
-      const interestSynonyms = taxonomy.taxonomy_synonyms?.synonyms?.interests || {};
-      const skillSynonyms = taxonomy.skill_synonyms || {};
-
-      buildGrid({ 'Interests': [...taxonomy.interests].sort() }, 'p-int-wrapper', 'p-int-search', 'pinterest', 'p-int-count', 'p-int-min-hint', INTEREST_MAX, INTEREST_MIN, interestSynonyms);
-      buildGrid({ 'Skills': [...taxonomy.skills].sort() }, 'p-sk-wrapper', 'p-sk-search', 'pskill', 'p-sk-count', 'p-sk-min-hint', SKILL_MAX, SKILL_MIN, skillSynonyms);
-
-      preselectChips('pinterest', userInterests);
-      preselectChips('pskill', userSkills);
+      profilePickers.interests.setOptions(taxonomy.interests || [], taxonomy.taxonomy_synonyms?.synonyms?.interests || {});
+      profilePickers.skills.setOptions(taxonomy.skills || [], taxonomy.skill_synonyms || {});
+      ExperienceEditor.setSkills('profile-experiences', taxonomy.skills || []);
     }
 
-    function buildGrid(data, wrapperId, searchId, groupName, countId, minHintId, max, min, synonyms = {}) {
-      const wrapper = document.getElementById(wrapperId);
-      const search = document.getElementById(searchId);
-      const countEl = document.getElementById(countId);
-      const minHint = document.getElementById(minHintId);
+    function setupProfilePicker(prefix, initial, max, min) {
+      const wrap = document.getElementById(`${prefix}-picker`);
+      const search = document.getElementById(`${prefix}-search`);
+      const dropdown = document.getElementById(`${prefix}-options`);
+      const selectedEl = document.getElementById(`${prefix}-selected`);
+      const countEl = document.getElementById(`${prefix}-count`);
+      const hint = document.getElementById(`${prefix}-min-hint`);
+      const selected = new Set(Array.isArray(initial) ? initial : []);
+      let options = [];
+      let synonyms = {};
+      let activeIndex = -1;
 
-      let html = '';
-      for (const [cat, items] of Object.entries(data)) {
-        html += `<div class="d-chipcat">${esc(cat)}</div><div class="d-chipgrid">`;
-        items.forEach((item, i) => {
-          const id = groupName + '-' + cat.replace(/[^a-z0-9]/gi, '') + '-' + i;
-          html += `<input type="checkbox" class="d-chipopt" id="${id}" value="${esc(item)}">` +
-                  `<label class="d-chiplabel" for="${id}">${esc(item)}</label>`;
-        });
-        html += '</div>';
+      function close() {
+        dropdown.style.display = 'none';
+        search.setAttribute('aria-expanded', 'false');
+        activeIndex = -1;
       }
-      html += '<div class="d-noresults">No matches found</div>';
-      wrapper.innerHTML = html;
 
-      const sync = () => {
-        const checked = wrapper.querySelectorAll('.d-chipopt:checked').length;
-        countEl.textContent = `${checked} / ${max}`;
-        countEl.style.color = checked === max ? 'var(--accent)' : (checked < min ? 'var(--error)' : 'var(--fg-tertiary)');
-        minHint.classList.toggle('show', checked < min);
-        wrapper.querySelectorAll('.d-chipopt').forEach(c => {
-          if (!c.checked) c.disabled = checked >= max;
-        });
-      };
-      wrapper.addEventListener('change', sync);
-
-      // Search within the grid
-      search.addEventListener('input', () => {
-        const q = search.value.trim().toLowerCase();
-        let any = false;
-        wrapper.querySelectorAll('.d-chipcat').forEach(catEl => {
-          const grid = catEl.nextElementSibling;
-          let catVisible = false;
-          grid.querySelectorAll('.d-chiplabel').forEach(label => {
-            const value = label.textContent;
-            const match = !q || value.toLowerCase().includes(q) ||
-              (synonyms[value] || []).some(s => s.toLowerCase().includes(q)) ||
-              (typeof matchesSynonym === 'function' && matchesSynonym(q, value));
-            label.style.display = match ? '' : 'none';
-            if (match) catVisible = true;
+      function renderSelected() {
+        selectedEl.replaceChildren();
+        [...selected].sort((a, b) => a.localeCompare(b)).forEach(item => {
+          const chip = document.createElement('span');
+          chip.className = 'd-selected-chip';
+          chip.append(document.createTextNode(item));
+          const remove = document.createElement('button');
+          remove.type = 'button';
+          remove.setAttribute('aria-label', `Remove ${item}`);
+          remove.textContent = '×';
+          remove.addEventListener('click', () => {
+            selected.delete(item);
+            renderSelected();
+            renderOptions();
           });
-          catEl.style.display = catVisible ? '' : 'none';
-          grid.style.display = catVisible ? '' : 'none';
-          if (catVisible) any = true;
+          chip.appendChild(remove);
+          selectedEl.appendChild(chip);
         });
-        wrapper.querySelector('.d-noresults').style.display = any ? 'none' : '';
-      });
+        countEl.textContent = `${selected.size} / ${max}`;
+        countEl.style.color = selected.size >= max ? 'var(--accent)' : (selected.size < min ? 'var(--error)' : 'var(--fg-tertiary)');
+        hint.classList.toggle('show', selected.size < min);
+      }
 
-      return { wrapper, sync };
-    }
+      function renderOptions() {
+        const query = search.value.trim().toLowerCase();
+        dropdown.replaceChildren();
+        activeIndex = -1;
+        if (!query || selected.size >= max) { close(); return; }
+        const matches = options.filter(item => !selected.has(item) &&
+          (item.toLowerCase().includes(query) || (synonyms[item] || []).some(s => s.toLowerCase().includes(query))));
+        if (!matches.length) {
+          const empty = document.createElement('div');
+          empty.className = 'd-autocomplete-empty';
+          empty.textContent = 'No matches found';
+          dropdown.appendChild(empty);
+        } else matches.forEach(item => {
+          const option = document.createElement('button');
+          option.type = 'button';
+          option.className = 'd-autocomplete-option';
+          option.setAttribute('role', 'option');
+          option.textContent = item;
+          option.addEventListener('click', () => {
+            selected.add(item);
+            search.value = '';
+            renderSelected();
+            close();
+            search.focus();
+          });
+          dropdown.appendChild(option);
+        });
+        dropdown.style.display = 'block';
+        search.setAttribute('aria-expanded', 'true');
+      }
 
-    const originalProfileValues = { pinterest: [], pskill: [] };
-
-    function preselectChips(groupName, values) {
-      const wrapperId = groupName === 'pinterest' ? 'p-int-wrapper' : 'p-sk-wrapper';
-      const chips = Array.from(document.querySelectorAll('#' + wrapperId + ' .d-chipopt'));
-      originalProfileValues[groupName] = [];
-      values.forEach(val => {
-        const chip = chips.find(input => input.value === val ||
-          (typeof normalizeSynonym === 'function' && normalizeSynonym(input.value) === normalizeSynonym(val)));
-        if (chip) {
-          chip.checked = true;
-          chip.dispatchEvent(new Event('change'));
-        } else {
-          originalProfileValues[groupName].push(val);
+      search.addEventListener('input', renderOptions);
+      search.addEventListener('focus', renderOptions);
+      search.addEventListener('keydown', event => {
+        const items = [...dropdown.querySelectorAll('.d-autocomplete-option')];
+        if (event.key === 'Escape') { close(); return; }
+        if ((event.key === 'ArrowDown' || event.key === 'ArrowUp') && items.length) {
+          event.preventDefault();
+          activeIndex = event.key === 'ArrowDown' ? Math.min(activeIndex + 1, items.length - 1) : Math.max(activeIndex - 1, 0);
+          items.forEach((item, index) => item.classList.toggle('is-active', index === activeIndex));
+          items[activeIndex].scrollIntoView({ block: 'nearest' });
+        } else if (event.key === 'Enter' && activeIndex >= 0) {
+          event.preventDefault();
+          items[activeIndex].click();
         }
       });
-    }
-
-    function selectedProfileValues(selector, groupName) {
-      return [...new Set(Array.from(document.querySelectorAll(selector)).map(c => c.value)
-        .concat(originalProfileValues[groupName]))];
+      search.addEventListener('blur', () => setTimeout(() => { if (!wrap.contains(document.activeElement)) close(); }, 0));
+      renderSelected();
+      return {
+        values: () => [...selected],
+        setOptions(items, nextSynonyms) {
+          options = [...new Set(items)].sort((a, b) => a.localeCompare(b));
+          synonyms = nextSynonyms;
+          if (document.activeElement === search) renderOptions();
+        }
+      };
     }
 
     // Save profile
@@ -257,12 +289,21 @@
       btn.disabled = true;
       btn.textContent = 'Saving...';
 
+      let experiences;
+      try { experiences = ExperienceEditor.get('profile-experiences'); }
+      catch (error) {
+        alert(error.message);
+        btn.disabled = false;
+        btn.textContent = 'Save changes';
+        return;
+      }
       const body = {
         first_name: document.getElementById('p-first').value.trim(),
         last_name: document.getElementById('p-last').value.trim(),
         location: document.getElementById('p-location').value.trim(),
-        interests: selectedProfileValues('#p-int-wrapper .d-chipopt:checked', 'pinterest'),
-        skills: selectedProfileValues('#p-sk-wrapper .d-chipopt:checked', 'pskill'),
+        interests: profilePickers.interests.values(),
+        skills: profilePickers.skills.values(),
+        experiences,
         opportunity_preference: document.getElementById('p-opportunity-preference').value
       };
 
@@ -274,6 +315,9 @@
           body: JSON.stringify(body)
         });
         if (res.ok) {
+          profileUser.interests = [...body.interests];
+          profileUser.skills = [...body.skills];
+          profileUser.experiences = experiences;
           const msg = document.getElementById('save-msg');
           msg.style.display = 'block';
           setTimeout(() => { msg.style.display = 'none'; }, 2500);

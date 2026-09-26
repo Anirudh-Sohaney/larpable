@@ -89,22 +89,18 @@ router.post('/agree', requireAuth, async (req, res) => {
     const versions = await getLegalVersions();
     const userId = req.user.id;
     
-    // Get raw encrypted user record
-    const rawUser = await store.getRawUser(userId);
-    if (!rawUser) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-    
-    // Record agreement with current versions and timestamp
-    rawUser.legal_agreements = {
+    const agreement = {
       terms_version: versions.terms?.version || '',
       privacy_version: versions.privacy?.version || '',
       agreed_at: new Date().toISOString()
     };
-    
-    await store.saveUser(userId, rawUser);
-    
-    res.json({ ok: true, agreed_at: rawUser.legal_agreements.agreed_at });
+    let found = false;
+    await store.atomicUpdate('users.json', users => {
+      if (users[userId]) { users[userId].legal_agreements = agreement; found = true; }
+      return users;
+    });
+    if (!found) return res.status(404).json({ error: 'User not found' });
+    res.json({ ok: true, agreed_at: agreement.agreed_at });
   } catch (e) {
     console.error('Legal agree error:', e);
     res.status(500).json({ error: 'Server error' });
@@ -122,19 +118,17 @@ router.post('/agree-with-signup', async (req, res) => {
     
     const versions = await getLegalVersions();
     
-    const rawUser = await store.getRawUser(userId);
-    if (!rawUser) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-    
-    rawUser.legal_agreements = {
+    const agreement = {
       terms_version: versions.terms?.version || '',
       privacy_version: versions.privacy?.version || '',
       agreed_at: new Date().toISOString()
     };
-    
-    await store.saveUser(userId, rawUser);
-    
+    let found = false;
+    await store.atomicUpdate('users.json', users => {
+      if (users[userId]) { users[userId].legal_agreements = agreement; found = true; }
+      return users;
+    });
+    if (!found) return res.status(404).json({ error: 'User not found' });
     res.json({ ok: true });
   } catch (e) {
     console.error('Legal agree-with-signup error:', e);

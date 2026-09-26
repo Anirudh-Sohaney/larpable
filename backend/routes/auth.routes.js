@@ -13,6 +13,7 @@ const express = require('express');
 const router = express.Router();
 const auth = require('../auth');
 const { emailExists, claimVerifiedEmail, releaseVerifiedEmail, consumeVerifiedEmail } = require('./verify.routes');
+const { validateExperiences } = require('../experiences');
 
 const COOKIE_NAME = 'larpable_session';
 const COOKIE_MAX_AGE = 30 * 24 * 60 * 60 * 1000; // 30 days
@@ -75,6 +76,7 @@ router.post('/signup', async (req, res) => {
     if (!Array.isArray(profile.skills) || profile.skills.length < 3 || profile.skills.length > 100 || profile.skills.some(value => typeof value !== 'string' || value.length > 120)) {
       return res.status(400).json({ error: 'Select at least 3 skills' });
     }
+    profile.experiences = validateExperiences(profile.experiences === undefined ? [] : profile.experiences);
 
     if (profile.opportunity_preference === undefined) {
       profile.opportunity_preference = 'all';
@@ -140,6 +142,7 @@ router.post('/signup', async (req, res) => {
     if (e.message === 'Username already taken') {
       return res.status(409).json({ error: e.message });
     }
+    if (e.status === 400) return res.status(400).json({ error: e.message });
     console.error('Signup error:', e);
     res.status(500).json({ error: 'Server error' });
   }
@@ -219,14 +222,17 @@ router.get('/me', async (req, res) => {
         latitude = coords.lat;
         longitude = coords.lon;
         // Persist back to user record
-        const rawUser = await store.getRawUser(user.id);
-        if (rawUser) {
+        await store.atomicUpdate('users.json', users => {
+          const rawUser = users[user.id];
+          if (!rawUser) return users;
           const currentFields = require('../crypto').decryptObject(rawUser.encrypted_fields || {});
-          currentFields.latitude = latitude;
-          currentFields.longitude = longitude;
-          rawUser.encrypted_fields = require('../crypto').encryptObject(currentFields);
-          await store.saveUser(user.id, rawUser);
-        }
+          if (currentFields.latitude == null && currentFields.longitude == null) {
+            currentFields.latitude = latitude;
+            currentFields.longitude = longitude;
+            rawUser.encrypted_fields = require('../crypto').encryptObject(currentFields);
+          }
+          return users;
+        });
       }
     } catch (e) {
       console.error('Geocode on sign-in failed:', e.message);

@@ -32,6 +32,7 @@ const store = require('../../backend/store');
 const crypto = require('../../backend/crypto');
 const { applyApproval } = require('../../backend/profanity');
 const { FEEDBACK_FILE, normalizeFeedbackData, removeUserFeedback } = require('../../backend/feedback');
+const applicationsStore = require('../../backend/applications');
 const path = require('path');
 const fs = require('fs');
 
@@ -88,11 +89,10 @@ async function requireStaff(req, res, next) {
       .sort((a, b) => new Date(a[1].created_at) - new Date(b[1].created_at));
     
     if (sortedUsers.length > 0 && sortedUsers[0][0] === req.user.id && await hasNoStaffMembers()) {
-      const rawUser = await store.getRawUser(req.user.id);
-      if (rawUser) {
-        rawUser.staff_access = true;
-        await store.saveUser(req.user.id, rawUser);
-      }
+      await store.atomicUpdate('users.json', users => {
+        if (users[req.user.id]) users[req.user.id].staff_access = true;
+        return users;
+      });
       return next();
     }
   } catch (e) {
@@ -151,11 +151,10 @@ router.get('/check', requireAuth, async (req, res) => {
       
       // Update user record with staff_access flag
       try {
-        const rawUser = await store.getRawUser(req.user.id);
-        if (rawUser) {
-          rawUser.staff_access = true;
-          await store.saveUser(req.user.id, rawUser);
-        }
+        await store.atomicUpdate('users.json', users => {
+          if (users[req.user.id]) users[req.user.id].staff_access = true;
+          return users;
+        });
       } catch (e) {
         console.error('Failed to update staff_access:', e);
       }
@@ -176,11 +175,10 @@ router.get('/check', requireAuth, async (req, res) => {
         
         // Update user record with staff_access flag
         try {
-          const rawUser = await store.getRawUser(req.user.id);
-          if (rawUser) {
-            rawUser.staff_access = true;
-            await store.saveUser(req.user.id, rawUser);
-          }
+          await store.atomicUpdate('users.json', users => {
+            if (users[req.user.id]) users[req.user.id].staff_access = true;
+            return users;
+          });
         } catch (e) {
           console.error('Failed to update staff_access:', e);
         }
@@ -783,11 +781,10 @@ router.post('/members', requireAuth, requireStaffAdmin, async (req, res) => {
     });
     
     // Update user record with staff_access flag
-    const rawUser = await store.getRawUser(userId);
-    if (rawUser) {
-      rawUser.staff_access = true;
-      await store.saveUser(userId, rawUser);
-    }
+    await store.atomicUpdate('users.json', users => {
+      if (users[userId]) users[userId].staff_access = true;
+      return users;
+    });
     
     // Log the action
     await addLog({
@@ -863,11 +860,10 @@ router.delete('/members/:userId', requireAuth, requireStaffAdmin, async (req, re
     });
     
     // Update user record to remove staff_access flag
-    const rawUser = await store.getRawUser(userId);
-    if (rawUser) {
-      rawUser.staff_access = false;
-      await store.saveUser(userId, rawUser);
-    }
+    await store.atomicUpdate('users.json', users => {
+      if (users[userId]) users[userId].staff_access = false;
+      return users;
+    });
     
     // Log the action
     await addLog({
@@ -1799,6 +1795,7 @@ router.get('/work/users', requireAuth, requireStaff, requirePermission('user_vie
         country: ef.country || '',
         skills: ef.skills || [],
         interests: ef.interests || [],
+        experiences: Array.isArray(ef.experiences) ? ef.experiences : [],
         staffAccess: !!staff.staff_members?.[id]
       };
     });
@@ -1821,8 +1818,10 @@ router.delete('/work/users/:id', requireAuth, requireStaff, requireStaffAdmin, a
     const isStaffAdminUser = member && !member.added_by; // original admin
     if (isStaffAdminUser) return res.status(400).json({ error: 'The platform admin cannot be removed' });
 
-    delete users[userId];
-    await store.atomicUpdate('users.json', () => users);
+    await store.atomicUpdate('users.json', latestUsers => {
+      delete latestUsers[userId];
+      return latestUsers;
+    });
 
     // Drop sessions
     const sessions = await store.read('sessions.json');
@@ -1858,6 +1857,8 @@ router.delete('/work/users/:id', requireAuth, requireStaff, requireStaffAdmin, a
 
     // Drop feedback and future prompt state for the removed account.
     await removeUserFeedback(store, userId);
+    await applicationsStore.removeUser(userId);
+    for (const oppId of oppIds) await applicationsStore.removeOpportunity(oppId);
 
     // Revoke staff access
     if (member) {
@@ -1918,6 +1919,7 @@ router.delete('/work/opportunities/:id', requireAuth, requireStaff, requirePermi
     const decrypted = crypto.decryptObject(existing);
     const title = decrypted.encrypted_fields?.title || '';
     await store.deleteOpportunity(req.params.id);
+    await applicationsStore.removeOpportunity(req.params.id);
     await addLog({
       type: 'system',
       action: 'remove_opportunity',
@@ -2005,6 +2007,7 @@ router.delete('/work/flagged/:id', requireAuth, requireStaff, requirePermission(
     const decrypted = crypto.decryptObject(opp);
     const title = decrypted.encrypted_fields?.title || '';
     await store.deleteOpportunity(req.params.id);
+    await applicationsStore.removeOpportunity(req.params.id);
     await addLog({
       type: 'system',
       action: 'remove_flagged',

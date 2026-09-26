@@ -15,6 +15,8 @@ const store = require('../store');
 const { encryptObject, decryptObject } = require('../crypto');
 const { emailExists, claimVerifiedEmail, releaseVerifiedEmail, consumeVerifiedEmail } = require('./verify.routes');
 const { removeUserFeedback } = require('../feedback');
+const applicationsStore = require('../applications');
+const { validateExperiences } = require('../experiences');
 
 const COOKIE_NAME = 'larpable_session';
 const OPPORTUNITY_PREFERENCES = new Set(['paid', 'unpaid', 'volunteer', 'all']);
@@ -84,6 +86,7 @@ router.get('/me', requireAuth, async (req, res) => {
     longitude,
     skills: fields.skills || [],
     interests: fields.interests || [],
+    experiences: Array.isArray(fields.experiences) ? fields.experiences : [],
     opportunity_preference: fields.opportunity_preference || 'all',
     saved_posts: fields.saved_posts || []
   });
@@ -99,6 +102,7 @@ router.patch('/me', requireAuth, async (req, res) => {
     for (const key of allowed) {
       if (req.body[key] !== undefined) updates[key] = req.body[key];
     }
+    if (req.body.experiences !== undefined) updates.experiences = validateExperiences(req.body.experiences);
     if (updates.opportunity_preference !== undefined && !OPPORTUNITY_PREFERENCES.has(updates.opportunity_preference)) {
       return res.status(400).json({ error: 'Invalid opportunity preference' });
     }
@@ -140,7 +144,7 @@ router.patch('/me', requireAuth, async (req, res) => {
     res.json({ ok: true });
   } catch (e) {
     if (reservedEmail) releaseVerifiedEmail(reservedEmail);
-    console.error('Update user error:', e);
+    if (!e.status || e.status >= 500) console.error('Update user error:', e);
     res.status(e.status || 500).json({ error: e.status ? e.message : 'Server error' });
   }
 });
@@ -195,6 +199,7 @@ router.delete('/me', requireAuth, async (req, res) => {
     for (const [oppId, opp] of Object.entries(allOpps)) {
       if (opp.created_by === userId) {
         await store.remove('opportunities.json', oppId);
+        await applicationsStore.removeOpportunity(oppId);
       }
     }
 
@@ -210,6 +215,7 @@ router.delete('/me', requireAuth, async (req, res) => {
 
     // 3. Delete feedback and prompt history owned by this user
     await removeUserFeedback(store, userId);
+    await applicationsStore.removeUser(userId);
 
     // 4. Delete user record
     await store.remove('users.json', userId);

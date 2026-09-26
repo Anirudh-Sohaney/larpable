@@ -1294,6 +1294,12 @@ body {
   background: var(--sp-card);
 }
 .sp-work-row:hover { border-color: var(--sp-accent); }
+.sp-work-search-wrap { position: relative; width: min(280px, 100%); }
+.sp-work-search-wrap .sp-form-input { width: 100%; }
+.sp-work-suggestions { position: absolute; z-index: 30; top: calc(100% + 5px); left: 0; right: 0; max-height: 221px; overflow-y: auto; padding: 6px; border: 1px solid var(--sp-border); border-radius: var(--sp-radius); background: var(--sp-card); box-shadow: 0 8px 20px rgba(0,0,0,.12); }
+.sp-work-suggestions[hidden] { display: none; }
+.sp-work-suggestion { display: block; width: 100%; padding: 9px 10px; border: 0; border-radius: 7px; background: transparent; color: var(--sp-font); text-align: left; font: inherit; font-size: .82rem; cursor: pointer; }
+.sp-work-suggestion:hover,.sp-work-suggestion.is-active { background: var(--sp-bg); }
 
 /* ── Permission Chips (admin staff table) ────────────────── */
 .sp-perm-cell { min-width: 260px; }

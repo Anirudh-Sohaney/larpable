@@ -44,7 +44,7 @@ const Work = {
     addKind: 'skill',
     listKind: 'skill',
     search: '',
-    visible: 70,
+    selectedTerm: null,
     data: null,
     loading: false,
     users: null,
@@ -163,10 +163,13 @@ const Work = {
             <div class="sp-work-kind-tabs" id="work-list-kind-tabs">
               ${this.kinds().map(k => `<button class="sp-work-kind${k.id === this.state.listKind ? ' active' : ''}" onclick="Work.setListKind('${k.id}')">${k.label === 'Skill' ? 'Skills' : k.label === 'Interest' ? 'Interests' : 'Fields'}</button>`).join('')}
             </div>
-            <input type="search" class="sp-form-input" id="work-search" placeholder="Search ${this.listLabel().toLowerCase()}..." style="max-width:280px;" oninput="Work.handleSearch(this.value)">
+            <div class="sp-work-search-wrap">
+              <input type="search" class="sp-form-input" id="work-search" placeholder="Start typing ${this.listLabel().toLowerCase()}..." autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="work-list" oninput="Work.handleSearch(this.value)" onfocus="Work.renderList()" onblur="Work.closeSearch()" onkeydown="Work.handleSearchKey(event)">
+              <div id="work-list" class="sp-work-suggestions" role="listbox" hidden></div>
+            </div>
             <span style="font-size:0.78rem; color:var(--sp-muted);" id="work-count"></span>
           </div>
-          <div id="work-list" style="max-height:380px; overflow-y:auto; border:1px solid var(--sp-border); border-radius:var(--sp-radius);"><div class="sp-empty" style="padding:24px;">Loading…</div></div>
+          <div id="work-selection"></div>
         </div>
         ` : ''}
 
@@ -236,7 +239,7 @@ const Work = {
         this.state.data = await this.fetchTaxonomy();
         this.renderList();
       } catch (error) {
-        document.getElementById('work-list').innerHTML = `<div class="sp-empty" style="padding:24px;">${Utils.escapeHtml(error.message)}</div>`;
+        document.getElementById('work-selection').textContent = error.message;
       } finally {
         this.state.loading = false;
       }
@@ -286,9 +289,12 @@ const Work = {
   setListKind(kind) {
     this.state.listKind = kind;
     this.state.search = '';
-    this.state.visible = 70;
+    this.state.selectedTerm = null;
     const search = document.getElementById('work-search');
-    if (search) search.value = '';
+    if (search) {
+      search.value = '';
+      search.placeholder = `Start typing ${this.listLabel().toLowerCase()}...`;
+    }
     this.renderList();
     const tabs = document.getElementById('work-list-kind-tabs');
     if (tabs) tabs.querySelectorAll('.sp-work-kind').forEach(b => {
@@ -299,19 +305,44 @@ const Work = {
 
   handleSearch(value) {
     this.state.search = value;
-    this.state.visible = 70;
+    this.state.selectedTerm = null;
     this.renderList();
   },
 
-  showMore() {
-    this.state.visible = Math.min(this.state.visible + 80, 150);
-    this.renderList();
+  closeSearch() {
+    setTimeout(() => {
+      const wrap = document.querySelector('.sp-work-search-wrap');
+      if (wrap && !wrap.contains(document.activeElement)) {
+        const list = document.getElementById('work-list');
+        if (list) list.hidden = true;
+        document.getElementById('work-search')?.setAttribute('aria-expanded', 'false');
+      }
+    }, 0);
+  },
+
+  handleSearchKey(event) {
+    const list = document.getElementById('work-list');
+    if (!list || list.hidden) return;
+    const options = [...list.querySelectorAll('.sp-work-suggestion')];
+    if (event.key === 'Escape') { list.hidden = true; event.currentTarget.setAttribute('aria-expanded', 'false'); return; }
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      event.preventDefault();
+      const active = options.findIndex(option => option.classList.contains('is-active'));
+      const next = event.key === 'ArrowDown' ? Math.min(active + 1, options.length - 1) : Math.max(active - 1, 0);
+      options.forEach((option, index) => option.classList.toggle('is-active', index === next));
+      options[next]?.scrollIntoView({ block: 'nearest' });
+    } else if (event.key === 'Enter') {
+      const active = options.find(option => option.classList.contains('is-active'));
+      if (active) { event.preventDefault(); active.click(); }
+    }
   },
 
   renderList() {
     const data = this.state.data;
     const container = document.getElementById('work-list');
     const countEl = document.getElementById('work-count');
+    const selection = document.getElementById('work-selection');
+    const search = document.getElementById('work-search');
     if (!data || !container) return;
 
     const list = data[this.state.listKind === 'skill' ? 'skills' : this.state.listKind === 'interest' ? 'interests' : 'fields'] || [];
@@ -328,32 +359,44 @@ const Work = {
       })
       .sort((a, b) => a.localeCompare(b));
 
-    countEl.textContent = `${matches.length} / ${list.length}`;
+    countEl.textContent = query ? `${matches.length} / ${list.length}` : `${list.length} total`;
+    container.replaceChildren();
+    container.hidden = !query || !!this.state.selectedTerm;
+    search?.setAttribute('aria-expanded', String(!container.hidden));
+    selection.replaceChildren();
+    const kind = this.state.listKind;
+    if (this.state.selectedTerm && list.includes(this.state.selectedTerm)) {
+      const item = this.state.selectedTerm;
+      const detail = document.createElement('div');
+      detail.className = 'sp-work-row';
+      detail.innerHTML = `<div style="min-width:0;"><div style="font-size:.88rem;font-weight:600;">${Utils.escapeHtml(item)}</div>${(synonyms[item] || []).length ? `<div style="font-size:.72rem;color:var(--sp-muted);margin-top:2px;">${Utils.escapeHtml(synonyms[item].join(', '))}</div>` : ''}</div>`;
+      const remove = document.createElement('button');
+      remove.className = 'sp-btn';
+      remove.textContent = 'Remove';
+      remove.style.cssText = 'font-size:.72rem;color:var(--sp-red);border-color:var(--sp-red);flex-shrink:0';
+      remove.addEventListener('click', () => this.remove(kind, encodeURIComponent(item)));
+      detail.appendChild(remove);
+      selection.appendChild(detail);
+    }
+    if (container.hidden) return;
     if (!matches.length) {
-      container.innerHTML = '<div class="sp-empty" style="padding:24px;">No matches found.</div>';
+      container.innerHTML = '<div class="sp-empty" style="padding:12px;">No matches found.</div>';
       return;
     }
-    const shown = matches.slice(0, this.state.visible);
-    const kind = this.state.listKind;
-    container.innerHTML = shown.map(item => {
-      const syns = synonyms[item] || [];
-      return `
-        <div class="sp-work-row">
-          <div style="min-width:0;">
-            <div style="font-size:0.88rem; font-weight:600;">${Utils.escapeHtml(item)}</div>
-            ${syns.length ? `<div style="font-size:0.72rem; color:var(--sp-muted); margin-top:2px;">${Utils.escapeHtml(syns.join(', '))}</div>` : ''}
-          </div>
-          <button class="sp-btn" style="font-size:0.72rem; color:var(--sp-red); border-color:var(--sp-red); flex-shrink:0;" onclick="Work.remove('${kind}', '${encodeURIComponent(item)}')">Remove</button>
-        </div>
-      `;
-    }).join('');
-    if (matches.length > shown.length) {
-      container.insertAdjacentHTML('beforeend', `
-        <div style="text-align:center; margin-top:4px;">
-          <button class="sp-btn" onclick="Work.showMore()">Show more (${matches.length - shown.length} remaining)</button>
-        </div>
-      `);
-    }
+    matches.forEach(item => {
+      const option = document.createElement('button');
+      option.type = 'button';
+      option.className = 'sp-work-suggestion';
+      option.setAttribute('role', 'option');
+      option.textContent = item;
+      option.addEventListener('click', () => {
+        this.state.selectedTerm = item;
+        this.state.search = item;
+        search.value = item;
+        this.renderList();
+      });
+      container.appendChild(option);
+    });
   },
 
   async submit() {
@@ -382,6 +425,10 @@ const Work = {
       document.getElementById('work-synonyms').value = '';
       status.textContent = `Added "${label}" with a generated vector.`;
       this.state.data = await this.fetchTaxonomy();
+      this.setListKind(this.state.addKind);
+      this.state.selectedTerm = label;
+      this.state.search = label;
+      document.getElementById('work-search').value = label;
       this.renderList();
     } catch (error) {
       status.textContent = error.message;
@@ -401,6 +448,9 @@ const Work = {
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || 'Could not remove the word.');
       this.state.data = await this.fetchTaxonomy();
+      this.state.selectedTerm = null;
+      this.state.search = '';
+      document.getElementById('work-search').value = '';
       this.renderList();
     } catch (error) {
       alert(error.message);
@@ -610,6 +660,16 @@ const Work = {
         <div style="margin-bottom:20px;">
           <div style="font-size:0.72rem; font-weight:600; color:var(--sp-muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">Interests</div>
           <div>${chips(user.interests)}</div>
+        </div>
+        <div style="margin-bottom:20px;">
+          <div style="font-size:0.72rem; font-weight:600; color:var(--sp-muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px;">Experience</div>
+          ${(user.experiences || []).length ? user.experiences.map(experience => `
+            <div style="padding:12px;margin:8px 0;border:1px solid var(--sp-border);border-radius:8px;">
+              <strong>${Utils.escapeHtml(experience.title || 'Untitled')}</strong> · ${Utils.escapeHtml(experience.type || '')}
+              ${experience.company_name ? `<div>${Utils.escapeHtml(experience.company_name)}</div>` : ''}
+              <p style="margin:8px 0;white-space:pre-wrap;">${Utils.escapeHtml(experience.description || '')}</p>
+              <div>${chips(experience.skills)}</div>
+            </div>`).join('') : '<span style="color:var(--sp-muted);font-size:.78rem;">—</span>'}
         </div>
         <div class="sp-form-actions">
           <button class="sp-btn" onclick="Work.closeUserModal()">Close</button>

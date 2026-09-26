@@ -24,6 +24,7 @@ const { encryptObject, decryptObject } = require('../crypto');
 const { sanitizeObject } = require('../sanitize');
 const { geocode } = require('../geocode');
 const { scanFields, applyFlag, flagNotice } = require('../profanity');
+const applicationsStore = require('../applications');
 
 const OPPORTUNITY_PREFERENCES = new Set(['volunteering', 'paid', 'unpaid']);
 const DEFAULT_OPPORTUNITY_PREFERENCE = { project: 'unpaid', nonprofit: 'volunteering', company: 'paid' };
@@ -62,6 +63,8 @@ router.get('/', optionalAuth, async (req, res) => {
     opportunities = opportunities.filter(o => !o.flagged);
 
     const enriched = await Promise.all(opportunities.map(opp => enrichOppWithCoords(opp, req.user)));
+    const applications = req.user ? await applicationsStore.read() : {};
+    enriched.forEach(opp => addApplicationSummary(opp, req.user, applications));
     
     res.json({ opportunities: enriched });
   } catch (e) {
@@ -77,6 +80,8 @@ router.get('/mine', requireAuth, async (req, res) => {
     const mine = allOpps.filter(o => o.created_by === req.user.id && !o.flagged);
     
     const enriched = await Promise.all(mine.map(opp => enrichOppWithCoords(opp, req.user)));
+    const applications = await applicationsStore.read();
+    enriched.forEach(opp => addApplicationSummary(opp, req.user, applications));
     
     res.json({ opportunities: enriched });
   } catch (e) {
@@ -101,9 +106,11 @@ router.get('/:id', optionalAuth, async (req, res) => {
     
     // store.getOpportunity() already decrypts — use fields directly
     const decrypted = opp.encrypted_fields || {};
+    const applications = req.user ? await applicationsStore.read() : {};
+    const applicants = applications[opp.id] || {};
     
     // Clear read states
-    if (req.user && decrypted.comments) {
+    if (req.user && req.query.view !== 'applications' && decrypted.comments) {
       let changed = false;
       
       // Clear OP read
@@ -129,9 +136,23 @@ router.get('/:id', optionalAuth, async (req, res) => {
       }
       
       if (changed) {
-        opp.encrypted_fields = require('../crypto').encryptObject(decrypted);
-        // Don't block
-        store.saveOpportunity(opp.id, opp).catch(() => {});
+        const seenCommentIds = new Set(decrypted.comments.map(comment => comment.id));
+        const seenReplyIds = new Map(decrypted.comments.map(comment => [comment.id, new Set((comment.replies || []).map(reply => reply.id))]));
+        await store.atomicUpdate('opportunities.json', opportunities => {
+          const latest = opportunities[opp.id];
+          if (!latest) return opportunities;
+          const latestFields = decryptObject(latest.encrypted_fields || {});
+          for (const comment of latestFields.comments || []) {
+            if (req.user.id === latest.created_by && seenCommentIds.has(comment.id)) comment.read_by_op = true;
+            if (comment.user_id === req.user.id) {
+              for (const reply of comment.replies || []) {
+                if (seenReplyIds.get(comment.id)?.has(reply.id)) reply.read_by_parent_author = true;
+              }
+            }
+          }
+          latest.encrypted_fields = encryptObject(latestFields);
+          return opportunities;
+        });
       }
     }
     
@@ -156,11 +177,110 @@ router.get('/:id', optionalAuth, async (req, res) => {
       created_at: opp.created_at,
       flagged: opp.flagged || false,
       fields: decrypted,
-      issuer
+      issuer,
+      application: req.user ? {
+        applied: !!applicants[req.user.id],
+        count: req.user.id === opp.created_by ? Object.keys(applicants).length : undefined,
+        has_unread: req.user.id === opp.created_by && Object.values(applicants).some(entry => !entry.read_at)
+      } : null
     });
   } catch (e) {
     console.error('Get opportunity error:', e);
     res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// Applications are private to the post owner. Store identifiers and timestamps;
+// fetch current profile fields only when the owner opens the applicant list.
+router.post('/:id/applications', requireAuth, async (req, res) => {
+  try {
+    const opportunity = await store.getById('opportunities.json', req.params.id);
+    if (!opportunity || opportunity.flagged) return res.status(404).json({ error: 'Opportunity not found' });
+    if (opportunity.created_by === req.user.id) return res.status(403).json({ error: 'You cannot apply to your own post' });
+    let created = false;
+    await store.atomicUpdate(applicationsStore.FILE, applications => {
+      const applicants = applications[req.params.id] ||= {};
+      if (!applicants[req.user.id]) {
+        applicants[req.user.id] = { applied_at: new Date().toISOString(), read_at: null };
+        created = true;
+      }
+      return applications;
+    });
+    res.status(created ? 201 : 200).json({ applied: true, already_applied: !created });
+  } catch (error) {
+    console.error('Apply error:', error);
+    res.status(500).json({ error: 'Could not save application' });
+  }
+});
+
+router.get('/:id/applications', requireAuth, async (req, res) => {
+  try {
+    const opportunity = await store.getById('opportunities.json', req.params.id);
+    if (!opportunity) return res.status(404).json({ error: 'Opportunity not found' });
+    if (opportunity.created_by !== req.user.id) return res.status(403).json({ error: 'Not authorized' });
+    const applications = await applicationsStore.read();
+    const entries = Object.entries(applications[req.params.id] || {});
+    const users = await store.read('users.json');
+    const opportunityFields = decryptObject(opportunity.encrypted_fields || {});
+    const skillKey = value => String(value || '').trim().toLowerCase();
+    const requiredSkills = new Set((Array.isArray(opportunityFields.skills) ? opportunityFields.skills : []).map(skillKey).filter(Boolean));
+    const applicants = entries.map(([userId, entry]) => {
+      const user = users[userId];
+      if (!user) return null;
+      const fields = decryptObject(user.encrypted_fields || {});
+      const experiences = (Array.isArray(fields.experiences) ? fields.experiences : []).flatMap(experience => {
+        if (!experience || typeof experience !== 'object' || !Array.isArray(experience.skills)) return [];
+        const matchingSkills = experience.skills.filter(skill => typeof skill === 'string' && requiredSkills.has(skillKey(skill)));
+        if (!matchingSkills.length) return [];
+        return [{
+          type: experience.type || '',
+          title: experience.title || '',
+          company_name: experience.company_name || '',
+          description: experience.description || '',
+          skills: experience.skills,
+          matching_skills: matchingSkills
+        }];
+      });
+      return {
+        id: userId,
+        name: [fields.first_name || fields.firstName, fields.last_name || fields.lastName].filter(Boolean).join(' ') || fields.username || 'Student',
+        grade: fields.grade || '',
+        skills: Array.isArray(fields.skills) ? fields.skills : [],
+        experiences,
+        email: fields.email || '',
+        applied_at: entry.applied_at,
+        unread: !entry.read_at
+      };
+    }).filter(Boolean).sort((a, b) => Date.parse(b.applied_at) - Date.parse(a.applied_at));
+    res.json({ applicants });
+  } catch (error) {
+    console.error('List applications error:', error);
+    res.status(500).json({ error: 'Could not load applicants' });
+  }
+});
+
+router.post('/:id/applications/seen', requireAuth, async (req, res) => {
+  try {
+    const opportunity = await store.getById('opportunities.json', req.params.id);
+    if (!opportunity) return res.status(404).json({ error: 'Opportunity not found' });
+    if (opportunity.created_by !== req.user.id) return res.status(403).json({ error: 'Not authorized' });
+    const applicantIds = req.body?.applicant_ids;
+    if (!Array.isArray(applicantIds) || applicantIds.length > 10000 || applicantIds.some(id => typeof id !== 'string')) {
+      return res.status(400).json({ error: 'Applicant IDs are required' });
+    }
+    await store.atomicUpdate(applicationsStore.FILE, applications => {
+      const applicants = applications[req.params.id] || {};
+      for (const id of applicantIds) {
+        const entry = applicants[id];
+        if (!entry) continue;
+        if (!entry.read_at) entry.read_at = new Date().toISOString();
+      }
+      return applications;
+    });
+    res.json({ ok: true });
+  } catch (error) {
+    console.error('Mark applications seen error:', error);
+    res.status(500).json({ error: 'Could not mark applicants seen' });
   }
 });
 
@@ -442,6 +562,7 @@ router.delete('/:id', requireAuth, async (req, res) => {
     }
     
     await store.deleteOpportunity(req.params.id);
+    await applicationsStore.removeOpportunity(req.params.id);
     res.json({ ok: true });
   } catch (e) {
     console.error('Delete opportunity error:', e);
@@ -507,8 +628,22 @@ function enrichOpp(opp, user) {
     created_at: opp.created_at || '',
     posted: opp.created_at ? formatPosted(opp.created_at) : 'Recently',
     has_unread_comments: !!user && user.id === opp.created_by
-      && Array.isArray(f.comments) && f.comments.some(c => c.read_by_op === false)
+      && Array.isArray(f.comments) && f.comments.some(c => c.read_by_op === false),
+    latest_unread_comment_at: !!user && user.id === opp.created_by && Array.isArray(f.comments)
+      ? f.comments.reduce((latest, comment) => comment.read_by_op === false && comment.created_at > latest ? comment.created_at : latest, '')
+      : ''
   };
+}
+
+function addApplicationSummary(opp, user, applications) {
+  if (!user || opp.created_by !== user.id) return;
+  const entries = Object.values(applications[opp.id] || {});
+  opp.application_count = entries.length;
+  const unread = entries.filter(entry => !entry.read_at);
+  opp.has_unread_applications = unread.length > 0;
+  opp.latest_unread_application_at = unread.reduce((latest, entry) =>
+    entry.applied_at > latest ? entry.applied_at : latest, '');
+  opp.latest_notification_at = [opp.latest_unread_application_at, opp.latest_unread_comment_at].sort().pop() || '';
 }
 
 /**
@@ -531,14 +666,16 @@ async function enrichOppWithCoords(opp, user) {
       enriched.latitude = coords.lat;
       enriched.longitude = coords.lon;
 
-      // Persist back to store (fire-and-forget, don't block response)
-      store.getById('opportunities.json', opp.id).then(raw => {
-        if (!raw) return;
+      // Merge inside the write queue so a concurrent comment or edit survives.
+      store.atomicUpdate('opportunities.json', opportunities => {
+        const raw = opportunities[opp.id];
+        if (!raw) return opportunities;
         const currentFields = decryptObject(raw.encrypted_fields || {});
+        if (currentFields.location !== enriched.location) return opportunities;
         currentFields.latitude = coords.lat;
         currentFields.longitude = coords.lon;
         raw.encrypted_fields = encryptObject(currentFields);
-        return store.saveOpportunity(opp.id, raw);
+        return opportunities;
       }).catch(() => {});
     }
   } catch (e) {
