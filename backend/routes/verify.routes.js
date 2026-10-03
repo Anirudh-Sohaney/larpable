@@ -24,6 +24,9 @@ const { sha256Lookup, decryptObject } = require('../crypto');
 const CODE_TTL_MS = 3 * 60 * 1000;   // 3 minutes
 const MAX_ATTEMPTS = 5;
 const RESEND_COOLDOWN_MS = 60 * 1000;
+const SEND_TIMEOUT_MS = 10000;
+const SEND_MAX_ATTEMPTS = 3;
+const SEND_RETRY_BASE_MS = 800;
 const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 const RESEND_API_KEY = process.env.RESEND_API_KEY || '';
 const RESEND_API_URL = 'https://api.resend.com/emails';
@@ -68,22 +71,35 @@ function hashesMatch(left, right) {
   return a.length === 32 && b.length === 32 && require('crypto').timingSafeEqual(a, b);
 }
 
-function issueCode(email) {
+function sleep(ms) {
+  return new Promise(r => setTimeout(r, ms));
+}
+
+function isRetryableSend(err) {
+  const status = err && err.resendStatus;
+  if (status === 429) return true;
+  if (typeof status === 'number' && status >= 500 && status < 600) return true;
+  if (!status) return true; // network error / timeout / fetch failure
+  return false;
+}
+
+async function issueCode(email) {
   if (IS_PRODUCTION && !RESEND_API_KEY) {
     throw new Error('Email verification provider is not configured');
   }
   const code = generateCode();
+  // Wait for Resend to confirm acceptance; retry transient failures.
+  // No pending entry is stored unless delivery is confirmed, so a failed
+  // request never traps the user behind "Verification already pending".
+  await sendVerificationEmailWithRetry(email, code);
+  const now = Date.now();
   verifications.set(email, {
     codeHash: hashCode(code),
-    createdAt: Date.now(),
-    expiresAt: Date.now() + CODE_TTL_MS,
+    createdAt: now,
+    expiresAt: now + CODE_TTL_MS,
     attempts: 0
   });
-  // Fire-and-forget delivery; the response never blocks on the provider.
-  sendVerificationEmail(email, code).catch(err => {
-    console.error('[verify] delivery failed:', err.message);
-  });
-  const body = { expiresIn: CODE_TTL_MS / 1000, expiresAt: Date.now() + CODE_TTL_MS };
+  const body = { expiresIn: CODE_TTL_MS / 1000, expiresAt: now + CODE_TTL_MS };
   if (!IS_PRODUCTION) body.devCode = code;
   return body;
 }
@@ -147,19 +163,53 @@ async function sendVerificationEmail(toEmail, code) {
     console.log('[verify] development code issued');
     return { delivered: false, reason: 'no-provider' };
   }
-  const res = await fetch(RESEND_API_URL, {
-    method: 'POST',
-    headers: { Authorization: 'Bearer ' + RESEND_API_KEY, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      from: 'LARPABLE <' + VERIFY_FROM_EMAIL + '>',
-      to: toEmail,
-      subject: 'Your LARPABLE Verification Code',
-      html: '<p>Your verification code is:</p><p style="font-size:28px;font-weight:bold;letter-spacing:6px;">' + code + '</p><p>It expires in 3 minutes.</p>'
-    })
-  });
-  if (!res.ok) throw new Error('Resend HTTP ' + res.status);
-  console.log('[verify] verification email sent');
-  return { delivered: true };
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), SEND_TIMEOUT_MS);
+  let res;
+  try {
+    res = await fetch(RESEND_API_URL, {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + RESEND_API_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        from: 'LARPABLE <' + VERIFY_FROM_EMAIL + '>',
+        to: toEmail,
+        subject: 'Your LARPABLE Verification Code',
+        html: '<p>Your verification code is:</p><p style="font-size:28px;font-weight:bold;letter-spacing:6px;">' + code + '</p><p>It expires in 3 minutes.</p>'
+      }),
+      signal: controller.signal
+    });
+  } catch (e) {
+    const err = new Error('Resend request failed: ' + (e.name === 'AbortError' ? 'timeout' : e.message));
+    throw err;
+  } finally {
+    clearTimeout(timeout);
+  }
+  if (!res.ok) {
+    let detail = '';
+    try { detail = (await res.text()).slice(0, 300); } catch {}
+    const err = new Error('Resend HTTP ' + res.status + (detail ? ' ' + detail : ''));
+    err.resendStatus = res.status;
+    throw err;
+  }
+  let emailId = '';
+  try { emailId = (await res.json()).id || ''; } catch {}
+  console.log('[verify] verification email accepted' + (emailId ? ' id=' + emailId : '') + ' to=' + toEmail);
+  return { delivered: true, id: emailId };
+}
+
+async function sendVerificationEmailWithRetry(toEmail, code) {
+  let lastErr = null;
+  for (let attempt = 1; attempt <= SEND_MAX_ATTEMPTS; attempt++) {
+    try {
+      return await sendVerificationEmail(toEmail, code);
+    } catch (err) {
+      lastErr = err;
+      console.error(`[verify] delivery attempt ${attempt}/${SEND_MAX_ATTEMPTS} failed for ${toEmail}:`, err.message);
+      if (attempt >= SEND_MAX_ATTEMPTS || !isRetryableSend(err)) throw err;
+      await sleep(SEND_RETRY_BASE_MS * attempt);
+    }
+  }
+  throw lastErr;
 }
 
 // ── POST /api/verify/email ───────────────────────────────────
@@ -179,7 +229,12 @@ verifyRouter.post('/email', async (req, res) => {
       return res.status(400).json({ error: 'Verification already pending', expiresAt: existing.expiresAt });
     }
 
-    res.json(issueCode(email));
+    try {
+      res.json(await issueCode(email));
+    } catch (e) {
+      console.error('[verify] delivery failed, no code stored:', e.message);
+      return res.status(503).json({ error: 'Email verification is temporarily unavailable. Please try again.' });
+    }
   } catch (e) {
     console.error('[verify] email lookup failed:', e.message);
     res.status(503).json({ error: 'Email verification is temporarily unavailable' });
@@ -214,7 +269,7 @@ verifyRouter.post('/code', (req, res) => {
 });
 
 // ── POST /api/verify/resend ──────────────────────────────────
-verifyRouter.post('/resend', (req, res) => {
+verifyRouter.post('/resend', async (req, res) => {
   const email = String(req.body && req.body.email || '').trim().toLowerCase();
   if (!email) {
     return res.status(400).json({ error: 'Email is required' });
@@ -230,10 +285,10 @@ verifyRouter.post('/resend', (req, res) => {
     return res.status(429).json({ error: 'Please wait before requesting another code', retryAfter });
   }
   try {
-    res.json(issueCode(email));
+    res.json(await issueCode(email));
   } catch (e) {
     console.error('[verify] resend unavailable:', e.message);
-    res.status(503).json({ error: 'Email verification is temporarily unavailable' });
+    res.status(503).json({ error: 'Email verification is temporarily unavailable. Please try again.' });
   }
 });
 
