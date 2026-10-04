@@ -44,7 +44,6 @@ const Work = {
     addKind: 'skill',
     listKind: 'skill',
     search: '',
-    selectedTerm: null,
     data: null,
     loading: false,
     users: null,
@@ -163,13 +162,10 @@ const Work = {
             <div class="sp-work-kind-tabs" id="work-list-kind-tabs">
               ${this.kinds().map(k => `<button class="sp-work-kind${k.id === this.state.listKind ? ' active' : ''}" onclick="Work.setListKind('${k.id}')">${k.label === 'Skill' ? 'Skills' : k.label === 'Interest' ? 'Interests' : 'Fields'}</button>`).join('')}
             </div>
-            <div class="sp-work-search-wrap">
-              <input type="search" class="sp-form-input" id="work-search" placeholder="Start typing ${this.listLabel().toLowerCase()}..." autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="work-list" oninput="Work.handleSearch(this.value)" onfocus="Work.renderList()" onblur="Work.closeSearch()" onkeydown="Work.handleSearchKey(event)">
-              <div id="work-list" class="sp-work-suggestions" role="listbox" hidden></div>
-            </div>
+            <input type="search" class="sp-form-input" id="work-search" placeholder="Search ${this.listLabel().toLowerCase()}..." style="max-width:240px;" oninput="Work.handleSearch(this.value)">
             <span style="font-size:0.78rem; color:var(--sp-muted);" id="work-count"></span>
           </div>
-          <div id="work-selection"></div>
+          <div class="sp-users-list" id="work-taxonomy-list" style="max-height:380px; overflow-y:auto; border:1px solid var(--sp-border); border-radius:var(--sp-radius);"><div class="sp-empty" style="padding:24px;">Loading…</div></div>
         </div>
         ` : ''}
 
@@ -239,7 +235,8 @@ const Work = {
         this.state.data = await this.fetchTaxonomy();
         this.renderList();
       } catch (error) {
-        document.getElementById('work-selection').textContent = error.message;
+        const list = document.getElementById('work-taxonomy-list');
+        if (list) list.innerHTML = `<div class="sp-empty" style="padding:24px;">${Utils.escapeHtml(error.message)}</div>`;
       } finally {
         this.state.loading = false;
       }
@@ -289,7 +286,6 @@ const Work = {
   setListKind(kind) {
     this.state.listKind = kind;
     this.state.search = '';
-    this.state.selectedTerm = null;
     const search = document.getElementById('work-search');
     if (search) {
       search.value = '';
@@ -305,50 +301,20 @@ const Work = {
 
   handleSearch(value) {
     this.state.search = value;
-    this.state.selectedTerm = null;
     this.renderList();
-  },
-
-  closeSearch() {
-    setTimeout(() => {
-      const wrap = document.querySelector('.sp-work-search-wrap');
-      if (wrap && !wrap.contains(document.activeElement)) {
-        const list = document.getElementById('work-list');
-        if (list) list.hidden = true;
-        document.getElementById('work-search')?.setAttribute('aria-expanded', 'false');
-      }
-    }, 0);
-  },
-
-  handleSearchKey(event) {
-    const list = document.getElementById('work-list');
-    if (!list || list.hidden) return;
-    const options = [...list.querySelectorAll('.sp-work-suggestion')];
-    if (event.key === 'Escape') { list.hidden = true; event.currentTarget.setAttribute('aria-expanded', 'false'); return; }
-    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
-      event.preventDefault();
-      const active = options.findIndex(option => option.classList.contains('is-active'));
-      const next = event.key === 'ArrowDown' ? Math.min(active + 1, options.length - 1) : Math.max(active - 1, 0);
-      options.forEach((option, index) => option.classList.toggle('is-active', index === next));
-      options[next]?.scrollIntoView({ block: 'nearest' });
-    } else if (event.key === 'Enter') {
-      const active = options.find(option => option.classList.contains('is-active'));
-      if (active) { event.preventDefault(); active.click(); }
-    }
   },
 
   renderList() {
     const data = this.state.data;
-    const container = document.getElementById('work-list');
+    const container = document.getElementById('work-taxonomy-list');
     const countEl = document.getElementById('work-count');
-    const selection = document.getElementById('work-selection');
-    const search = document.getElementById('work-search');
-    if (!data || !container) return;
+    if (!data || !container || !countEl) return;
 
-    const list = data[this.state.listKind === 'skill' ? 'skills' : this.state.listKind === 'interest' ? 'interests' : 'fields'] || [];
-    const synonyms = this.state.listKind === 'skill'
+    const kind = this.state.listKind;
+    const list = data[kind === 'skill' ? 'skills' : kind === 'interest' ? 'interests' : 'fields'] || [];
+    const synonyms = kind === 'skill'
       ? (data.skill_synonyms || {})
-      : ((data.taxonomy_synonyms || {})[this.state.listKind === 'interest' ? 'interests' : 'fields'] || {});
+      : ((data.taxonomy_synonyms || {})[kind === 'interest' ? 'interests' : 'fields'] || {});
     const query = this.state.search.trim().toLowerCase();
     const matches = list
       .filter(item => {
@@ -360,42 +326,21 @@ const Work = {
       .sort((a, b) => a.localeCompare(b));
 
     countEl.textContent = query ? `${matches.length} / ${list.length}` : `${list.length} total`;
-    container.replaceChildren();
-    container.hidden = !!this.state.selectedTerm;
-    search?.setAttribute('aria-expanded', String(!container.hidden));
-    selection.replaceChildren();
-    const kind = this.state.listKind;
-    if (this.state.selectedTerm && list.includes(this.state.selectedTerm)) {
-      const item = this.state.selectedTerm;
-      const detail = document.createElement('div');
-      detail.className = 'sp-work-row';
-      detail.innerHTML = `<div style="min-width:0;"><div style="font-size:.88rem;font-weight:600;">${Utils.escapeHtml(item)}</div>${(synonyms[item] || []).length ? `<div style="font-size:.72rem;color:var(--sp-muted);margin-top:2px;">${Utils.escapeHtml(synonyms[item].join(', '))}</div>` : ''}</div>`;
-      const remove = document.createElement('button');
-      remove.className = 'sp-btn';
-      remove.textContent = 'Remove';
-      remove.style.cssText = 'font-size:.72rem;color:var(--sp-red);border-color:var(--sp-red);flex-shrink:0';
-      remove.addEventListener('click', () => this.remove(kind, encodeURIComponent(item)));
-      detail.appendChild(remove);
-      selection.appendChild(detail);
-    }
-    if (container.hidden) return;
     if (!matches.length) {
-      container.innerHTML = '<div class="sp-empty" style="padding:12px;">No matches found.</div>';
+      container.innerHTML = '<div class="sp-empty" style="padding:24px;">No matches found.</div>';
       return;
     }
-    matches.forEach(item => {
-      const option = document.createElement('button');
-      option.type = 'button';
-      option.className = 'sp-work-suggestion';
-      option.setAttribute('role', 'option');
-      option.textContent = item;
-      option.addEventListener('click', () => {
-        this.state.selectedTerm = item;
-        this.state.search = item;
-        search.value = item;
-        this.renderList();
-      });
-      container.appendChild(option);
+    container.innerHTML = matches.map(item => `
+      <div class="sp-work-row">
+        <div style="min-width:0;">
+          <div style="font-size:0.88rem; font-weight:600;">${Utils.escapeHtml(item)}</div>
+          ${(synonyms[item] || []).length ? `<div style="font-size:0.72rem; color:var(--sp-muted); margin-top:2px;">${Utils.escapeHtml(synonyms[item].join(', '))}</div>` : ''}
+        </div>
+        <button class="sp-btn" style="font-size:.72rem; color:var(--sp-red); border-color:var(--sp-red); flex-shrink:0;" data-kind="${kind}" data-label="${Utils.escapeHtml(encodeURIComponent(item))}">Remove</button>
+      </div>
+    `).join('');
+    container.querySelectorAll('button[data-kind][data-label]').forEach(btn => {
+      btn.addEventListener('click', () => this.remove(btn.dataset.kind, btn.dataset.label));
     });
   },
 
@@ -426,7 +371,6 @@ const Work = {
       status.textContent = `Added "${label}" with a generated vector.`;
       this.state.data = await this.fetchTaxonomy();
       this.setListKind(this.state.addKind);
-      this.state.selectedTerm = label;
       this.state.search = label;
       document.getElementById('work-search').value = label;
       this.renderList();
@@ -448,7 +392,6 @@ const Work = {
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || 'Could not remove the word.');
       this.state.data = await this.fetchTaxonomy();
-      this.state.selectedTerm = null;
       this.state.search = '';
       document.getElementById('work-search').value = '';
       this.renderList();
