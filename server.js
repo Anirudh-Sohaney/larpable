@@ -55,8 +55,17 @@ const rateLimitCleanup = setInterval(() => {
       rateLimitBuckets.delete(key);
     }
   }
+  // Nightly emails run ONLY in production (or with LARPABLE_RUN_NIGHTLY=1):
+  // any long-lived non-prod boot against a real DATA_DIR would otherwise
+  // send real emails on its interval tick.
+  if (IS_PRODUCTION || process.env.LARPABLE_RUN_NIGHTLY === '1') {
+    try {
+      require('./backend/reengagement').maybeRunNightlyReengagement(now).catch(() => {});
+    } catch {}
+  }
+  // Activity buffer flush piggybacks on the same existing timer.
   try {
-    require('./backend/reengagement').maybeRunNightlyReengagement(now).catch(() => {});
+    require('./backend/activity').flushActivity().catch(() => {});
   } catch {}
 }, 5 * 60 * 1000);
 rateLimitCleanup.unref();
@@ -144,6 +153,7 @@ app.use((req, res, next) => {
 // Apply rate limits before parsing request bodies. This protects CPU and
 // memory from large/hostile payloads while keeping the existing per-IP caps.
 app.use('/api/auth', rateLimit('auth'));
+app.use('/api/activity', rateLimit('api'));
 app.use('/api/verify', rateLimit('auth'));
 app.use('/api/validate', rateLimit('auth'));
 app.use('/api/opportunities', rateLimit('api'));
@@ -197,6 +207,9 @@ app.use('/api/staff', staffRoutes);
 const verifyRoutes = require('./backend/routes/verify.routes');
 app.use('/api/verify', verifyRoutes.verify);
 app.use('/api/validate', verifyRoutes.validate);
+
+// Activity ping receiver (anonymous page-load beacon)
+app.use('/api/activity', require('./backend/routes/activity.routes'));
 
 // ── Matching API ─────────────────────────────────────────────
 const { CANONICAL_SYNONYMS } = require('./web_app/synonyms');

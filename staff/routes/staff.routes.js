@@ -1425,11 +1425,17 @@ router.get('/overview', requireAuth, requireStaff, async (req, res) => {
       const date = day.toISOString().slice(0, 10);
       growth.push({ date, users: users.filter(user => (user.created_at || '').slice(0, 10) === date).length });
     }
+    let activity = null;
+    try {
+      activity = await require('../../backend/activity').getActivitySummary();
+    } catch (e) {
+      console.error('Staff overview activity error:', e.message);
+    }
     res.json({
       generatedAt: new Date().toISOString(), launchDate,
       totals: { users: users.length, usersSinceLaunch: users.length, usersLast7Days, usersLast30Days, posts: posts.length, postsSinceLaunch: posts.length, postsLast7Days, postsLast30Days, verifiedUsers: users.filter(user => user.verified).length, staff: staffCount },
       postsByType, topSkills: top(skillCounts), topCountries: top(countryCounts), topInterests: top(interestCounts), topFields: top(fieldCounts),
-      recentUsers, recentPosts, growth
+      recentUsers, recentPosts, growth, activity
     });
   } catch (e) {
     console.error('Staff overview error:', e);

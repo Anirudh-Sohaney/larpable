@@ -30,6 +30,22 @@ const Home = {
     if (!items.length) return `<div class="sp-inbox-live"><div><strong>Latest inbox</strong><span>Nothing new since your last portal visit.</span></div><i>✓</i></div>`;
     return `<div class="sp-inbox-live"><div><strong>Latest inbox</strong><span>${items.slice(0, 6).map(item => `<span class="sp-inbox-line"${item.action === 'work' ? ' role="button" tabindex="0" onclick="App.navigate(\'work\')" onkeydown="if(event.key===\'Enter\')App.navigate(\'work\')" style="cursor:pointer"' : ''}><b>${this.esc(item.type)}</b> ${this.esc(item.message)}${item.deadline ? ` · due ${this.esc(item.deadline)}` : ''}</span>`).join('')}</span></div><i>${items.length}</i></div>`;
   },
+  activitySection(activity) {
+    const a = activity && typeof activity === 'object' ? activity : null;
+    const v = (key) => (a && Number.isFinite(Number(a[key]))) ? Number(a[key]) : 0;
+    return `<div class="sp-admin-section">
+      <div class="sp-admin-section-title">ACTIVITY${a && a.date ? ` · ${this.esc(a.date)} (UTC)` : ''}</div>
+      <div class="sp-stats-grid sp-stats-grid-wide">
+        ${this.card('Landing people · today', v('landingPeopleToday'), 'unique people on larpable.me / loading_page')}
+        ${this.card('→ Signup · today', v('toSignupToday'), 'landing first, then signup page')}
+        ${this.card('→ Login · today', v('toLoginToday'), 'landing first, then login page')}
+        ${this.card('Page loads · today', v('pageLoadsToday'), 'every page load, all pages')}
+        ${this.card('Unique people · 7 days', v('uniquePeople7d'), 'distinct browsers, last 7 days')}
+        ${this.card('Page loads · 7 days', v('pageLoads7d'), 'all pages, last 7 days')}
+      </div>
+      <div class="sp-dashboard-footnote" style="margin-top:10px;">Counts people by first-party browser cookie (refreshes and reopens on the same browser count once; shared wifi counts separately; cleared cookies count again). Bots excluded. Best-effort, UTC days.</div>
+    </div>`;
+  },
   renderData(container, data, inbox) {
     const t = data.totals;
     const growth = data.growth || [];
@@ -55,6 +71,7 @@ const Home = {
         <div class="sp-card"><div class="sp-panel-heading"><span>Recent users</span><small>${this.number(t.users)} total</small></div><div class="sp-recent-list">${(data.recentUsers || []).map(user => `<div class="sp-recent-row"><div class="sp-avatar">${this.esc((user.username || '?')[0].toUpperCase())}</div><div><strong>${this.esc(user.username)}</strong><small>${this.date(user.created_at)} · ${(user.skills || []).length} skills · ${(user.interests || []).length} interests</small></div></div>`).join('') || '<div class="sp-empty-state">No users</div>'}</div></div>
         <div class="sp-card"><div class="sp-panel-heading"><span>Recent opportunities</span><small>${this.number(t.posts)} total</small></div><div class="sp-recent-list">${(data.recentPosts || []).map(post => `<div class="sp-recent-row"><div class="sp-post-mark">↗</div><div><strong>${this.esc(post.title)}</strong><small>${this.esc(post.type)} · ${this.esc(post.field || 'Unspecified field')} · ${this.date(post.created_at)}</small></div></div>`).join('') || '<div class="sp-empty-state">No opportunities</div>'}</div></div>
       </div>
+      ${this.activitySection(data.activity)}
       <div class="sp-dashboard-footnote">Metrics are computed from current decrypted test fixtures. Historical values are derived from each record’s <code>created_at</code>; no synthetic users or opportunities are included.</div>
     </div>`;
   }
