@@ -94,6 +94,14 @@
         </select>
       </div>
 
+      <!-- EMAIL PERMISSION -->
+      <div class="d-form-group">
+        <label class="d-label" style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+          <input type="checkbox" id="p-email-opt" style="width:16px; height:16px; accent-color:var(--accent); cursor:pointer;">
+          Email me about new opportunities and applications
+        </label>
+      </div>
+
       <div class="d-form-group">
         <label class="d-label">Experience</label>
         <p style="font-size:.78rem;color:var(--fg-tertiary);margin-bottom:8px;">Edit up to 5 projects, internships, or jobs.</p>
@@ -161,6 +169,7 @@
       document.getElementById('p-last').value = user.lastName || '';
       document.getElementById('p-location').value = user.location || '';
       document.getElementById('p-opportunity-preference').value = user.opportunity_preference || 'all';
+      document.getElementById('p-email-opt').checked = user.email_opt_in !== false;
       ExperienceEditor.mount('profile-experiences', user.experiences || []);
 
       profilePickers.interests = setupProfilePicker('p-int', user.interests || [], INTEREST_MAX, INTEREST_MIN);
@@ -304,7 +313,8 @@
         interests: profilePickers.interests.values(),
         skills: profilePickers.skills.values(),
         experiences,
-        opportunity_preference: document.getElementById('p-opportunity-preference').value
+        opportunity_preference: document.getElementById('p-opportunity-preference').value,
+        email_opt_in: document.getElementById('p-email-opt').checked
       };
 
       try {
@@ -318,6 +328,7 @@
           profileUser.interests = [...body.interests];
           profileUser.skills = [...body.skills];
           profileUser.experiences = experiences;
+          profileUser.email_opt_in = body.email_opt_in;
           const msg = document.getElementById('save-msg');
           msg.style.display = 'block';
           setTimeout(() => { msg.style.display = 'none'; }, 2500);

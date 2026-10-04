@@ -53,7 +53,7 @@ function assertRequestActive(signal) {
  * @returns {Promise<{ userId: string, token: string }>}
  * @throws {Error} if username already taken
  */
-async function signup({ username, password, type, profile, legalAgreement, signal }) {
+async function signup({ username, password, type, profile, legalAgreement, emailOptIn, signal }) {
   // Hash username (deterministic lookup hash, no salt needed)
   const usernameHash = sha256Lookup(username);
   
@@ -88,6 +88,8 @@ async function signup({ username, password, type, profile, legalAgreement, signa
     type: type,
     created_at: new Date().toISOString(),
     last_login_at: new Date().toISOString(),
+    // Email permission, auto-on. Explicit opt-outs are never defaulted back.
+    email_opt_in: emailOptIn !== false,
     encrypted_fields: encryptedProfile,
     ...(legalAgreement && { legal_agreements: legalAgreement })
   };
@@ -195,12 +197,14 @@ async function login(username, password, signal) {
   assertRequestActive(signal);
   const token = await createSession(found.id);
 
-  // Record last login (user-triggered; additive field only).
+  // Record last login (user-triggered; additive fields only). The email
+  // default is only filled when absent — an explicit opt-out is preserved.
   try {
     await store.atomicUpdate('users.json', users => {
       const latest = users[found.id];
       if (!latest) return users;
       latest.last_login_at = new Date().toISOString();
+      if (latest.email_opt_in === undefined) latest.email_opt_in = true;
       return users;
     });
   } catch (e) {

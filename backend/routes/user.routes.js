@@ -88,7 +88,8 @@ router.get('/me', requireAuth, async (req, res) => {
     interests: fields.interests || [],
     experiences: Array.isArray(fields.experiences) ? fields.experiences : [],
     opportunity_preference: fields.opportunity_preference || 'all',
-    saved_posts: fields.saved_posts || []
+    saved_posts: fields.saved_posts || [],
+    email_opt_in: req.user.email_opt_in !== false
   });
 });
 
@@ -105,6 +106,15 @@ router.patch('/me', requireAuth, async (req, res) => {
     if (req.body.experiences !== undefined) updates.experiences = validateExperiences(req.body.experiences);
     if (updates.opportunity_preference !== undefined && !OPPORTUNITY_PREFERENCES.has(updates.opportunity_preference)) {
       return res.status(400).json({ error: 'Invalid opportunity preference' });
+    }
+    // Email permission is a top-level (unencrypted) flag, handled alongside
+    // the encrypted profile merge below. Strict boolean only.
+    let emailOptIn = null;
+    if (req.body.email_opt_in !== undefined) {
+      if (typeof req.body.email_opt_in !== 'boolean') {
+        return res.status(400).json({ error: 'email_opt_in must be true or false' });
+      }
+      emailOptIn = req.body.email_opt_in;
     }
 
     const rawUser = await store.getRawUser(req.user.id);
@@ -134,6 +144,7 @@ router.patch('/me', requireAuth, async (req, res) => {
         throw Object.assign(new Error('Email changed concurrently'), { status: 409 });
       }
       latest.encrypted_fields = encryptObject({ ...latestFields, ...updates });
+      if (emailOptIn !== null) latest.email_opt_in = emailOptIn;
       return users;
     });
     if (emailChanged) {

@@ -27,6 +27,7 @@ const DataStore = {
       experiences: Array.isArray(u.experiences) ? u.experiences.map(experience => ({ ...experience, skills: Array.isArray(experience.skills) ? [...experience.skills] : [] })) : [],
       opportunity_preference: u.opportunity_preference || 'all',
       saved_posts: Array.isArray(u.saved_posts) ? [...u.saved_posts] : [],
+      email_opt_in: u.email_opt_in !== false,
       type: u.type || 'student', role: u.role || (u.type === 'admin' ? 'admin' : 'student'),
       staff_access: !!u.staff_access
     };

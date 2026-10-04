@@ -45,7 +45,7 @@ router.post('/signup', async (req, res) => {
     if (!req.body || typeof req.body !== 'object' || Array.isArray(req.body)) {
       return res.status(400).json({ error: 'A JSON object is required' });
     }
-    const { username, password, type, legal_agreed, ...profile } = req.body;
+    const { username, password, type, legal_agreed, email_opt_in, ...profile } = req.body;
     
     // Validate required fields
     if (typeof username !== 'string' || typeof password !== 'string' || !type) {
@@ -123,7 +123,7 @@ router.post('/signup', async (req, res) => {
       privacy_version: legalVersions.privacy.version,
       agreed_at: new Date().toISOString()
     };
-    const result = await auth.signup({ username, password, type, profile, legalAgreement, signal: requestAbortSignal(req, res) });
+    const result = await auth.signup({ username, password, type, profile, legalAgreement, emailOptIn: email_opt_in, signal: requestAbortSignal(req, res) });
     if (signupEmail) {
       consumeVerifiedEmail(signupEmail);
       reservedSignupEmail = '';
@@ -247,6 +247,7 @@ router.get('/me', async (req, res) => {
     staff_access: !!user.staff_access,
     staffAccess: !!user.staff_access,
     created_at: user.created_at,
+    email_opt_in: user.email_opt_in !== false,
     displayName,
     latitude,
     longitude

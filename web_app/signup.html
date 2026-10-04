@@ -431,6 +431,10 @@
             <label for="su-legal">I agree to the <a onclick="openLegal('terms')">Terms of Service</a> and acknowledge the <a onclick="openLegal('privacy')">Privacy Policy</a>.</label>
           </div>
           <div class="d-legal-error" id="su-legal-error">You must agree to the Terms of Service and Privacy Policy to sign up.</div>
+          <div class="d-legal-check">
+            <input type="checkbox" id="su-email-opt" checked>
+            <label for="su-email-opt">Email me about new opportunities and applications. You can turn this off anytime in your profile.</label>
+          </div>
 
           <div class="d-btn-row">
             <button type="button" class="d-btn d-btn-secondary" id="back-btn-step3">Back</button>
@@ -795,7 +799,8 @@
             interests: [...selectedInterests],
             experiences,
             opportunity_preference: opportunityPreference,
-            legal_agreed: true
+            legal_agreed: true,
+            email_opt_in: document.getElementById('su-email-opt').checked !== false
           })
         });
 

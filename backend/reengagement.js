@@ -50,6 +50,15 @@ function utcDateString(ms) {
   return new Date(ms).toISOString().slice(0, 10);
 }
 
+/**
+ * Email permission: auto-on. A missing field (pre-feature accounts) counts
+ * as opted in; only an explicit `false` opts out. Verification emails are
+ * exempt from this check (account creation requires them).
+ */
+function wantsEmail(record) {
+  return !record || record.email_opt_in !== false;
+}
+
 function escapeHtml(value) {
   return String(value == null ? '' : value)
     .replace(/&/g, '&amp;')
@@ -289,7 +298,7 @@ async function runNightlyReengagement(nowMs = Date.now()) {
       lastLogin = Number.isFinite(best) ? new Date(best).toISOString() : new Date(nowMs).toISOString();
       backfill = true;
     }
-    summaries.push({ userId, email, name: displayName(fields), fields, lastLogin, backfill, lastNotifEmailSent: record.last_notif_email_sent || '' });
+    summaries.push({ userId, email, name: displayName(fields), fields, lastLogin, backfill, lastNotifEmailSent: record.last_notif_email_sent || '', optIn: wantsEmail(record), needsOptInPersist: record.email_opt_in === undefined });
   }
 
   // Decrypt opportunities once; reuse for ranking.
@@ -302,17 +311,25 @@ async function runNightlyReengagement(nowMs = Date.now()) {
     candidates.push({ id: oppId, type: opp.type, created_by: opp.created_by || '', created_at: opp.created_at || '', decrypted: fields });
   }
 
-  const pending = new Map(); // userId -> { last_login_at?, last_notif_email_sent? }
+  const pending = new Map(); // userId -> { last_login_at?, last_notif_email_sent?, email_opt_in? }
   let sent = 0, failed = 0, backfilled = 0;
-  // Backfill first (all users, regardless of the send cap below).
+  // Backfill first (all users, regardless of the send cap below). The email
+  // default is persisted here too, so pre-feature accounts become explicitly
+  // opted in through this same single batched write.
   for (const user of summaries) {
-    if (!user.backfill) continue;
-    pending.set(user.userId, { ...(pending.get(user.userId) || {}), last_login_at: user.lastLogin });
-    backfilled++;
+    if (!user.backfill && !user.needsOptInPersist) continue;
+    const patch = { ...(pending.get(user.userId) || {}) };
+    if (user.backfill) {
+      patch.last_login_at = user.lastLogin;
+      backfilled++;
+    }
+    if (user.needsOptInPersist) patch.email_opt_in = true;
+    pending.set(user.userId, patch);
   }
-  // 1. Filter: not logged in for > 2 days AND not nudged in this idle stretch
-  const eligible = summaries.filter(user => 
-    isDueForReengagement(user.lastLogin, user.lastNotifEmailSent, nowMs)
+  // 1. Filter: email permission ON (before the cap, so the top 50 are drawn
+  // from opted-in users only), idle 2+ days, not nudged in this idle stretch.
+  const eligible = summaries.filter(user =>
+    user.optIn && isDueForReengagement(user.lastLogin, user.lastNotifEmailSent, nowMs)
   );
 
   // 2. Sort by lastNotifEmailSent, then firstName, then userId (stable tiebreak)
@@ -356,6 +373,8 @@ async function runNightlyReengagement(nowMs = Date.now()) {
         if (!record || typeof record !== 'object') continue;
         if (patch.last_login_at && !record.last_login_at) record.last_login_at = patch.last_login_at;
         if (patch.last_notif_email_sent) record.last_notif_email_sent = patch.last_notif_email_sent;
+        // Default-fill only: an explicit opt-out is never overwritten.
+        if (patch.email_opt_in !== undefined && record.email_opt_in === undefined) record.email_opt_in = patch.email_opt_in;
       }
       return data;
     });
@@ -391,6 +410,7 @@ async function notifyPosterOfApplication(oppId) {
     const oppFields = decryptObject(opportunity.encrypted_fields || {}) || {};
     const poster = await store.getById('users.json', opportunity.created_by);
     if (!poster) return { skipped: 'no-poster' };
+    if (!wantsEmail(poster)) return { skipped: 'opted-out' };
     const posterFields = decryptObject(poster.encrypted_fields || {}) || {};
     const posterEmail = String(posterFields.email || '').trim();
     if (!posterEmail) return { skipped: 'no-poster-email' };
@@ -429,6 +449,7 @@ module.exports = {
   SITE_URL,
   NOTIFY_FILE,
   utcDateString,
+  wantsEmail,
   isDueForReengagement,
   buildMatchUser,
   toRankInput,
