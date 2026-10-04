@@ -87,6 +87,7 @@ async function signup({ username, password, type, profile, legalAgreement, signa
     password_hash_scheme: passwordRecord.scheme,
     type: type,
     created_at: new Date().toISOString(),
+    last_login_at: new Date().toISOString(),
     encrypted_fields: encryptedProfile,
     ...(legalAgreement && { legal_agreements: legalAgreement })
   };
@@ -193,7 +194,19 @@ async function login(username, password, signal) {
   // Create session
   assertRequestActive(signal);
   const token = await createSession(found.id);
-  
+
+  // Record last login (user-triggered; additive field only).
+  try {
+    await store.atomicUpdate('users.json', users => {
+      const latest = users[found.id];
+      if (!latest) return users;
+      latest.last_login_at = new Date().toISOString();
+      return users;
+    });
+  } catch (e) {
+    console.error('Login last-login update error:', e);
+  }
+
   // Get decrypted user
   const user = await store.getUser(found.id);
   user.id = found.id;

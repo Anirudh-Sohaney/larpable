@@ -45,7 +45,9 @@ const RATE_LIMIT_MAX_AUTH = 300;  // auth: test suite needs ~200+ auth requests
 const RATE_LIMIT_MAX_API = 500;   // api: 40 users × multiple requests each
 const RATE_LIMIT_MAX_BUCKETS = 50000;
 
-// Cleanup stale buckets every 5 minutes
+// Cleanup stale buckets every 5 minutes.
+// The nightly re-engagement check piggybacks on this existing timer (no new
+// timers or processes); its internal guard runs at most once per UTC day.
 const rateLimitCleanup = setInterval(() => {
   const now = Date.now();
   for (const [key, bucket] of rateLimitBuckets) {
@@ -53,6 +55,9 @@ const rateLimitCleanup = setInterval(() => {
       rateLimitBuckets.delete(key);
     }
   }
+  try {
+    require('./backend/reengagement').maybeRunNightlyReengagement(now).catch(() => {});
+  } catch {}
 }, 5 * 60 * 1000);
 rateLimitCleanup.unref();
 

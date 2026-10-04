@@ -25,6 +25,7 @@ const { sanitizeObject } = require('../sanitize');
 const { geocode } = require('../geocode');
 const { scanFields, applyFlag, flagNotice } = require('../profanity');
 const applicationsStore = require('../applications');
+const { notifyPosterOfApplication } = require('../reengagement');
 
 const OPPORTUNITY_PREFERENCES = new Set(['volunteering', 'paid', 'unpaid']);
 const DEFAULT_OPPORTUNITY_PREFERENCE = { project: 'unpaid', nonprofit: 'volunteering', company: 'paid' };
@@ -207,6 +208,9 @@ router.post('/:id/applications', requireAuth, async (req, res) => {
       return applications;
     });
     res.status(created ? 201 : 200).json({ applied: true, already_applied: !created });
+    // Notify the poster of genuinely new applications. Fire-and-forget after
+    // the response so email delivery can never fail or slow down the apply.
+    if (created) notifyPosterOfApplication(req.params.id).catch(() => {});
   } catch (error) {
     console.error('Apply error:', error);
     res.status(500).json({ error: 'Could not save application' });
