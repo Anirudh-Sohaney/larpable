@@ -361,7 +361,7 @@ const Work = {
 
     countEl.textContent = query ? `${matches.length} / ${list.length}` : `${list.length} total`;
     container.replaceChildren();
-    container.hidden = !query || !!this.state.selectedTerm;
+    container.hidden = !!this.state.selectedTerm;
     search?.setAttribute('aria-expanded', String(!container.hidden));
     selection.replaceChildren();
     const kind = this.state.listKind;
