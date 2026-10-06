@@ -30,6 +30,21 @@ const { notifyPosterOfApplication } = require('../reengagement');
 const OPPORTUNITY_PREFERENCES = new Set(['volunteering', 'paid', 'unpaid']);
 const DEFAULT_OPPORTUNITY_PREFERENCE = { project: 'unpaid', nonprofit: 'volunteering', company: 'paid' };
 
+function addCommentPermissions(comments, user) {
+  if (!Array.isArray(comments)) return;
+  const canModerateAny = String(user?.encrypted_fields?.username || '').toLowerCase() === 'anisohaney';
+  for (const comment of comments) {
+    if (!comment || typeof comment !== 'object') continue;
+    comment.can_edit = !!user && comment.user_id === user.id;
+    comment.can_delete = comment.can_edit || canModerateAny;
+    for (const reply of Array.isArray(comment.replies) ? comment.replies : []) {
+      if (!reply || typeof reply !== 'object') continue;
+      reply.can_edit = !!user && reply.user_id === user.id;
+      reply.can_delete = reply.can_edit || canModerateAny;
+    }
+  }
+}
+
 // ── Middleware: require auth ──────────────────────────────────
 async function requireAuth(req, res, next) {
   const token = req.cookies?.['larpable_session'];
@@ -157,6 +172,8 @@ router.get('/:id', optionalAuth, async (req, res) => {
       }
     }
     
+    addCommentPermissions(decrypted.comments, req.user);
+
     let issuer = null;
     if (opp.created_by) {
       const user = await store.getUser(opp.created_by);
@@ -422,7 +439,7 @@ router.post('/:id/comments', requireAuth, async (req, res) => {
       return opportunities;
     });
 
-    res.json({ ok: true, comment: newComment });
+    res.json({ ok: true, comment: { ...newComment, can_edit: true, can_delete: true } });
   } catch (e) {
     console.error('Add comment error:', e);
     res.status(e.status || 500).json({ error: e.status ? e.message : 'Server error' });
@@ -610,7 +627,7 @@ router.post('/:id/comments/:commentId/replies', requireAuth, async (req, res) =>
       return opportunities;
     });
 
-    res.json({ ok: true, reply: newReply });
+    res.json({ ok: true, reply: { ...newReply, can_edit: true, can_delete: true } });
   } catch (e) {
     console.error('Add reply error:', e);
     res.status(e.status || 500).json({ error: e.status ? e.message : 'Server error' });

@@ -69,6 +69,13 @@ async function main() {
   }
 
   try {
+    const aliceView = await request('GET', '/api/opportunities/opp_comments_test', 'alice');
+    const aliceComments = aliceView.body.fields.comments;
+    assert.equal(aliceComments.find(comment => comment.id === 'comment_alice').can_delete, true);
+    assert.equal(aliceComments.find(comment => comment.id === 'comment_bob').can_delete, false);
+    const moderatorView = await request('GET', '/api/opportunities/opp_comments_test', 'moderator');
+    assert.equal(moderatorView.body.fields.comments.find(comment => comment.id === 'comment_bob').can_delete, true);
+
     const commentUrl = '/api/opportunities/opp_comments_test/comments';
     const rejected = await request('POST', commentUrl, 'alice', { text: 'nig' + 'ger' });
     assert.equal(rejected.status, 400, 'prohibited language is rejected in comments');
@@ -76,6 +83,7 @@ async function main() {
     assert.ok(benignComment.id, 'benign words are not blocked as false positives');
 
     const ownComment = (await request('POST', commentUrl, 'alice', { text: 'My original comment' })).body.comment;
+    assert.equal(ownComment.can_delete, true, 'new comments expose the owner delete action');
     const filteredEdit = await request('PATCH', `${commentUrl}/${ownComment.id}`, 'alice', { text: 'nig' + 'ger' });
     assert.equal(filteredEdit.status, 400, 'prohibited language is rejected when editing a comment');
     const edited = await request('PATCH', `${commentUrl}/${ownComment.id}`, 'alice', { text: 'My edited comment' });
@@ -91,6 +99,7 @@ async function main() {
 
     const replyUrl = `${commentUrl}/comment_bob/replies`;
     const reply = (await request('POST', replyUrl, 'alice', { text: 'My reply' })).body.reply;
+    assert.equal(reply.can_delete, true, 'new replies expose the owner delete action');
     assert.equal((await request('PATCH', `${replyUrl}/${reply.id}`, 'alice', { text: 'Edited reply' })).body.reply.text, 'Edited reply');
     assert.equal((await request('PATCH', `${replyUrl}/${reply.id}`, 'bob', { text: 'Unauthorized edit' })).status, 403);
     assert.equal((await request('DELETE', `${replyUrl}/${reply.id}`, 'bob')).status, 403);

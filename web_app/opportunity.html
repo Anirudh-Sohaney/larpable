@@ -68,8 +68,10 @@
         const isSaved = currentUser?.saved_posts?.includes(id);
         const ownsPost = !!currentUser && currentUser.id === data.created_by;
         const canDeleteAnyComment = currentUser?.username?.toLowerCase() === 'anisohaney';
-        const commentActions = c => `${currentUser?.id === c.user_id ? '<button class="d-btn-ghost edit-comment" type="button">Edit</button>' : ''}${(currentUser?.id === c.user_id || canDeleteAnyComment) ? '<button class="d-btn-ghost delete-comment" type="button">Delete</button>' : ''}`;
-        const replyActions = r => `${currentUser?.id === r.user_id ? '<button class="d-btn-ghost edit-reply" type="button">Edit</button>' : ''}${(currentUser?.id === r.user_id || canDeleteAnyComment) ? '<button class="d-btn-ghost delete-reply" type="button">Delete</button>' : ''}`;
+        const canEdit = item => typeof item.can_edit === 'boolean' ? item.can_edit : currentUser?.id === item.user_id;
+        const canDelete = item => typeof item.can_delete === 'boolean' ? item.can_delete : (currentUser?.id === item.user_id || canDeleteAnyComment);
+        const commentActions = c => `${canEdit(c) ? '<button class="d-btn-ghost edit-comment" type="button">Edit</button>' : ''}${canDelete(c) ? '<button class="d-btn-ghost delete-comment" type="button">Delete</button>' : ''}`;
+        const replyActions = r => `${canEdit(r) ? '<button class="d-btn-ghost edit-reply" type="button">Edit</button>' : ''}${canDelete(r) ? '<button class="d-btn-ghost delete-reply" type="button">Delete</button>' : ''}`;
 
         root.innerHTML = `
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
@@ -224,20 +226,21 @@
         const commentError = document.getElementById('comment-error');
         const wordCount = document.getElementById('comment-word-count');
 
-        if (commentText && submitComment) {
-
-          root.addEventListener('click', async (e) => {
-            if (e.target.classList.contains('delete-comment')) {
-              const block = e.target.closest('.comment-block');
+        // Keep comment actions delegated at the detail root. Their handling
+        // should not depend on the comment composer being present.
+        root.addEventListener('click', async (e) => {
+            const actionTarget = e.target.closest('button') || e.target;
+            if (actionTarget.classList.contains('delete-comment')) {
+              const block = actionTarget.closest('.comment-block');
               if (!confirm('Delete this comment and its replies?')) return;
-              e.target.disabled = true;
+              actionTarget.disabled = true;
               try {
-                const response = await fetch(`/api/opportunities/${encodeURIComponent(data.id)}/comments/${encodeURIComponent(block.dataset.commentId)}`, { method: 'DELETE' });
+                const response = await fetch(`/api/opportunities/${encodeURIComponent(data.id)}/comments/${encodeURIComponent(block.dataset.commentId)}`, { method: 'DELETE', credentials: 'same-origin' });
                 const result = await response.json();
                 if (!response.ok) throw new Error(result.error || 'Could not delete comment');
                 block.remove();
                 if (!document.querySelector('#comments-list .comment-block')) document.getElementById('comments-list').innerHTML = '<p class="d-detail-desc" id="no-comments-msg">No comments yet. Be the first to ask a question!</p>';
-              } catch (error) { alert(error.message); e.target.disabled = false; }
+              } catch (error) { alert(error.message); actionTarget.disabled = false; }
               return;
             }
 
@@ -409,6 +412,8 @@
               }
             }
           });
+
+        if (commentText && submitComment) {
 
           commentText.addEventListener('input', () => {
             const words = commentText.value.trim().split(/\s+/).filter(w => w.length > 0);
