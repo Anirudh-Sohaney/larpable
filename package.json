@@ -12,7 +12,9 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
-    "test:feedback": "node test_feedback.js"
+    "test": "node tests/application_feed.test.js && node tests/notifications.test.js && node tests/comments.integration.js && node tests/applications.integration.js && node tests/experiences.integration.js && node tests/feedback.integration.js",
+    "test:feedback": "node tests/feedback.integration.js",
+    "test:matching-audit": "node backend/matching/test_accuracy.js"
   },
   "dependencies": {
     "cookie-parser": "^1.4.6",

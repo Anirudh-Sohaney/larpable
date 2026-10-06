@@ -1,11 +1,12 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
+const path = require('node:path');
 const vm = require('node:vm');
 
 const list = { innerHTML: '' };
 const count = { textContent: '', title: '' };
 const elements = { list, count };
-const Feed = vm.runInNewContext(fs.readFileSync('web_app/js/feed.js', 'utf8') + '\nFeed;', {
+const Feed = vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../web_app/js/feed.js'), 'utf8') + '\nFeed;', {
   document: { getElementById: id => elements[id] || null },
   window: { location: { search: '' } },
   URLSearchParams,

@@ -53,6 +53,11 @@ const EXTRA_RULES = [
 // opportunity.routes.js / draft.routes.js.
 const SCANNED_FIELDS = ['title', 'name', 'description', 'looking_for', 'details', 'location', 'skills'];
 
+// Comments and replies are stored under `text`, outside the post-field list.
+function scanText(text) {
+  return scanFields({ description: text }).flagged;
+}
+
 /**
  * Scan post input fields for profanity.
  * @param {Object} fields - plaintext post fields (e.g. the to-be-encrypted block)
@@ -131,4 +136,4 @@ function flagNotice(terms) {
   return `Your post was flagged and is under review${listed}. It contains language that breaks our community guidelines, so it will not appear on the public feed until a moderator approves it.`;
 }
 
-module.exports = { scanFields, applyFlag, applyApproval, flagNotice };
+module.exports = { scanFields, scanText, applyFlag, applyApproval, flagNotice };

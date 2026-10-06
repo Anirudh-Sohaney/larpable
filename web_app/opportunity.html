@@ -67,6 +67,9 @@
         const currentUser = DataStore.getCurrentUser();
         const isSaved = currentUser?.saved_posts?.includes(id);
         const ownsPost = !!currentUser && currentUser.id === data.created_by;
+        const canDeleteAnyComment = currentUser?.username?.toLowerCase() === 'anisohaney';
+        const commentActions = c => `${currentUser?.id === c.user_id ? '<button class="d-btn-ghost edit-comment" type="button">Edit</button>' : ''}${(currentUser?.id === c.user_id || canDeleteAnyComment) ? '<button class="d-btn-ghost delete-comment" type="button">Delete</button>' : ''}`;
+        const replyActions = r => `${currentUser?.id === r.user_id ? '<button class="d-btn-ghost edit-reply" type="button">Edit</button>' : ''}${(currentUser?.id === r.user_id || canDeleteAnyComment) ? '<button class="d-btn-ghost delete-reply" type="button">Delete</button>' : ''}`;
 
         root.innerHTML = `
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
@@ -102,14 +105,14 @@
                         <strong style="font-size: 0.9rem; color: var(--fg-primary);">${esc(c.user_name)}</strong>
                         <span style="font-size: 0.72rem; color: var(--fg-tertiary);">${esc(posted(c.created_at))}</span>
                       </div>
-                      <p style="font-size: 0.92rem; color: var(--fg-secondary); margin: 0; line-height: 1.5; white-space: pre-wrap;">${esc(c.text)}</p>
+                      <p class="comment-body" style="font-size: 0.92rem; color: var(--fg-secondary); margin: 0; line-height: 1.5; white-space: pre-wrap;">${esc(c.text)}</p>
                     </div>
-                    
+                    <div class="comment-actions" style="display:flex;gap:8px;margin-top:6px;font-size:.75rem;">${commentActions(c)}</div>
                     ${App.isAuthenticated() ? `<button class="d-btn-ghost reply-btn" style="font-size: 0.75rem; margin-top: 6px; padding: 4px 10px;">Reply</button>` : ''}
                     
                     <div class="replies-list" style="margin-top: 14px; display: flex; flex-direction: column; gap: 14px;">
                       ${(c.replies || []).map(r => `
-                        <div style="display: flex; gap: 10px;">
+                        <div class="reply-item" data-reply-id="${esc(r.id)}" style="display: flex; gap: 10px;">
                           <div style="flex-shrink: 0;">
                             <div class="d-detail-issuer-mark" style="background: var(--bg-tertiary); color: var(--fg-secondary); width: 28px; height: 28px; font-size: 0.65rem;">${esc(initials(r.user_name))}</div>
                           </div>
@@ -119,8 +122,9 @@
                                 <strong style="font-size: 0.82rem; color: var(--fg-primary);">${esc(r.user_name)}</strong>
                                 <span style="font-size: 0.68rem; color: var(--fg-tertiary);">${esc(posted(r.created_at))}</span>
                               </div>
-                              <p style="font-size: 0.88rem; color: var(--fg-secondary); margin: 0; line-height: 1.45; white-space: pre-wrap;">${esc(r.text)}</p>
+                              <p class="reply-body" style="font-size: 0.88rem; color: var(--fg-secondary); margin: 0; line-height: 1.45; white-space: pre-wrap;">${esc(r.text)}</p>
                             </div>
+                            <div class="reply-actions" style="display:flex;gap:8px;margin-top:4px;font-size:.7rem;">${replyActions(r)}</div>
                           </div>
                         </div>
                       `).join('')}
@@ -222,7 +226,91 @@
 
         if (commentText && submitComment) {
 
-          document.getElementById('comments-list')?.addEventListener('click', async (e) => {
+          root.addEventListener('click', async (e) => {
+            if (e.target.classList.contains('delete-comment')) {
+              const block = e.target.closest('.comment-block');
+              if (!confirm('Delete this comment and its replies?')) return;
+              e.target.disabled = true;
+              try {
+                const response = await fetch(`/api/opportunities/${encodeURIComponent(data.id)}/comments/${encodeURIComponent(block.dataset.commentId)}`, { method: 'DELETE' });
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.error || 'Could not delete comment');
+                block.remove();
+                if (!document.querySelector('#comments-list .comment-block')) document.getElementById('comments-list').innerHTML = '<p class="d-detail-desc" id="no-comments-msg">No comments yet. Be the first to ask a question!</p>';
+              } catch (error) { alert(error.message); e.target.disabled = false; }
+              return;
+            }
+
+            if (e.target.classList.contains('edit-comment')) {
+              const block = e.target.closest('.comment-block');
+              if (block.querySelector('.comment-edit-box')) return;
+              const box = document.createElement('div');
+              box.className = 'comment-edit-box';
+              box.innerHTML = '<textarea class="d-textarea comment-edit-text" style="min-height:60px;margin:8px 0;"></textarea><button class="d-btn d-btn-sm d-btn-accent save-comment" type="button">Save</button> <button class="d-btn d-btn-sm cancel-comment-edit" type="button">Cancel</button><span class="comment-edit-error" role="alert" style="display:block;color:var(--error);font-size:.75rem;"></span>';
+              box.querySelector('textarea').value = block.querySelector('.comment-body').textContent;
+              block.querySelector('.comment-actions').after(box);
+              return;
+            }
+            if (e.target.classList.contains('cancel-comment-edit')) { e.target.closest('.comment-edit-box').remove(); return; }
+            if (e.target.classList.contains('save-comment')) {
+              const block = e.target.closest('.comment-block');
+              const box = e.target.closest('.comment-edit-box');
+              const value = box.querySelector('textarea').value.trim();
+              const error = box.querySelector('.comment-edit-error');
+              if (!value || value.split(/\s+/).length > 200) { error.textContent = 'Enter 1–200 words.'; return; }
+              e.target.disabled = true;
+              try {
+                const response = await fetch(`/api/opportunities/${encodeURIComponent(data.id)}/comments/${encodeURIComponent(block.dataset.commentId)}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: value }) });
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.error || 'Could not edit comment');
+                block.querySelector('.comment-body').textContent = result.comment.text;
+                box.remove();
+              } catch (err) { error.textContent = err.message; e.target.disabled = false; }
+              return;
+            }
+
+            if (e.target.classList.contains('delete-reply')) {
+              const reply = e.target.closest('.reply-item');
+              const comment = e.target.closest('.comment-block');
+              if (!confirm('Delete this reply?')) return;
+              e.target.disabled = true;
+              try {
+                const response = await fetch(`/api/opportunities/${encodeURIComponent(data.id)}/comments/${encodeURIComponent(comment.dataset.commentId)}/replies/${encodeURIComponent(reply.dataset.replyId)}`, { method: 'DELETE' });
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.error || 'Could not delete reply');
+                reply.remove();
+              } catch (error) { alert(error.message); e.target.disabled = false; }
+              return;
+            }
+            if (e.target.classList.contains('edit-reply')) {
+              const reply = e.target.closest('.reply-item');
+              if (reply.querySelector('.reply-edit-box')) return;
+              const box = document.createElement('div');
+              box.className = 'reply-edit-box';
+              box.innerHTML = '<textarea class="d-textarea reply-edit-text" style="min-height:50px;margin:6px 0;"></textarea><button class="d-btn d-btn-sm d-btn-accent save-reply" type="button">Save</button> <button class="d-btn d-btn-sm cancel-reply-edit" type="button">Cancel</button><span class="reply-edit-error" role="alert" style="display:block;color:var(--error);font-size:.75rem;"></span>';
+              box.querySelector('textarea').value = reply.querySelector('.reply-body').textContent;
+              reply.querySelector('.reply-actions').after(box);
+              return;
+            }
+            if (e.target.classList.contains('cancel-reply-edit')) { e.target.closest('.reply-edit-box').remove(); return; }
+            if (e.target.classList.contains('save-reply')) {
+              const reply = e.target.closest('.reply-item');
+              const comment = e.target.closest('.comment-block');
+              const box = e.target.closest('.reply-edit-box');
+              const value = box.querySelector('textarea').value.trim();
+              const error = box.querySelector('.reply-edit-error');
+              if (!value || value.split(/\s+/).length > 200) { error.textContent = 'Enter 1–200 words.'; return; }
+              e.target.disabled = true;
+              try {
+                const response = await fetch(`/api/opportunities/${encodeURIComponent(data.id)}/comments/${encodeURIComponent(comment.dataset.commentId)}/replies/${encodeURIComponent(reply.dataset.replyId)}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: value }) });
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.error || 'Could not edit reply');
+                reply.querySelector('.reply-body').textContent = result.reply.text;
+                box.remove();
+              } catch (err) { error.textContent = err.message; e.target.disabled = false; }
+              return;
+            }
+
             if (e.target.classList.contains('reply-btn')) {
               const block = e.target.closest('.comment-block');
               const commentId = block.getAttribute('data-comment-id');
@@ -284,7 +372,7 @@
                 if (res.ok) {
                   const r = resData.reply;
                   const newReplyHtml = `
-                    <div style="display: flex; gap: 10px; margin-top: 14px;">
+                    <div class="reply-item" data-reply-id="${esc(r.id)}" style="display: flex; gap: 10px; margin-top: 14px;">
                       <div style="flex-shrink: 0;">
                         <div class="d-detail-issuer-mark" style="background: var(--bg-tertiary); color: var(--fg-secondary); width: 28px; height: 28px; font-size: 0.65rem;">${esc(initials(r.user_name))}</div>
                       </div>
@@ -294,8 +382,9 @@
                             <strong style="font-size: 0.82rem; color: var(--fg-primary);">${esc(r.user_name)}</strong>
                             <span style="font-size: 0.68rem; color: var(--fg-tertiary);">Just now</span>
                           </div>
-                          <p style="font-size: 0.88rem; color: var(--fg-secondary); margin: 0; line-height: 1.45; white-space: pre-wrap;">${esc(r.text)}</p>
+                          <p class="reply-body" style="font-size: 0.88rem; color: var(--fg-secondary); margin: 0; line-height: 1.45; white-space: pre-wrap;">${esc(r.text)}</p>
                         </div>
+                        <div class="reply-actions" style="display:flex;gap:8px;margin-top:4px;font-size:.7rem;">${replyActions(r)}</div>
                       </div>
                     </div>
                   `;
@@ -372,8 +461,9 @@
                           <strong style="font-size: 0.9rem; color: var(--fg-primary);">${esc(c.user_name)}</strong>
                           <span style="font-size: 0.72rem; color: var(--fg-tertiary);">Just now</span>
                         </div>
-                        <p style="font-size: 0.92rem; color: var(--fg-secondary); margin: 0; line-height: 1.5; white-space: pre-wrap;">${esc(c.text)}</p>
+                        <p class="comment-body" style="font-size: 0.92rem; color: var(--fg-secondary); margin: 0; line-height: 1.5; white-space: pre-wrap;">${esc(c.text)}</p>
                       </div>
+                      <div class="comment-actions" style="display:flex;gap:8px;margin-top:6px;font-size:.75rem;">${commentActions(c)}</div>
                       <button class="d-btn-ghost reply-btn" style="font-size: 0.75rem; margin-top: 6px; padding: 4px 10px;">Reply</button>
                       <div class="replies-list" style="margin-top: 14px; display: flex; flex-direction: column; gap: 14px;"></div>
                     </div>

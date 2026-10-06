@@ -8,10 +8,10 @@ process.env.DATA_DIR = testDir;
 process.env.ENCRYPTION_KEY = randomBytes(32).toString('hex');
 process.env.COOKIE_SECRET = 'experiences-test-cookie';
 
-const { validateExperiences } = require('./backend/experiences');
-const store = require('./backend/store');
-const { decryptObject, encryptObject } = require('./backend/crypto');
-const { app } = require('./server');
+const { validateExperiences } = require('../backend/experiences');
+const store = require('../backend/store');
+const { decryptObject, encryptObject } = require('../backend/crypto');
+const { app } = require('../server');
 
 const description = 'I planned the work, built a prototype, coordinated teammates, and presented the final result.';
 const project = { type: 'project', title: 'Community Garden', description, skills: ['Project Planning', 'Writing'] };
@@ -88,7 +88,7 @@ async function main() {
     assert.deepEqual((await request('GET', '/api/users/me', null, cookie)).body.experiences, [job]);
 
     await store.saveUser('legacy', { type: 'student', created_at: new Date().toISOString(), encrypted_fields: encryptObject({ first_name: 'Legacy' }) });
-    const auth = require('./backend/auth');
+    const auth = require('../backend/auth');
     const legacyCookie = `larpable_session=${await auth.createSession('legacy')}`;
     assert.deepEqual((await request('GET', '/api/users/me', null, legacyCookie)).body.experiences, []);
 

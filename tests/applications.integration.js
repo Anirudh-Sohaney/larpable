@@ -8,10 +8,10 @@ process.env.DATA_DIR = testDataDir;
 process.env.ENCRYPTION_KEY = 'a'.repeat(64);
 process.env.COOKIE_SECRET = 'application-test-secret';
 
-const { app } = require('./server');
-const store = require('./backend/store');
-const auth = require('./backend/auth');
-const { encryptObject } = require('./backend/crypto');
+const { app } = require('../server');
+const store = require('../backend/store');
+const auth = require('../backend/auth');
+const { encryptObject } = require('../backend/crypto');
 
 async function main() {
   const server = app.listen(0, '127.0.0.1');

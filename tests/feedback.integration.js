@@ -10,11 +10,11 @@ async function run() {
   process.env.COOKIE_SECRET = 'feedback-test-secret';
   process.env.HOST = '127.0.0.1';
 
-  const auth = require('./backend/auth');
-  const store = require('./backend/store');
-  const { encryptObject } = require('./backend/crypto');
-  const { normalizeFeedbackData, countWords } = require('./backend/feedback');
-  const { startServer } = require('./server');
+  const auth = require('../backend/auth');
+  const store = require('../backend/store');
+  const { encryptObject } = require('../backend/crypto');
+  const { normalizeFeedbackData, countWords } = require('../backend/feedback');
+  const { startServer } = require('../server');
 
   assert.equal(countWords(' one   two\nthree '), 3);
   assert.deepEqual(normalizeFeedbackData(null).records, {});

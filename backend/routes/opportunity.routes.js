@@ -23,7 +23,7 @@ const store = require('../store');
 const { encryptObject, decryptObject } = require('../crypto');
 const { sanitizeObject } = require('../sanitize');
 const { geocode } = require('../geocode');
-const { scanFields, applyFlag, flagNotice } = require('../profanity');
+const { scanFields, scanText, applyFlag, flagNotice } = require('../profanity');
 const applicationsStore = require('../applications');
 const { notifyPosterOfApplication } = require('../reengagement');
 
@@ -379,19 +379,20 @@ router.post('/:id/comments', requireAuth, async (req, res) => {
       return res.status(404).json({ error: 'Opportunity not found' });
     }
 
-    const text = req.body.text || '';
-    if (!text.trim()) {
+    const text = req.body?.text;
+    if (typeof text !== 'string') return res.status(400).json({ error: 'Comment text is required' });
+    const cleanText = sanitizeObject({ text }).text;
+    if (!cleanText) {
       return res.status(400).json({ error: 'Comment cannot be empty' });
     }
 
-    const words = text.trim().split(/\s+/);
+    const words = cleanText.split(/\s+/);
     if (words.length > 200) {
       return res.status(400).json({ error: 'Comment exceeds 200 words limit' });
     }
 
     // Apply profanity filter
-    const scan = scanFields({ text });
-    if (scan.flagged) {
+    if (scanText(cleanText)) {
       return res.status(400).json({ error: 'Profanity detected. Comment not accepted.' });
     }
 
@@ -403,7 +404,7 @@ router.post('/:id/comments', requireAuth, async (req, res) => {
       id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
       user_id: req.user.id,
       user_name: authorName,
-      text: sanitizeObject({ text }).text,
+      text: cleanText,
       created_at: new Date().toISOString(),
       read_by_op: req.user.id === opp.created_by
     };
@@ -428,6 +429,126 @@ router.post('/:id/comments', requireAuth, async (req, res) => {
   }
 });
 
+// Comment authors may edit their own text. The authorization check happens
+// inside the write queue so it applies to the current stored comment.
+router.patch('/:id/comments/:commentId', requireAuth, async (req, res) => {
+  try {
+    const text = req.body?.text;
+    if (typeof text !== 'string') return res.status(400).json({ error: 'Comment cannot be empty' });
+    const cleanText = sanitizeObject({ text }).text;
+    if (!cleanText) return res.status(400).json({ error: 'Comment cannot be empty' });
+    if (cleanText.split(/\s+/).length > 200) return res.status(400).json({ error: 'Comment exceeds 200 words limit' });
+    if (scanText(cleanText)) return res.status(400).json({ error: 'Profanity detected. Comment not accepted.' });
+
+    let updatedComment;
+    await store.atomicUpdate('opportunities.json', opportunities => {
+      const opp = opportunities[req.params.id];
+      if (!opp) {
+        throw Object.assign(new Error('Opportunity not found'), { status: 404, expectedStoreConflict: true });
+      }
+      const fields = decryptObject(opp.encrypted_fields || {});
+      const comment = (fields.comments || []).find(c => c.id === req.params.commentId);
+      if (!comment) throw Object.assign(new Error('Comment not found'), { status: 404, expectedStoreConflict: true });
+      if (comment.user_id !== req.user.id) throw Object.assign(new Error('Not authorized'), { status: 403, expectedStoreConflict: true });
+      comment.text = cleanText;
+      comment.edited_at = new Date().toISOString();
+      updatedComment = comment;
+      opp.encrypted_fields = encryptObject(fields);
+      return opportunities;
+    });
+    res.json({ ok: true, comment: updatedComment });
+  } catch (e) {
+    if (!e.status || e.status >= 500) console.error('Edit comment error:', e);
+    res.status(e.status || 500).json({ error: e.status ? e.message : 'Server error' });
+  }
+});
+
+router.delete('/:id/comments/:commentId', requireAuth, async (req, res) => {
+  try {
+    const isAnisohaney = req.user.encrypted_fields?.username?.toLowerCase() === 'anisohaney';
+    await store.atomicUpdate('opportunities.json', opportunities => {
+      const opp = opportunities[req.params.id];
+      if (!opp) {
+        throw Object.assign(new Error('Opportunity not found'), { status: 404, expectedStoreConflict: true });
+      }
+      const fields = decryptObject(opp.encrypted_fields || {});
+      const comments = Array.isArray(fields.comments) ? fields.comments : [];
+      const index = comments.findIndex(c => c.id === req.params.commentId);
+      if (index < 0) throw Object.assign(new Error('Comment not found'), { status: 404, expectedStoreConflict: true });
+      if (comments[index].user_id !== req.user.id && !isAnisohaney) {
+        throw Object.assign(new Error('Not authorized'), { status: 403, expectedStoreConflict: true });
+      }
+      comments.splice(index, 1);
+      fields.comments = comments;
+      opp.encrypted_fields = encryptObject(fields);
+      return opportunities;
+    });
+    res.json({ ok: true });
+  } catch (e) {
+    if (!e.status || e.status >= 500) console.error('Delete comment error:', e);
+    res.status(e.status || 500).json({ error: e.status ? e.message : 'Server error' });
+  }
+});
+
+router.patch('/:id/comments/:commentId/replies/:replyId', requireAuth, async (req, res) => {
+  try {
+    const text = req.body?.text;
+    if (typeof text !== 'string') return res.status(400).json({ error: 'Reply cannot be empty' });
+    const cleanText = sanitizeObject({ text }).text;
+    if (!cleanText) return res.status(400).json({ error: 'Reply cannot be empty' });
+    if (cleanText.split(/\s+/).length > 200) return res.status(400).json({ error: 'Reply exceeds 200 words limit' });
+    if (scanText(cleanText)) return res.status(400).json({ error: 'Profanity detected. Reply not accepted.' });
+
+    let updatedReply;
+    await store.atomicUpdate('opportunities.json', opportunities => {
+      const opp = opportunities[req.params.id];
+      if (!opp) throw Object.assign(new Error('Opportunity not found'), { status: 404, expectedStoreConflict: true });
+      const fields = decryptObject(opp.encrypted_fields || {});
+      const comment = (fields.comments || []).find(c => c.id === req.params.commentId);
+      if (!comment) throw Object.assign(new Error('Comment not found'), { status: 404, expectedStoreConflict: true });
+      const reply = (comment.replies || []).find(r => r.id === req.params.replyId);
+      if (!reply) throw Object.assign(new Error('Reply not found'), { status: 404, expectedStoreConflict: true });
+      if (reply.user_id !== req.user.id) throw Object.assign(new Error('Not authorized'), { status: 403, expectedStoreConflict: true });
+      reply.text = cleanText;
+      reply.edited_at = new Date().toISOString();
+      updatedReply = reply;
+      opp.encrypted_fields = encryptObject(fields);
+      return opportunities;
+    });
+    res.json({ ok: true, reply: updatedReply });
+  } catch (e) {
+    if (!e.status || e.status >= 500) console.error('Edit reply error:', e);
+    res.status(e.status || 500).json({ error: e.status ? e.message : 'Server error' });
+  }
+});
+
+router.delete('/:id/comments/:commentId/replies/:replyId', requireAuth, async (req, res) => {
+  try {
+    const isAnisohaney = req.user.encrypted_fields?.username?.toLowerCase() === 'anisohaney';
+    await store.atomicUpdate('opportunities.json', opportunities => {
+      const opp = opportunities[req.params.id];
+      if (!opp) throw Object.assign(new Error('Opportunity not found'), { status: 404, expectedStoreConflict: true });
+      const fields = decryptObject(opp.encrypted_fields || {});
+      const comment = (fields.comments || []).find(c => c.id === req.params.commentId);
+      if (!comment) throw Object.assign(new Error('Comment not found'), { status: 404, expectedStoreConflict: true });
+      const replies = Array.isArray(comment.replies) ? comment.replies : [];
+      const index = replies.findIndex(r => r.id === req.params.replyId);
+      if (index < 0) throw Object.assign(new Error('Reply not found'), { status: 404, expectedStoreConflict: true });
+      if (replies[index].user_id !== req.user.id && !isAnisohaney) {
+        throw Object.assign(new Error('Not authorized'), { status: 403, expectedStoreConflict: true });
+      }
+      replies.splice(index, 1);
+      comment.replies = replies;
+      opp.encrypted_fields = encryptObject(fields);
+      return opportunities;
+    });
+    res.json({ ok: true });
+  } catch (e) {
+    if (!e.status || e.status >= 500) console.error('Delete reply error:', e);
+    res.status(e.status || 500).json({ error: e.status ? e.message : 'Server error' });
+  }
+});
+
 
 // ── POST /api/opportunities/:id/comments/:commentId/replies ──
 router.post('/:id/comments/:commentId/replies', requireAuth, async (req, res) => {
@@ -439,18 +560,19 @@ router.post('/:id/comments/:commentId/replies', requireAuth, async (req, res) =>
       return res.status(404).json({ error: 'Opportunity not found' });
     }
 
-    const text = req.body.text || '';
-    if (!text.trim()) {
+    const text = req.body?.text;
+    if (typeof text !== 'string') return res.status(400).json({ error: 'Reply text is required' });
+    const cleanText = sanitizeObject({ text }).text;
+    if (!cleanText) {
       return res.status(400).json({ error: 'Reply cannot be empty' });
     }
 
-    const words = text.trim().split(/\s+/);
+    const words = cleanText.split(/\s+/);
     if (words.length > 200) {
       return res.status(400).json({ error: 'Reply exceeds 200 words limit' });
     }
 
-    const scan = scanFields({ text });
-    if (scan.flagged) {
+    if (scanText(cleanText)) {
       return res.status(400).json({ error: 'Profanity detected. Reply not accepted.' });
     }
 
@@ -467,7 +589,7 @@ router.post('/:id/comments/:commentId/replies', requireAuth, async (req, res) =>
       id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
       user_id: req.user.id,
       user_name: authorName,
-      text: sanitizeObject({ text }).text,
+      text: cleanText,
       created_at: new Date().toISOString(),
       read_by_parent_author: req.user.id === comment.user_id
     };
