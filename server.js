@@ -153,6 +153,7 @@ app.use((req, res, next) => {
 // Apply rate limits before parsing request bodies. This protects CPU and
 // memory from large/hostile payloads while keeping the existing per-IP caps.
 app.use('/api/auth', rateLimit('auth'));
+app.use('/api/password', rateLimit('auth'));
 app.use('/api/activity', rateLimit('api'));
 app.use('/api/verify', rateLimit('auth'));
 app.use('/api/validate', rateLimit('auth'));
@@ -187,6 +188,7 @@ const feedbackRoutes = require('./backend/routes/feedback.routes');
 const matching = require('./backend/matching');
 
 app.use('/api/auth', authRoutes);
+app.use('/api/password', require('./backend/routes/password.routes'));
 
 app.use('/api/opportunities', opportunityRoutes);
 app.use('/api/users', userRoutes);

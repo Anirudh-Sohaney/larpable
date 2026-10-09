@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LARPABLE. — Set a new password</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div class="d-auth">
+    <div class="d-auth-card">
+      <div class="d-auth-title">Set a new password</div>
+      <div class="d-auth-sub">Choose a new password for your account</div>
+      <div id="reset-error" style="color:var(--error); font-size:0.82rem; margin-bottom:16px; display:none;"></div>
+      <form id="reset-form" onsubmit="savePassword(event)">
+        <div class="d-form-group">
+          <label class="d-label">New password</label>
+          <input type="password" class="d-input" id="reset-password" placeholder="At least 6 characters" required autocomplete="new-password">
+        </div>
+        <div class="d-form-group">
+          <label class="d-label">Confirm new password</label>
+          <input type="password" class="d-input" id="reset-confirm" placeholder="Repeat your new password" required autocomplete="new-password">
+        </div>
+        <div id="reset-match" style="color:var(--error); font-size:0.82rem; margin-bottom:12px; display:none;"></div>
+        <button type="submit" class="d-btn d-btn-accent" style="width:100%;">Save password</button>
+      </form>
+      <div class="d-auth-footer">
+        <a href="/login">Back to login</a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const token = new URLSearchParams(window.location.search).get('token') || '';
+
+    if (!token) {
+      showFatal('This reset link is invalid or has expired.');
+    }
+
+    function showFatal(message) {
+      document.getElementById('reset-form').style.display = 'none';
+      const el = document.getElementById('reset-error');
+      el.textContent = message;
+      el.style.display = 'block';
+    }
+
+    async function savePassword(e) {
+      e.preventDefault();
+      const password = document.getElementById('reset-password').value;
+      const confirm = document.getElementById('reset-confirm').value;
+      const matchEl = document.getElementById('reset-match');
+      const btn = e.target.querySelector('button[type="submit"]');
+
+      matchEl.style.display = 'none';
+      if (password !== confirm) {
+        matchEl.textContent = 'Passwords do not match.';
+        matchEl.style.display = 'block';
+        return;
+      }
+      if (password.length < 6) {
+        matchEl.textContent = 'Password must be at least 6 characters.';
+        matchEl.style.display = 'block';
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'Saving...';
+
+      try {
+        const res = await fetch('/api/password/reset', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({ token, password })
+        });
+        const data = await res.json().catch(() => ({}));
+
+        if (!res.ok) {
+          showFatal(data.error || 'This reset link is invalid or has expired.');
+          return;
+        }
+
+        window.location.href = '/login';
+      } catch (err) {
+        showFatal(err.message || 'Could not save the password. Please try again.');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Save password';
+      }
+    }
+  </script>
+  <script src="/scaling.js"></script>
+  <script src="/js/activity.js"></script>
+</body>
+</html>

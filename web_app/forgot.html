@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LARPABLE. — Forgot password</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div class="d-auth">
+    <div class="d-auth-card">
+      <div class="d-auth-title">Forgot password</div>
+      <div class="d-auth-sub">Enter your username or email and we'll send you a reset link</div>
+      <form id="forgot-form" onsubmit="sendReset(event)">
+        <div class="d-form-group">
+          <label class="d-label">Username or email</label>
+          <input type="text" class="d-input" id="forgot-identifier" placeholder="Enter your username or email" required autocomplete="username">
+        </div>
+        <div id="forgot-error" style="color:var(--error); font-size:0.82rem; margin-bottom:12px; display:none;"></div>
+        <div id="forgot-ok" style="color:var(--success); font-size:0.82rem; margin-bottom:12px; display:none;"></div>
+        <button type="submit" class="d-btn d-btn-accent" style="width:100%;">Send reset link</button>
+      </form>
+      <div class="d-auth-footer">
+        Remembered it? <a href="/login">Log in</a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    async function sendReset(e) {
+      e.preventDefault();
+      const identifier = document.getElementById('forgot-identifier').value.trim();
+      const errEl = document.getElementById('forgot-error');
+      const okEl = document.getElementById('forgot-ok');
+      const btn = e.target.querySelector('button[type="submit"]');
+
+      errEl.style.display = 'none';
+      okEl.style.display = 'none';
+      btn.disabled = true;
+      btn.textContent = 'Sending...';
+
+      try {
+        const res = await fetch('/api/password/forgot', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({ identifier })
+        });
+        const data = await res.json().catch(() => ({}));
+
+        if (!res.ok) {
+          errEl.textContent = data.error || 'Something went wrong. Please try again.';
+          errEl.style.display = 'block';
+          return;
+        }
+
+        okEl.textContent = data.message || 'Check your inbox for the reset link.';
+        okEl.style.display = 'block';
+      } catch (err) {
+        errEl.textContent = err.message || 'Could not send the reset link. Please try again.';
+        errEl.style.display = 'block';
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Send reset link';
+      }
+    }
+  </script>
+  <script src="/scaling.js"></script>
+  <script src="/js/activity.js"></script>
+</body>
+</html>
