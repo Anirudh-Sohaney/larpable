@@ -73,7 +73,7 @@ const Feed = {
       rows = rows.filter(o => savedIds.includes(o.id));
     }
     if (type) rows = rows.filter(o => o.type === type);
-    rows = Filters.apply(rows).filter(o => !q || [o.title, o.description, o.issuer_name].some(v => String(v || '').toLowerCase().includes(q)) || (o.skills || []).some(s => (typeof normalizeSynonym === 'function' ? normalizeSynonym(s) : s).toLowerCase().includes(q)));
+    rows = Filters.apply(rows).filter(o => !q || [o.title, o.description, o.looking_for, o.issuer_name].some(v => String(v || '').toLowerCase().includes(q)) || (o.skills || []).some(s => (typeof normalizeSynonym === 'function' ? normalizeSynonym(s) : s).toLowerCase().includes(q)));
     rows.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
     if (this.currentSort === 'oldest') rows.sort((a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0));
     if (this.currentSort === 'name-az') rows.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
@@ -107,7 +107,9 @@ const Feed = {
     list.innerHTML = (draftHtml + rows.map(o => this.renderCard(o)).join(''))
       || `<div class="d-empty">${this.showingYours
           ? 'You have not posted anything yet.'
-          : 'Nothing matches those filters. <button class="d-btn-ghost" onclick="Filters.clearAll(); Feed.render()">Clear filters</button>'}</div>`;
+          : isSavedMode
+            ? 'You haven\'t saved anything yet — tap ☆ Save on a post to keep it here.'
+            : 'Nothing matches those filters. <button class="d-btn-ghost" onclick="Filters.clearAll(); Feed.render()">Clear filters</button>'}</div>`;
   },
 
   async toggleSave(oppId) {
@@ -155,7 +157,7 @@ const Feed = {
         </div>
       </div>
       <div class="d-opp-issuer">Posted by <strong>${Utils.escapeHtml(o.issuer_name || 'Unknown')}</strong>${o.issuer_context ? ' · ' + Utils.escapeHtml(o.issuer_context) : ''}</div>
-      ${o.description ? `<div class="d-opp-desc">${Utils.escapeHtml(o.description)}</div>` : ''}
+      ${o.description ? `<div class="d-opp-desc">${Utils.escapeHtml(Utils.truncate(o.description, 30))}</div>` : ''}
       ${bits ? `<div class="d-opp-meta">${bits}</div>` : ''}
       ${skills ? `<div class="d-opp-looking">${skills}</div>` : ''}
       ${mine ? `<div style="display:flex;gap:0.4rem;margin-bottom:0.6rem;">
@@ -196,7 +198,7 @@ const Feed = {
         <div class="d-opp-title">${Utils.escapeHtml(f.title || 'Untitled draft')}</div>
         <span class="d-badge d-badge--draft">Draft</span>
       </div>
-      ${f.description ? `<div class="d-opp-desc">${Utils.escapeHtml(f.description)}</div>` : ''}
+      ${f.description ? `<div class="d-opp-desc">${Utils.escapeHtml(Utils.truncate(f.description, 30))}</div>` : ''}
       ${skills ? `<div class="d-opp-looking">${skills}</div>` : ''}
       <div class="d-opp-footer">
         <span class="d-opp-posted">Saved ${Utils.timeAgo(d.updated_at)}</span>

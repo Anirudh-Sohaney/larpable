@@ -26,8 +26,27 @@ const { geocode } = require('../geocode');
 const { scanFields, scanText, applyFlag, flagNotice } = require('../profanity');
 const applicationsStore = require('../applications');
 const { notifyPosterOfApplication } = require('../reengagement');
+const { normalizeSkills, normalizeField } = require('../canonical');
 
 const OPPORTUNITY_PREFERENCES = new Set(['volunteering', 'paid', 'unpaid']);
+const MIN_SKILLS = 3;
+const MAX_DESCRIPTION_WORDS = 15;
+
+function countWords(text) {
+  return String(text || '').trim().split(/\s+/).filter(Boolean).length;
+}
+
+// Shared create/edit checks: new listings need at least MIN_SKILLS skills and a
+// description of at most MAX_DESCRIPTION_WORDS words.
+function validatePostContent({ skills, description, requireSkills }) {
+  if (requireSkills && normalizeSkills(skills).length < MIN_SKILLS) {
+    return `Select at least ${MIN_SKILLS} skills`;
+  }
+  if (description !== undefined && countWords(description) > MAX_DESCRIPTION_WORDS) {
+    return `Description must be ${MAX_DESCRIPTION_WORDS} words or fewer`;
+  }
+  return null;
+}
 const DEFAULT_OPPORTUNITY_PREFERENCE = { project: 'unpaid', nonprofit: 'volunteering', company: 'paid' };
 
 function addCommentPermissions(comments, user) {
@@ -320,6 +339,16 @@ router.post('/', requireAuth, async (req, res) => {
     
     // Sanitize all input fields (prevent XSS)
     const cleanFields = sanitizeObject(fields);
+
+    // New listings must meet the content requirements.
+    const validationError = validatePostContent({ skills: cleanFields.skills, description: cleanFields.description, requireSkills: true });
+    if (validationError) return res.status(400).json({ error: validationError });
+
+    // Store canonical skills/fields so listings match the create form + filters.
+    cleanFields.skills = normalizeSkills(cleanFields.skills);
+    if (cleanFields.nonprofit_field !== undefined) cleanFields.nonprofit_field = normalizeField(cleanFields.nonprofit_field);
+    if (cleanFields.industry !== undefined) cleanFields.industry = normalizeField(cleanFields.industry);
+
 
     const opportunityPreference = cleanFields.opportunity_preference || DEFAULT_OPPORTUNITY_PREFERENCE[type];
     if (!OPPORTUNITY_PREFERENCES.has(opportunityPreference)) {
@@ -660,6 +689,17 @@ router.patch('/:id', requireAuth, async (req, res) => {
     if (updates.opportunity_preference !== undefined && !OPPORTUNITY_PREFERENCES.has(updates.opportunity_preference)) {
       return res.status(400).json({ error: 'Invalid opportunity preference' });
     }
+    // Enforce the same content rules when skills/description are actually edited,
+    // then store canonical values.
+    const patchError = validatePostContent({
+      skills: updates.skills,
+      description: updates.description,
+      requireSkills: updates.skills !== undefined
+    });
+    if (patchError) return res.status(400).json({ error: patchError });
+    if (updates.skills !== undefined) updates.skills = normalizeSkills(updates.skills);
+    if (updates.nonprofit_field !== undefined) updates.nonprofit_field = normalizeField(updates.nonprofit_field);
+    if (updates.industry !== undefined) updates.industry = normalizeField(updates.industry);
     let scan;
     await store.atomicUpdate('opportunities.json', opportunities => {
       const latest = opportunities[req.params.id];
@@ -728,7 +768,8 @@ function formatPosted(isoString) {
   if (diffHours < 24) return `${diffHours}h ago`;
   if (diffDays === 1) return 'Yesterday';
   if (diffDays < 7) return `${diffDays} days ago`;
-  return `${Math.floor(diffDays / 7)} weeks ago`;
+  const weeks = Math.floor(diffDays / 7);
+  return weeks === 1 ? '1 week ago' : `${weeks} weeks ago`;
 }
 
 function enrichOpp(opp, user) {

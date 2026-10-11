@@ -126,3 +126,11 @@ body { padding-top: 0 !important; overflow-x: hidden; }
 .d-selected-chip{display:inline-flex;align-items:center;gap:6px;padding:6px 9px 6px 11px;border:1px solid var(--accent);border-radius:20px;background:var(--accent-light);color:var(--accent);font-size:.76rem}
 .d-selected-chip button{padding:0;border:0;background:transparent;color:inherit;font-size:1rem;line-height:1;cursor:pointer}
 @media(max-width:600px){.d-experience-skills{grid-template-columns:1fr}}
+
+/* No-JS / crawler fallback (index.html adds .js to <html>): never hide
+   landing content or lock scroll when scripting is unavailable. */
+html:not(.js) body.d-locked{overflow:auto;height:auto}
+html:not(.js) .d-hero-inner,html:not(.js) .d-rise{opacity:1;transform:none}
+html:not(.js) .d-topnav{opacity:1;transform:none;pointer-events:auto}
+html:not(.js) .d-cue{opacity:1}
+html:not(.js) .d-hero-art{clip-path:circle(75% at 50% 50%);transform:none}

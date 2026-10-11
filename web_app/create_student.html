@@ -240,12 +240,10 @@
           <label for="np-field">Field</label>
           <select id="np-field">
             <option value="" disabled selected>Select a field</option>
-            <option>Education</option><option>Health / Medical</option><option>Environment / Climate</option>
-            <option>Human Rights</option><option>Poverty / Economic Development</option><option>Disaster Relief</option>
-            <option>Animal Welfare</option><option>Arts / Culture</option><option>Community Development</option>
-            <option>Mental Health</option><option>Hunger / Food Security</option><option>Housing / Homelessness</option>
-            <option>Technology Access</option><option>Youth Development</option><option>Immigration / Refugees</option>
-            <option>Legal Aid</option><option>STEM Education</option><option>Other</option>
+            <option>Science &amp; Research</option><option>Technology &amp; Software</option><option>Engineering &amp; Manufacturing</option>
+            <option>Mathematics &amp; Data</option><option>Medicine &amp; Public Health</option><option>Business &amp; Entrepreneurship</option>
+            <option>Finance &amp; Economics</option><option>Law &amp; Public Policy</option><option>Education &amp; Learning</option>
+            <option>Arts, Design &amp; Media</option><option>Humanities &amp; Social Sciences</option><option>Environment, Agriculture &amp; Sports</option>
           </select>
           <div class="error-msg" id="np-field-error">Required</div>
         </div>
@@ -262,12 +260,10 @@
           <label for="co-industry">Industry</label>
           <select id="co-industry">
             <option value="" disabled selected>Select an industry</option>
-            <option>Technology / SaaS</option><option>Finance / Fintech</option><option>Healthcare / Biotech</option>
-            <option>E-commerce / Retail</option><option>Education / EdTech</option><option>Media / Entertainment</option>
-            <option>Manufacturing</option><option>Real Estate</option><option>Energy / CleanTech</option>
-            <option>Transportation / Logistics</option><option>Food & Beverage</option><option>Legal / Compliance</option>
-            <option>Marketing / Advertising</option><option>Consulting</option><option>Non-profit / Social Enterprise</option>
-            <option>Other</option>
+            <option>Science &amp; Research</option><option>Technology &amp; Software</option><option>Engineering &amp; Manufacturing</option>
+            <option>Mathematics &amp; Data</option><option>Medicine &amp; Public Health</option><option>Business &amp; Entrepreneurship</option>
+            <option>Finance &amp; Economics</option><option>Law &amp; Public Policy</option><option>Education &amp; Learning</option>
+            <option>Arts, Design &amp; Media</option><option>Humanities &amp; Social Sciences</option><option>Environment, Agriculture &amp; Sports</option>
           </select>
           <div class="error-msg" id="co-industry-error">Required</div>
         </div>
@@ -363,7 +359,7 @@
     const skillsGrid = document.getElementById('skills-grid');
     let selectedSkills = [];
     const MAX_SKILLS = 15;
-    const MIN_SKILLS = 0;
+    const MIN_SKILLS = 3;
 
     function renderSkills(filter = '') {
       const fl = filter.toLowerCase();

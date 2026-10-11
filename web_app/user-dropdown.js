@@ -136,7 +136,7 @@
     // Logout
     logoutBtn.addEventListener('click', async () => {
       await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
-      window.location.href = '/loading_page';
+      window.location.href = '/';
     });
   }
 

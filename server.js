@@ -241,8 +241,9 @@ app.get('/api/match/entities', (req, res) => {
       interestSynonymMap[item] = CANONICAL_SYNONYMS[item] || [];
     }
   }
-  for (const ind of matching.industries) entities.push({ name: ind, type: 'industry', category: ind });
-  for (const f of matching.nonprofitFields) entities.push({ name: f, type: 'industry', category: f });
+  // Fields are a single unified list shared by companies and nonprofits, so
+  // industries and nonprofitFields are identical — emit each field once.
+  for (const field of new Set(matching.industries)) entities.push({ name: field, type: 'industry', category: field });
   res.json({
     entities,
     interests,
@@ -406,9 +407,25 @@ app.get('/staff/', async (req, res) => {
 // Serve staff/ static assets (CSS, JS) — for /staff/staff.js, /staff/staff.css, etc.
 app.use('/staff', express.static(path.join(__dirname, 'staff')));
 
+// ── 404 Catch-all ────────────────────────────────────────────
+// API callers get JSON; browsers get the branded 404 page.
+app.use((req, res) => {
+  if (req.path.startsWith('/api/')) {
+    return res.status(404).json({ error: 'Not found' });
+  }
+  res.status(404).sendFile(path.join(__dirname, 'web_app', '404.html'));
+});
+
 // ── Start Server ─────────────────────────────────────────────
 function startServer(port) {
-  const server = app.listen(port, HOST, () => {
+  const server = app.listen(port, HOST, async () => {
+    // Rewrite legacy skill/field values onto the canonical taxonomy on boot.
+    // Idempotent; only writes a data file when a record actually changes.
+    try {
+      await require('./backend/migrations/normalize-values').run();
+    } catch (err) {
+      console.error('[migration] normalize-values failed:', err.message);
+    }
     console.log(`\n  ┌─────────────────────────────────────┐`);
     console.log(`  │  LARPABLE. server                    │`);
     console.log(`  │  http://${HOST}:${port}                │`);

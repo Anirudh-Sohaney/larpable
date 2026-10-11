@@ -115,6 +115,6 @@ const App = {
   async logout() {
     await DataStore.logout();
     this.currentUser = null;
-    window.location.href = '/loading_page';
+    window.location.href = '/';
   }
 };

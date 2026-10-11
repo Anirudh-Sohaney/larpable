@@ -37,5 +37,11 @@ const Utils = {
   meta(icon, label, value) {
     if (!value) return '';
     return `<span class="d-meta-item"><span class="d-meta-icon">${icon}</span><span class="d-meta-label">${label}</span> ${value}</span>`;
+  },
+  truncate(text, maxWords) {
+    if (!text) return '';
+    const words = String(text).trim().split(/\s+/);
+    if (words.length <= maxWords) return String(text);
+    return words.slice(0, maxWords).join(' ') + '…';
   }
 };
