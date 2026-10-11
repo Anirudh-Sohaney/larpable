@@ -97,11 +97,21 @@ router.get('/', optionalAuth, async (req, res) => {
     // moderator approves (or removes) them.
     opportunities = opportunities.filter(o => !o.flagged);
 
+    // Anonymous visitors (including guests who entered via "Get started") only
+    // ever receive the newest six posts. This cap lives on the server so it
+    // cannot be bypassed by hitting the API directly.
+    const total = opportunities.length;
+    if (!req.user) {
+      opportunities = [...opportunities]
+        .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))
+        .slice(0, 6);
+    }
+
     const enriched = await Promise.all(opportunities.map(opp => enrichOppWithCoords(opp, req.user)));
     const applications = req.user ? await applicationsStore.read() : {};
     enriched.forEach(opp => addApplicationSummary(opp, req.user, applications));
     
-    res.json({ opportunities: enriched });
+    res.json({ opportunities: enriched, total });
   } catch (e) {
     console.error('Get opportunities error:', e);
     res.status(500).json({ error: 'Server error' });
@@ -202,9 +212,20 @@ router.get('/:id', optionalAuth, async (req, res) => {
         issuer = {
           name: [userFields.firstName || userFields.first_name, userFields.lastName || userFields.last_name].filter(Boolean).join(' ')
             || userFields.org_name || userFields.company_name || 'Anonymous',
-          email: userFields.email || ''
+          // Contact details are withheld from anonymous readers; the client
+          // shows a blurred lock instead of a link.
+          email: req.user ? (userFields.email || '') : ''
         };
       }
+    }
+
+    // Never send contact channels to anonymous readers. This is the real
+    // guarantee behind the blurred "Contact / sign-up" panel — there is
+    // nothing in the payload to reveal via dev tools.
+    const publicFields = { ...decrypted };
+    if (!req.user) {
+      delete publicFields.contact_links;
+      delete publicFields.contact;
     }
     
     res.json({
@@ -213,7 +234,7 @@ router.get('/:id', optionalAuth, async (req, res) => {
       created_by: opp.created_by || '',
       created_at: opp.created_at,
       flagged: opp.flagged || false,
-      fields: decrypted,
+      fields: publicFields,
       issuer,
       application: req.user ? {
         applied: !!applicants[req.user.id],
@@ -801,7 +822,8 @@ function enrichOpp(opp, user) {
     remote: f.remote !== undefined ? f.remote : true,
     latitude: f.latitude || null,
     longitude: f.longitude || null,
-    contact_links: Array.isArray(f.contact_links) ? f.contact_links : (f.contact ? [f.contact] : []),
+    // Contact links are private to signed-in readers.
+    contact_links: user ? (Array.isArray(f.contact_links) ? f.contact_links : (f.contact ? [f.contact] : [])) : [],
     skills: f.skills || [],
     details: f.details || '',
     opportunity_preference: f.opportunity_preference || DEFAULT_OPPORTUNITY_PREFERENCE[opp.type] || 'unpaid',

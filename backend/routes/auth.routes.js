@@ -16,6 +16,7 @@ const { emailExists, claimVerifiedEmail, releaseVerifiedEmail, consumeVerifiedEm
 const { validateExperiences } = require('../experiences');
 
 const COOKIE_NAME = 'larpable_session';
+const GUEST_COOKIE = 'larpable_guest';
 const COOKIE_MAX_AGE = 30 * 24 * 60 * 60 * 1000; // 30 days
 const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 const DEFAULT_LEGAL_VERSIONS = { terms: { version: '2026-08-27' }, privacy: { version: '2026-08-27' } };
@@ -130,6 +131,7 @@ router.post('/signup', async (req, res) => {
     }
     
     res.cookie(COOKIE_NAME, result.token, COOKIE_OPTIONS);
+    res.clearCookie(GUEST_COOKIE, { path: '/' });
     
     res.json({ userId: result.userId, type });
   } catch (e) {
@@ -166,6 +168,7 @@ router.post('/login', async (req, res) => {
     const result = await auth.login(username, password, requestAbortSignal(req, res));
     
     res.cookie(COOKIE_NAME, result.token, COOKIE_OPTIONS);
+    res.clearCookie(GUEST_COOKIE, { path: '/' });
     
     res.json({ userId: result.userId, type: result.user.type, role: result.user.role || 'student' });
   } catch (e) {

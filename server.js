@@ -312,6 +312,24 @@ process.on('unhandledRejection', (reason) => {
   console.error('UNHANDLED REJECTION (server staying alive):', reason);
 });
 
+// ── Guest access ─────────────────────────────────────────────
+// The landing "Get started" button routes through here so the server (not the
+// client) issues the guest pass. The cookie only unlocks a read-only preview
+// of the feed — it carries no secret and never grants access to contact info
+// or apply, which the API gates on a real session regardless.
+const GUEST_COOKIE = 'larpable_guest';
+const GUEST_MAX_AGE = 30 * 24 * 60 * 60 * 1000; // 30 days
+app.get('/get-started', (req, res) => {
+  res.cookie(GUEST_COOKIE, '1', {
+    httpOnly: false, // read by feed UI to render guest state
+    sameSite: 'lax',
+    maxAge: GUEST_MAX_AGE,
+    path: '/',
+    ...(IS_PRODUCTION && { secure: true })
+  });
+  res.redirect('/feed');
+});
+
 // ── Static File Serving ──────────────────────────────────────
 // Serve web_app/ at root
 app.use(express.static(path.join(__dirname, 'web_app')));

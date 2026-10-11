@@ -4,6 +4,7 @@ const DataStore = {
   opportunities: [],
   drafts: [],
   entities: null,
+  opportunityTotal: 0,
   initialized: false,
 
   async request(url, options) {
@@ -93,8 +94,10 @@ const DataStore = {
 
   async getOpportunities() {
     const data = await this.request('/api/opportunities');
-    this.opportunities = Array.isArray(data) ? data : (data.opportunities || []);
-    return this.opportunities.map(o => ({ ...o, skills: Array.isArray(o.skills) ? [...o.skills] : [] }));
+    const list = Array.isArray(data) ? data : (data.opportunities || []);
+    this.opportunities = list;
+    this.opportunityTotal = Array.isArray(data) ? list.length : (data.total ?? list.length);
+    return list.map(o => ({ ...o, skills: Array.isArray(o.skills) ? [...o.skills] : [] }));
   },
 
   async getDrafts() {

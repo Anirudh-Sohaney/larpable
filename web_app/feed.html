@@ -12,7 +12,7 @@
     <a href="/feed" class="d-logo">LARPABLE.</a>
     <div class="d-header-right">
       <button class="d-btn d-btn-sm" id="yours-btn" type="button">Your projects</button>
-      <a href="/create_student" class="d-btn d-btn-sm" style="font-size:0.82rem;">+ Create</a>
+      <a href="/create_student" class="d-btn d-btn-sm" id="header-create-link" style="font-size:0.82rem;">+ Create</a>
       <div class="d-user-menu">
         <button class="d-user-btn" type="button">
           <span class="d-user-avatar" id="header-avatar"></span>
@@ -43,11 +43,13 @@
   <script>
     (async () => {
       await App.init();
-      if (!App.requireAuth()) return;
       App.setupUserMenu();
+      // Signed-in users browse normally; guests (server pass, no session) get
+      // the capped preview; everyone else must log in.
+      if (!App.isAuthenticated() && !App.isGuest()) { window.location.href = '/login'; return; }
       await Filters.init();
       await Feed.init();
-      await FeedbackPrompt.init();
+      if (App.isAuthenticated()) await FeedbackPrompt.init();
     })();
   </script>
   <script src="/js/activity.js"></script>

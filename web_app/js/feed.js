@@ -3,8 +3,25 @@ const Feed = {
 
   async init() {
     await DataStore.init();
-    if (!DataStore.requireAuth()) return;
     this.currentUser = DataStore.getCurrentUser();
+
+    // Guests (server-issued pass, no session) get a capped, newest-first,
+    // read-only feed. Anyone else without a session is sent to login.
+    if (!this.currentUser) {
+      const hasGuestPass = typeof App !== 'undefined' && App.isGuest();
+      if (!hasGuestPass) { window.location.href = '/login'; return; }
+      this.guest = true;
+      this.opportunities = await DataStore.getOpportunities();
+      this.currentSort = 'recent';
+      const sortSel = document.getElementById('f-sort');
+      if (sortSel) sortSel.value = 'recent';
+      Filters.fillSelects();
+      this.setupGuestGuards();
+      this.render();
+      return;
+    }
+
+    this.guest = false;
     this.opportunities = await DataStore.getOpportunities();
     this.drafts = await DataStore.getDrafts();
     this.matchScores = await DataStore.computeMatchScores(this.opportunities);
@@ -58,6 +75,28 @@ const Feed = {
     });
   },
 
+  // Guests see the search box and filters, but every one of them is a gateway
+  // to the login page. Capture-phase listeners on the control zones fire
+  // before the real handlers, so nothing actually filters or searches.
+  setupGuestGuards() {
+    const redirect = event => {
+      event.preventDefault();
+      event.stopPropagation();
+      window.location.href = '/login';
+    };
+    for (const selector of ['.d-search-wrap', '.d-filter-row']) {
+      const zone = document.querySelector(selector);
+      if (!zone) continue;
+      for (const type of ['click', 'mousedown', 'input', 'keydown', 'focusin']) {
+        zone.addEventListener(type, redirect, true);
+      }
+    }
+    const yoursBtn = document.getElementById('yours-btn');
+    if (yoursBtn) yoursBtn.style.display = 'none';
+    const createLink = document.getElementById('header-create-link');
+    if (createLink) createLink.style.display = 'none';
+  },
+
   render() {
     const list = document.getElementById('list');
     const count = document.getElementById('count');
@@ -87,6 +126,10 @@ const Feed = {
       rows.sort((a, b) => (b.unread_reply_comment_id ? 1 : 0) - (a.unread_reply_comment_id ? 1 : 0));
     }
 
+    // Guests only ever get the newest six. The API already caps an anonymous
+    // response, so this is a second, purely presentational guard.
+    if (this.guest) rows = rows.slice(0, 6);
+
     const clear = document.getElementById('clear');
     if (clear) clear.hidden = !(q || type || selectedTotal);
     const typeSel = document.getElementById('f-type');
@@ -95,13 +138,21 @@ const Feed = {
     const draftHtml = (this.showingYours ? this.drafts : []).map(d => this.renderDraft(d)).join('');
     const n = rows.length + (this.showingYours ? this.drafts.length : 0);
     if (count) {
-      const forYouDead = this.currentSort === 'foryou' && !selectedTotal && !this.scored;
-      const closestDead = this.currentSort === 'closest' && this.currentUser?.latitude == null;
-      count.title = forYouDead ? 'Add skills and interests to your profile to personalise this order'
-        : closestDead ? 'Add your location to your profile to sort by distance' : '';
-      count.textContent = this.showingYours
-        ? `${n} of your ${n === 1 ? 'post' : 'posts'}`
-        : `${n} ${n === 1 ? 'opportunity' : 'opportunities'}`;
+      if (this.guest) {
+        const total = DataStore.opportunityTotal;
+        count.title = '';
+        count.textContent = total > rows.length
+          ? `Showing the ${rows.length} newest of ${total} opportunities`
+          : `${n} ${n === 1 ? 'opportunity' : 'opportunities'}`;
+      } else {
+        const forYouDead = this.currentSort === 'foryou' && !selectedTotal && !this.scored;
+        const closestDead = this.currentSort === 'closest' && this.currentUser?.latitude == null;
+        count.title = forYouDead ? 'Add skills and interests to your profile to personalise this order'
+          : closestDead ? 'Add your location to your profile to sort by distance' : '';
+        count.textContent = this.showingYours
+          ? `${n} of your ${n === 1 ? 'post' : 'posts'}`
+          : `${n} ${n === 1 ? 'opportunity' : 'opportunities'}`;
+      }
     }
 
     list.innerHTML = (draftHtml + rows.map(o => this.renderCard(o)).join(''))
@@ -109,10 +160,27 @@ const Feed = {
           ? 'You have not posted anything yet.'
           : isSavedMode
             ? 'You haven\'t saved anything yet — tap ☆ Save on a post to keep it here.'
-            : 'Nothing matches those filters. <button class="d-btn-ghost" onclick="Filters.clearAll(); Feed.render()">Clear filters</button>'}</div>`;
+            : this.guest
+              ? 'Nothing to show yet.'
+              : 'Nothing matches those filters. <button class="d-btn-ghost" onclick="Filters.clearAll(); Feed.render()">Clear filters</button>'}</div>`;
+    if (this.guest) list.insertAdjacentHTML('beforeend', this.guestCta());
+  },
+
+  // End-of-feed prompt for guests: sign up to see everything and apply.
+  guestCta() {
+    const total = DataStore.opportunityTotal;
+    const more = Number.isFinite(total) && total > 6;
+    return `<div class="d-guest-cta">
+      <h2>${more ? 'There’s more where that came from' : 'Want to apply?'}</h2>
+      <p>${more
+        ? `You’re seeing the ${Math.min(6, total)} newest opportunities. Create a free account to see all ${total} — and apply to the ones that fit.`
+        : 'Create a free account to apply, save posts, and get matched with opportunities that fit your skills.'}</p>
+      <div class="d-btn-wrap"><a href="/signup" class="d-btn d-btn-accent">Sign up</a><a href="/login" class="d-btn">Log in</a></div>
+    </div>`;
   },
 
   async toggleSave(oppId) {
+    if (!DataStore.getCurrentUser()) { window.location.href = '/login'; return; }
     const isSaved = await DataStore.toggleSavePost(oppId);
     this.render(); // Re-render feed to reflect new saved state
   },
