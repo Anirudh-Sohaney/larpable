@@ -42,10 +42,29 @@
       }).join('')}</section>`;
     };
 
+    const embed = new URLSearchParams(window.location.search).get('embed') === '1';
+    // Navigation from inside the pane (login, signup, etc.) must take over the
+    // whole tab, never load another page next to the feed inside the frame.
+    const goTo = url => { (embed && window.top !== window ? window.top : window).location.href = url; };
+
     (async () => {
       await App.init();
-      App.setupUserMenu();
-      const id = new URLSearchParams(window.location.search).get('id');
+      const params = new URLSearchParams(window.location.search);
+      // Embedded in the feed's split pane: drop the app chrome (bottom nav,
+      // back link) so the detail fills the pane. Opened directly, it is a
+      // normal full page.
+      if (embed) {
+        document.documentElement.classList.add('d-embed');
+        document.addEventListener('click', event => {
+          const link = event.target.closest('a[href]');
+          if (!link || link.target === '_blank') return;
+          const href = link.getAttribute('href');
+          if (!href || href.charAt(0) === '#' || /^[a-z][a-z0-9+.-]*:/i.test(href)) return;
+          event.preventDefault();
+          goTo(link.href);
+        }, true);
+      } else App.setupUserMenu();
+      const id = params.get('id');
       const root = document.getElementById('detail');
       if (!id) { root.innerHTML = '<div class="d-empty">Opportunity not found.</div>'; return; }
       try {
@@ -76,7 +95,7 @@
         root.innerHTML = `
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
             <a class="d-detail-back" href="/feed" style="margin-bottom:0;">← Back to feed</a>
-            <div style="display:flex;gap:8px;align-items:center;">${currentUser ? `<button class="d-btn d-btn-sm" id="detail-save-btn" type="button">${isSaved ? '★ Saved' : '☆ Save'}</button>` : `<button class="d-btn d-btn-sm" type="button" onclick="window.location.href='/login'">☆ Save</button>`}${ownsPost ? `<button class="d-btn d-btn-sm d-applied-btn" id="detail-applied-btn" type="button" ${data.application?.count ? '' : 'disabled'}>Applied (${data.application?.count || 0})${data.application?.has_unread ? ' !' : ''}</button>` : ''}</div>
+            <div style="display:flex;gap:8px;align-items:center;">${currentUser ? `<button class="d-btn d-btn-sm" id="detail-save-btn" type="button">${isSaved ? '★ Saved' : '☆ Save'}</button>` : `<button class="d-btn d-btn-sm" type="button" onclick="goTo('/login')">☆ Save</button>`}${ownsPost ? `<button class="d-btn d-btn-sm d-applied-btn" id="detail-applied-btn" type="button" ${data.application?.count ? '' : 'disabled'}>Applied (${data.application?.count || 0})${data.application?.has_unread ? ' !' : ''}</button>` : ''}</div>
           </div>
           <section class="d-detail-header">
             <div class="d-detail-kicker"><span class="d-detail-type d-badge d-badge--${esc(kind)}">${esc(typeLabel)}</span><span class="d-detail-dot">·</span><span>${esc(fields.industry || fields.nonprofit_field || 'Student-led')}</span></div>
@@ -503,14 +522,14 @@
         const isAdmin = authData.user?.role === 'admin';
         if (isAdmin) {
           document.getElementById('admin-controls').style.display = 'block';
-          document.getElementById('admin-edit').onclick = () => { window.location.href = `/create_student?type=${encodeURIComponent(kind)}&edit=${encodeURIComponent(data.id)}`; };
-          document.getElementById('admin-user').onclick = () => { if (data.created_by) window.location.href = `/admin_user?id=${encodeURIComponent(data.created_by)}`; };
+          document.getElementById('admin-edit').onclick = () => { goTo(`/create_student?type=${encodeURIComponent(kind)}&edit=${encodeURIComponent(data.id)}`); };
+          document.getElementById('admin-user').onclick = () => { if (data.created_by) goTo(`/admin_user?id=${encodeURIComponent(data.created_by)}`); };
           document.getElementById('admin-delete').onclick = async () => {
             if (!confirm('Delete this opportunity? This cannot be undone.')) return;
             try {
               const result = await fetch('/api/opportunities/' + encodeURIComponent(data.id), { method: 'DELETE', credentials: 'include' });
               if (result.ok) {
-                window.location.href = '/feed?mine=1';
+                goTo('/feed?mine=1');
               } else {
                 const err = await result.json().catch(() => ({}));
                 alert(err.error || 'Failed to delete opportunity.');

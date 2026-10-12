@@ -149,3 +149,20 @@ html:not(.js) .d-hero-art{clip-path:circle(75% at 50% 50%);transform:none}
 .d-apply-locked .d-apply-btn{filter:blur(4px);opacity:.65}
 .d-apply-locked-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
 .d-apply-locked-overlay .d-btn{text-decoration:none}
+
+/* ── Feed split view: opportunity opens beside the feed ─────── */
+.d-split{display:flex;justify-content:center;align-items:flex-start}
+.d-split>.d-feed{flex:1 1 auto;width:100%;transition:max-width .3s var(--ease-out),flex-basis .3s var(--ease-out)}
+.d-detail-pane{display:none}
+.d-detail-frame{width:100%;height:100%;border:0;background:var(--bg-primary)}
+.d-detail-close{position:absolute;top:12px;right:16px;z-index:5;width:34px;height:34px;border:1px solid var(--border);border-radius:50%;background:var(--bg-secondary);color:var(--fg-secondary);font-size:1.15rem;line-height:1;cursor:pointer;box-shadow:0 2px 8px var(--shadow)}
+.d-detail-close:hover{color:var(--fg-primary);border-color:var(--fg-primary)}
+a.d-opp-card.is-active{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-light)}
+@media(min-width:1040px){
+  .d-split.is-open>.d-feed{flex:0 0 460px;max-width:460px;margin:0}
+  .d-split.is-open>.d-detail-pane{display:flex;position:sticky;top:0;height:100vh;flex:1 1 auto;min-width:0;max-width:860px;border-left:1px solid var(--border);background:var(--bg-primary)}
+}
+/* The opportunity page hides its own chrome when embedded in the pane. */
+html.d-embed .d-detail{max-width:none;margin:0;padding:22px 24px 48px}
+html.d-embed .d-detail-back{display:none}
+html.d-embed .d-bottom-nav{display:none}

@@ -4,6 +4,7 @@ const Feed = {
   async init() {
     await DataStore.init();
     this.currentUser = DataStore.getCurrentUser();
+    this.setupSplit();
 
     // Guests (server-issued pass, no session) get a capped, newest-first,
     // read-only feed. Anyone else without a session is sent to login.
@@ -183,6 +184,59 @@ const Feed = {
     if (!DataStore.getCurrentUser()) { window.location.href = '/login'; return; }
     const isSaved = await DataStore.toggleSavePost(oppId);
     this.render(); // Re-render feed to reflect new saved state
+  },
+
+  // ── Split view ───────────────────────────────────────────────
+  // On wide screens a card opens the opportunity beside the feed (the feed
+  // narrows and slides left, the detail fills the right). The detail is the
+  // existing opportunity page embedded in an iframe, so every feature
+  // (save, apply, comments, guest locks) keeps working unchanged. On screens
+  // too narrow for both, the card link navigates to the full page as before.
+  canSplit() {
+    return window.matchMedia('(min-width: 1040px)').matches;
+  },
+
+  setupSplit() {
+    const list = document.getElementById('list');
+    if (!list || !document.getElementById('split')) return;
+    list.addEventListener('click', event => {
+      const card = event.target.closest('a.d-opp-card');
+      if (!card) return;
+      // Inline controls (Save) act in place without leaving the feed.
+      if (event.target.closest('button')) { event.preventDefault(); return; }
+      // Let modified clicks open a real new tab.
+      if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
+      if (!this.canSplit()) return; // narrow screens keep the full-page link
+      const url = new URL(card.href, location.origin);
+      const id = url.searchParams.get('id');
+      if (!id) return; // e.g. draft cards go to the editor
+      event.preventDefault();
+      this.openDetail(id, url.hash, card);
+    });
+    document.getElementById('detail-close')?.addEventListener('click', () => this.closeDetail());
+    document.addEventListener('keydown', event => { if (event.key === 'Escape') this.closeDetail(); });
+    window.addEventListener('resize', () => { if (!this.canSplit()) this.closeDetail(); });
+  },
+
+  openDetail(id, hash, card) {
+    const split = document.getElementById('split');
+    const pane = document.getElementById('detail-pane');
+    const frame = document.getElementById('detail-frame');
+    if (!split || !pane || !frame) return;
+    const src = '/opportunity?id=' + encodeURIComponent(id) + '&embed=1' + (hash || '');
+    if (frame.getAttribute('src') !== src) frame.setAttribute('src', src);
+    split.classList.add('is-open');
+    pane.setAttribute('aria-hidden', 'false');
+    document.querySelectorAll('a.d-opp-card.is-active').forEach(el => el.classList.remove('is-active'));
+    card?.classList.add('is-active');
+  },
+
+  closeDetail() {
+    const split = document.getElementById('split');
+    if (!split || !split.classList.contains('is-open')) return;
+    split.classList.remove('is-open');
+    document.getElementById('detail-pane')?.setAttribute('aria-hidden', 'true');
+    document.querySelectorAll('a.d-opp-card.is-active').forEach(el => el.classList.remove('is-active'));
   },
 
   renderCard(o) {
