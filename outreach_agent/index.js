@@ -8,7 +8,6 @@ process.env.PATH = [path.join(__dirname, '..', 'node_modules', '.bin'), process.
 const fs = require('fs');
 const { runAgent, dispose } = require('./agent_core');
 
-const OPP_PATH = path.join(process.env.DATA_DIR || '/var/www/larpable_data', 'opportunities.json');
 const OUTREACH_PATH = path.join(__dirname, 'data', 'outreached.json');
 
 const store = require('../backend/store');
@@ -21,7 +20,7 @@ async function loadContext() {
             .filter(o => o.type === 'nonprofit' || o.type === 'company')
             .map(o => {
                 const fields = o.encrypted_fields || {};
-                return fields.title || fields.issuer_name || o.issuer_name || o.title;
+                return o.project_name || fields.title || fields.issuer_name || o.issuer_name || o.title;
             }).filter(Boolean);
     } catch (e) {
         console.error("Error reading opportunities:", e.message);

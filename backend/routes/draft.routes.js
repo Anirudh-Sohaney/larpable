@@ -20,13 +20,11 @@ const express = require('express');
 const router = express.Router();
 const auth = require('../auth');
 const store = require('../store');
-const { encryptObject } = require('../crypto');
+const {flagNotice} = require('../profanity');
 const { sanitizeObject } = require('../sanitize');
-const { scanFields, applyFlag, flagNotice } = require('../profanity');
 
 const DRAFTS_FILE = 'drafts.json';
 const MAX_DRAFTS = 5;
-const DEFAULT_OPPORTUNITY_PREFERENCE = { project: 'unpaid', nonprofit: 'volunteering', company: 'paid' };
 
 // ── Middleware: require auth ──────────────────────────────────
 async function requireAuth(req, res, next) {
@@ -43,12 +41,19 @@ async function requireAuth(req, res, next) {
 router.get('/', requireAuth, async (req, res) => {
   try {
     const allDrafts = await store.getAll(DRAFTS_FILE);
+    const assets = await store.read('media.json');
+    const projects = Object.fromEntries((await require('../projects').mine(req.user.id)).map(p=>[p.id,p]));
     const userDrafts = Object.entries(allDrafts)
       .filter(([, d]) => d.user_id === req.user.id)
       .map(([id, d]) => ({
         id,
         user_id: d.user_id,
-        type: d.type,
+        type: projects[d.project_id]?.type || d.type,
+        project_id: d.project_id,
+        kind: d.kind || 'opportunity',
+        media_id: d.media_id || null,
+        media: require('../media').publicMedia(assets[d.media_id]),
+        project_name: projects[d.project_id]?.fields.name || '',
         fields: d.fields || {},
         created_at: d.created_at,
         updated_at: d.updated_at
@@ -58,7 +63,7 @@ router.get('/', requireAuth, async (req, res) => {
     res.json({ drafts: userDrafts });
   } catch (e) {
     console.error('Get drafts error:', e);
-    res.status(500).json({ error: 'Server error' });
+    res.status(e.status || 500).json({ error: e.status ? e.message : 'Server error' });
   }
 });
 
@@ -66,7 +71,13 @@ router.get('/', requireAuth, async (req, res) => {
 // If body contains `id`, update existing draft. Otherwise, create new.
 router.post('/', requireAuth, async (req, res) => {
   try {
-    const { id: existingId, type, ...fields } = req.body;
+    const { id: existingId, project_id, kind='opportunity', media_id=null, type: ignoredType, ...inputFields } = req.body;
+    if(!['post','opportunity'].includes(kind))throw require('../projects').fail('Invalid post kind');
+    const fields=kind==='post' ? {title:inputFields.title || '',content:inputFields.content || ''} : inputFields;
+    if(kind==='opportunity')delete fields.title;
+    return await require('../projects').withOwned(project_id,req.user.id,async project=>{
+    const type = project.type;
+    const asset=kind==='post' ? await require('../media').validateRef(media_id,req.user.id,project.id) : null;
 
     if (!type || !['project', 'nonprofit', 'company'].includes(type)) {
       return res.status(400).json({ error: 'Valid type is required (project, nonprofit, company)' });
@@ -84,15 +95,22 @@ router.post('/', requireAuth, async (req, res) => {
         return res.status(403).json({ error: 'Not authorized' });
       }
 
+      const oldMedia=draft.media_id;
+      draft.kind=kind;draft.media_id=asset?.id || null;
       draft.fields = sanitizeObject(fields);
       draft.type = type;
+      draft.project_id = project.id;
       draft.updated_at = now;
 
-      await store.atomicUpdate(DRAFTS_FILE, (data) => {
+      await store.atomicUpdate(DRAFTS_FILE, async (data) => {
+        await require('../deleted_users').requireActive(req.user.id);
+        if(!data[existingId])throw require('../projects').fail('Draft not found',404);
+        if(data[existingId].user_id!==req.user.id)throw require('../projects').fail('Not authorized',403);
         data[existingId] = draft;
         return data;
       });
 
+      if(oldMedia!==draft.media_id)await require('../media').releaseIfUnused(oldMedia);
       return res.json({ id: existingId, updated: true });
     }
 
@@ -108,12 +126,15 @@ router.post('/', requireAuth, async (req, res) => {
     if (userDrafts.length >= MAX_DRAFTS) {
       // Delete the oldest draft(s) to make room
       const toDelete = userDrafts.slice(0, userDrafts.length - MAX_DRAFTS + 1);
-      await store.atomicUpdate(DRAFTS_FILE, (data) => {
+      await store.atomicUpdate(DRAFTS_FILE, async (data) => {
+        await require('../deleted_users').requireActive(req.user.id);
         for (const [deleteId] of toDelete) {
           delete data[deleteId];
         }
         data[draftId] = {
           user_id: req.user.id,
+          project_id: project.id,
+          kind,media_id:asset?.id || null,
           type,
           fields: sanitizeObject(fields),
           created_at: now,
@@ -121,10 +142,14 @@ router.post('/', requireAuth, async (req, res) => {
         };
         return data;
       });
+      for(const [,draft] of toDelete)await require('../media').releaseIfUnused(draft.media_id);
     } else {
-      await store.atomicUpdate(DRAFTS_FILE, (data) => {
+      await store.atomicUpdate(DRAFTS_FILE, async (data) => {
+        await require('../deleted_users').requireActive(req.user.id);
         data[draftId] = {
           user_id: req.user.id,
+          project_id: project.id,
+          kind,media_id:asset?.id || null,
           type,
           fields: sanitizeObject(fields),
           created_at: now,
@@ -135,9 +160,10 @@ router.post('/', requireAuth, async (req, res) => {
     }
 
     res.json({ id: draftId, created: true });
+    });
   } catch (e) {
-    console.error('Create/update draft error:', e);
-    res.status(500).json({ error: 'Server error' });
+    if(!e.status)console.error('Create/update draft error:', e);
+    res.status(e.status || 500).json({ error: e.status ? e.message : 'Server error' });
   }
 });
 
@@ -152,15 +178,17 @@ router.delete('/:id', requireAuth, async (req, res) => {
       return res.status(403).json({ error: 'Not authorized' });
     }
 
-    await store.atomicUpdate(DRAFTS_FILE, (data) => {
-      delete data[req.params.id];
-      return data;
-    });
+    const remove=async()=>{
+      await store.atomicUpdate(DRAFTS_FILE,data=>{delete data[req.params.id];return data;});
+      await require('../media').releaseIfUnused(draft.media_id);
+    };
+    if(draft.project_id)await require('../projects').withOwned(draft.project_id,req.user.id,remove);
+    else await remove();
 
     res.json({ ok: true });
   } catch (e) {
     console.error('Delete draft error:', e);
-    res.status(500).json({ error: 'Server error' });
+    res.status(e.status || 500).json({ error: e.status ? e.message : 'Server error' });
   }
 });
 
@@ -176,68 +204,25 @@ router.post('/:id/publish', requireAuth, async (req, res) => {
       return res.status(403).json({ error: 'Not authorized' });
     }
 
-    const fields = draft.fields || {};
-    const type = draft.type;
+    const result = draft.kind==='post'
+      ? await require('../regular_posts').create(req.user,{...draft.fields,project_id:draft.project_id,media_id:draft.media_id})
+      : await require('../posts').create(req.user,{...draft.fields,project_id:draft.project_id});
+    const {id:oppId,scan}=result;
+    const flagged=!!scan?.flagged;
 
-    if (!fields.title) {
-      return res.status(400).json({ error: 'Draft must have a title to publish' });
-    }
-
-    // Build opportunity data (same structure as opportunity.routes.js POST)
-    const oppId = auth.generateOpportunityId(fields.title, Date.now().toString());
-
-    // Build issuer info from user profile
-    const userRaw = await store.getRawUser(req.user.id);
-    const userDecrypted = userRaw
-      ? require('../crypto').decryptObject(userRaw.encrypted_fields || {})
-      : {};
-    const issuerName = [userDecrypted.firstName || userDecrypted.first_name, userDecrypted.lastName || userDecrypted.last_name].filter(Boolean).join(' ') || 'Student';
-    const issuerContext = [userDecrypted.grade].filter(Boolean).join(', ');
-
-    const oppData = {
-      type,
-      created_by: req.user.id,
-      created_at: new Date().toISOString(),
-      encrypted_fields: {
-        title: fields.title || '',
-        description: fields.description || '',
-        issuer_name: issuerName,
-        issuer_context: issuerContext,
-        looking_for: fields.looking_for || '',
-        location: fields.location || '',
-        remote: fields.remote !== undefined ? fields.remote : true,
-        contact_links: Array.isArray(fields.contact_links) ? fields.contact_links.filter(l => l && l.trim()) : (fields.contact ? [fields.contact] : []),
-        skills: fields.skills || [],
-        details: fields.details || '',
-        opportunity_preference: ['volunteering', 'paid', 'unpaid'].includes(fields.opportunity_preference)
-          ? fields.opportunity_preference
-          : DEFAULT_OPPORTUNITY_PREFERENCE[type],
-        ...(type === 'nonprofit' && { nonprofit_field: fields.nonprofit_field || '' }),
-        ...(type === 'company' && { industry: fields.industry || '' })
-      }
-    };
-
-    // Same moderation gate applied by POST /api/opportunities — published
-    // drafts are "new posts" too and are scanned the moment they publish.
-    const scan = scanFields(oppData.encrypted_fields);
-    applyFlag(oppData, scan, oppData.created_at);
-    const flagged = scan.flagged;
-
-    oppData.encrypted_fields = encryptObject(oppData.encrypted_fields);
-
-    // Save opportunity and delete draft atomically
-    await store.saveOpportunity(oppId, oppData);
-    await store.atomicUpdate(DRAFTS_FILE, (data) => {
+    // The post is persisted before removing its draft.
+    await store.atomicUpdate(DRAFTS_FILE, async (data) => {
+        await require('../deleted_users').requireActive(req.user.id);
       delete data[req.params.id];
       return data;
     });
 
     res.json(flagged
       ? { id: oppId, published: true, flagged: true, message: flagNotice(scan.terms) }
-      : { id: oppId, published: true });
+      : { id: oppId, kind:draft.kind || 'opportunity', published: true });
   } catch (e) {
-    console.error('Publish draft error:', e);
-    res.status(500).json({ error: 'Server error' });
+    if(!e.status)console.error('Publish draft error:', e);
+    res.status(e.status || 500).json({ error: e.status ? e.message : 'Server error' });
   }
 });
 

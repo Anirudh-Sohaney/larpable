@@ -235,7 +235,7 @@ function buildReengagementEmail({ name, picks }) {
     const field = f.nonprofit_field || f.industry || '';
     return (
       '<div style="border:1px solid #e5e0da;border-radius:10px;padding:16px;margin:0 0 14px;">' +
-      '<p style="font-size:16px;font-weight:bold;margin:0 0 4px;">' + escapeHtml(f.title || 'Untitled opportunity') + '</p>' +
+      '<p style="font-size:16px;font-weight:bold;margin:0 0 4px;">' + escapeHtml(f.project_name || f.title || 'Untitled opportunity') + '</p>' +
       (field ? '<p style="font-size:13px;color:#777;margin:0 0 12px;">' + escapeHtml(field) + '</p>' : '') +
       oppButton(oppUrl(opp.id), 'Click here to view more') +
       '</div>'
@@ -246,7 +246,7 @@ function buildReengagementEmail({ name, picks }) {
     picks.map(({ opp }) => {
       const f = opp.decrypted || {};
       const field = f.nonprofit_field || f.industry || '';
-      return `- ${f.title || 'Untitled opportunity'}${field ? ' (' + field + ')' : ''}: ${oppUrl(opp.id)}`;
+      return `- ${f.project_name || f.title || 'Untitled opportunity'}${field ? ' (' + field + ')' : ''}: ${oppUrl(opp.id)}`;
     }).join('\n');
   return { subject, html, text };
 }
@@ -270,6 +270,7 @@ async function runNightlyReengagement(nowMs = Date.now()) {
   const users = await store.read('users.json');
   const sessions = await store.read('sessions.json');
   const opportunities = await store.read('opportunities.json');
+  const projects = await store.read('projects.json');
   const applications = await store.read('applications.json');
   const drafts = await store.read('drafts.json').catch(() => ({}));
   const feedback = await store.read('feedback.json').catch(() => ({}));
@@ -307,7 +308,8 @@ async function runNightlyReengagement(nowMs = Date.now()) {
     if (!opp || typeof opp !== 'object' || opp.flagged) continue;
     let fields = {};
     try { fields = decryptObject(opp.encrypted_fields || {}) || {}; } catch { continue; }
-    if (!fields.title) continue;
+    fields.project_name = projects[opp.project_id] ? decryptObject(projects[opp.project_id].encrypted_fields).name : fields.title;
+    if (!fields.project_name) continue;
     candidates.push({ id: oppId, type: opp.type, created_by: opp.created_by || '', created_at: opp.created_at || '', decrypted: fields });
   }
 
@@ -429,7 +431,8 @@ async function notifyPosterOfApplication(oppId) {
         applierName = displayName(decryptObject(latestUser.encrypted_fields || {}) || {});
       } catch { /* keep fallback */ }
     }
-    const oppTitle = oppFields.title || 'your opportunity';
+    const project = await require('./projects').get(opportunity.project_id);
+    const oppTitle = project?.fields.name || oppFields.title || 'your opportunity';
     const { subject, html, text } = buildApplicationEmail({
       oppTitle,
       totalCount: entries.length,

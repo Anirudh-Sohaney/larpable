@@ -1,10 +1,11 @@
 const Feed = {
-  opportunities: [], drafts: [], matchScores: {}, distanceMap: {}, showingYours: false, currentSort: 'foryou',
+  opportunities: [], myPosts: [], projects: [], drafts: [], yoursTab: 'projects', matchScores: {}, showingYours: false, currentSort: 'foryou',
 
   async init() {
     await DataStore.init();
     this.currentUser = DataStore.getCurrentUser();
-    this.setupSplit();
+    if(typeof Panels!=='undefined')Panels.init();
+    if(typeof FeedVideos!=='undefined' && !(typeof Panels!=='undefined' && Panels.embedded && window.top!==window))FeedVideos.init();
 
     // Guests (server-issued pass, no session) get a capped, newest-first,
     // read-only feed. Anyone else without a session is sent to login.
@@ -13,10 +14,9 @@ const Feed = {
       if (!hasGuestPass) { window.location.href = '/login'; return; }
       this.guest = true;
       this.opportunities = await DataStore.getOpportunities();
-      this.currentSort = 'recent';
+      this.currentSort = 'newest';
       const sortSel = document.getElementById('f-sort');
-      if (sortSel) sortSel.value = 'recent';
-      Filters.fillSelects();
+      if (sortSel) sortSel.value = 'newest';
       this.setupGuestGuards();
       this.render();
       return;
@@ -24,45 +24,28 @@ const Feed = {
 
     this.guest = false;
     this.opportunities = await DataStore.getOpportunities();
-    this.drafts = await DataStore.getDrafts();
+    [this.myPosts,this.projects,this.drafts] = await Promise.all([
+      DataStore.getMyOpportunities(),DataStore.getProjects(),DataStore.getDrafts()
+    ]);
     this.matchScores = await DataStore.computeMatchScores(this.opportunities);
-    this.computeDistances();
     this.scored = this.currentUser && ((this.currentUser.skills || []).length || (this.currentUser.interests || []).length);
     this.setupControls();
     // Deep-link: /feed?mine=1 (used after delete) opens the Your projects tab
     try {
       const params = new URLSearchParams(window.location.search);
+      this.yoursTab = params.get('view') === 'posts' ? 'posts' : 'projects';
       if (params.get('mine') === '1' || params.get('mine') === 'true' || window.location.hash === '#yours') {
         this.showingYours = true;
         document.getElementById('yours-btn')?.classList.add('is-on');
       }
     } catch {}
-    Filters.fillSelects();
     this.render();
     // Feed data and unread-comment state refresh on page load/explicit refresh.
     // Avoid a background full-feed request every few seconds per open tab.
   },
 
-  computeDistances() {
-    const uLat = this.currentUser?.latitude;
-    const uLon = this.currentUser?.longitude;
-    if (uLat == null || uLon == null) return;
-    for (const o of this.opportunities) {
-      if (o.remote) { this.distanceMap[o.id] = 0; continue; }
-      if (o.latitude == null || o.longitude == null) { this.distanceMap[o.id] = Infinity; continue; }
-      const R = 3958.8;
-      const dLat = (o.latitude - uLat) * Math.PI / 180;
-      const dLon = (o.longitude - uLon) * Math.PI / 180;
-      const a = Math.sin(dLat / 2) ** 2 +
-        Math.cos(uLat * Math.PI / 180) * Math.cos(o.latitude * Math.PI / 180) *
-        Math.sin(dLon / 2) ** 2;
-      this.distanceMap[o.id] = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    }
-  },
-
   setupControls() {
     document.getElementById('q')?.addEventListener('input', () => this.render());
-    document.getElementById('f-sort')?.addEventListener('change', e => { this.currentSort = e.target.value; this.render(); });
     document.getElementById('yours-btn')?.addEventListener('click', e => {
       this.showingYours = !this.showingYours;
       e.currentTarget.classList.toggle('is-on', this.showingYours);
@@ -72,7 +55,25 @@ const Feed = {
         else url.searchParams.delete('mine');
         history.replaceState(null, '', url);
       } catch {}
-      this.render();
+      this.closeDetail();this.render();
+    });
+    document.querySelectorAll('[data-yours-tab]').forEach(button=>{
+      button.addEventListener('click',()=>{
+        this.yoursTab=button.dataset.yoursTab;
+        const url=new URL(location.href);url.searchParams.set('mine','1');url.searchParams.set('view',this.yoursTab);
+        history.replaceState(null,'',url);this.closeDetail();this.render();
+      });
+      button.addEventListener('keydown',event=>{
+        if(!['ArrowLeft','ArrowRight'].includes(event.key))return;
+        event.preventDefault();const other=document.querySelector(`[data-yours-tab="${this.yoursTab==='projects' ? 'posts' : 'projects'}"]`);other.click();other.focus();
+      });
+    });
+    document.getElementById('list')?.addEventListener('click',event=>{
+      const button=event.target.closest('[data-delete-project],[data-delete-draft]');
+      if(!button)return;
+      event.preventDefault();event.stopPropagation();
+      if(button.dataset.deleteProject)this.deleteProject(button.dataset.deleteProject);
+      if(button.dataset.deleteDraft)this.deleteDraft(button.dataset.deleteDraft);
     });
   },
 
@@ -102,64 +103,47 @@ const Feed = {
     const list = document.getElementById('list');
     const count = document.getElementById('count');
     if (!list) return;
+    document.body.classList.toggle('is-yours',this.showingYours);
+    document.getElementById('yours-controls').hidden=!this.showingYours;
+    if(this.showingYours){this.renderYours(list,count);return;}
+    list.removeAttribute('role');list.removeAttribute('aria-labelledby');
     const q = (document.getElementById('q')?.value || '').trim().toLowerCase();
-    const type = Filters.getType();
-    const selectedTotal = Filters.selectedTotal();
     const user = DataStore.getCurrentUser();
-    let rows = this.showingYours ? this.opportunities.filter(o => (o.created_by || o.issuer_id) === user?.id) : [...this.opportunities];
+    let rows = [...this.opportunities];
     const isSavedMode = new URLSearchParams(window.location.search).get('saved') === 'true';
     if (isSavedMode && user) {
       const savedIds = user.saved_posts || [];
       rows = rows.filter(o => savedIds.includes(o.id));
     }
-    if (type) rows = rows.filter(o => o.type === type);
-    rows = Filters.apply(rows).filter(o => !q || [o.title, o.description, o.looking_for, o.issuer_name].some(v => String(v || '').toLowerCase().includes(q)) || (o.skills || []).some(s => (typeof normalizeSynonym === 'function' ? normalizeSynonym(s) : s).toLowerCase().includes(q)));
-    rows.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
-    if (this.currentSort === 'oldest') rows.sort((a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0));
-    if (this.currentSort === 'name-az') rows.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
-    if (this.currentSort === 'foryou') rows.sort((a, b) => (this.matchScores[b.id] || 0) - (this.matchScores[a.id] || 0));
-    if (this.currentSort === 'closest') rows.sort((a, b) => (this.distanceMap[a.id] ?? Infinity) - (this.distanceMap[b.id] ?? Infinity));
-    if (selectedTotal) rows.sort((a, b) => (Filters.matchCounts[b.id] || 0) - (Filters.matchCounts[a.id] || 0));
-    
-    if (this.showingYours) {
-      rows.sort((a, b) => (b.latest_notification_at || '').localeCompare(a.latest_notification_at || ''));
-    } else {
-      rows.sort((a, b) => (b.unread_reply_comment_id ? 1 : 0) - (a.unread_reply_comment_id ? 1 : 0));
-    }
+    rows = Filters.apply(rows).filter(o => !q || [o.title,o.content,o.project_name, o.description, o.looking_for, o.issuer_name].some(v => String(v || '').toLowerCase().includes(q)) || (o.skills || []).some(s => (typeof normalizeSynonym === 'function' ? normalizeSynonym(s) : s).toLowerCase().includes(q)));
+    rows = Filters.sort(rows,this.currentSort,this.matchScores);
 
     // Guests only ever get the newest six. The API already caps an anonymous
     // response, so this is a second, purely presentational guard.
     if (this.guest) rows = rows.slice(0, 6);
 
+    const activeFilters=Filters.updateControls();
     const clear = document.getElementById('clear');
-    if (clear) clear.hidden = !(q || type || selectedTotal);
-    const typeSel = document.getElementById('f-type');
-    if (typeSel) typeSel.classList.toggle('is-set', !!type);
+    if (clear) clear.hidden=!(q || activeFilters);
 
-    const draftHtml = (this.showingYours ? this.drafts : []).map(d => this.renderDraft(d)).join('');
-    const n = rows.length + (this.showingYours ? this.drafts.length : 0);
+    const n = rows.length;
     if (count) {
       if (this.guest) {
         const total = DataStore.opportunityTotal;
         count.title = '';
         count.textContent = total > rows.length
-          ? `Showing the ${rows.length} newest of ${total} opportunities`
-          : `${n} ${n === 1 ? 'opportunity' : 'opportunities'}`;
+          ? `Showing the ${rows.length} newest of ${total} posts`
+          : `${n} ${n === 1 ? 'post' : 'posts'}`;
       } else {
-        const forYouDead = this.currentSort === 'foryou' && !selectedTotal && !this.scored;
-        const closestDead = this.currentSort === 'closest' && this.currentUser?.latitude == null;
+        const forYouDead = this.currentSort === 'foryou' && !this.scored;
         count.title = forYouDead ? 'Add skills and interests to your profile to personalise this order'
-          : closestDead ? 'Add your location to your profile to sort by distance' : '';
-        count.textContent = this.showingYours
-          ? `${n} of your ${n === 1 ? 'post' : 'posts'}`
-          : `${n} ${n === 1 ? 'opportunity' : 'opportunities'}`;
+          : '';
+        count.textContent = `${n} ${n === 1 ? 'post' : 'posts'}`;
       }
     }
 
-    list.innerHTML = (draftHtml + rows.map(o => this.renderCard(o)).join(''))
-      || `<div class="d-empty">${this.showingYours
-          ? 'You have not posted anything yet.'
-          : isSavedMode
+    list.innerHTML = rows.map(o => this.renderCard(o)).join('')
+      || `<div class="d-empty">${isSavedMode
             ? 'You haven\'t saved anything yet — tap ☆ Save on a post to keep it here.'
             : this.guest
               ? 'Nothing to show yet.'
@@ -174,75 +158,24 @@ const Feed = {
     return `<div class="d-guest-cta">
       <h2>${more ? 'There’s more where that came from' : 'Want to apply?'}</h2>
       <p>${more
-        ? `You’re seeing the ${Math.min(6, total)} newest opportunities. Create a free account to see all ${total} — and apply to the ones that fit.`
+        ? `You’re seeing the ${Math.min(6, total)} newest posts. Create a free account to see all ${total} — and apply to the ones that fit.`
         : 'Create a free account to apply, save posts, and get matched with opportunities that fit your skills.'}</p>
       <div class="d-btn-wrap"><a href="/signup" class="d-btn d-btn-accent">Sign up</a><a href="/login" class="d-btn">Log in</a></div>
     </div>`;
   },
 
   async toggleSave(oppId) {
-    if (!DataStore.getCurrentUser()) { window.location.href = '/login'; return; }
+    if (!DataStore.getCurrentUser()) { if(typeof Panels!=='undefined')Panels.navigate('/login');else window.location.href='/login';return; }
     const isSaved = await DataStore.toggleSavePost(oppId);
     this.render(); // Re-render feed to reflect new saved state
   },
 
-  // ── Split view ───────────────────────────────────────────────
-  // On wide screens a card opens the opportunity beside the feed (the feed
-  // narrows and slides left, the detail fills the right). The detail is the
-  // existing opportunity page embedded in an iframe, so every feature
-  // (save, apply, comments, guest locks) keeps working unchanged. On screens
-  // too narrow for both, the card link navigates to the full page as before.
-  canSplit() {
-    return window.matchMedia('(min-width: 1040px)').matches;
-  },
-
-  setupSplit() {
-    const list = document.getElementById('list');
-    if (!list || !document.getElementById('split')) return;
-    list.addEventListener('click', event => {
-      const card = event.target.closest('a.d-opp-card');
-      if (!card) return;
-      // Inline controls (Save) act in place without leaving the feed.
-      if (event.target.closest('button')) { event.preventDefault(); return; }
-      // Let modified clicks open a real new tab.
-      if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
-      if (!this.canSplit()) return; // narrow screens keep the full-page link
-      const url = new URL(card.href, location.origin);
-      const id = url.searchParams.get('id');
-      if (!id) return; // e.g. draft cards go to the editor
-      event.preventDefault();
-      this.openDetail(id, url.hash, card);
-    });
-    document.getElementById('detail-close')?.addEventListener('click', () => this.closeDetail());
-    document.addEventListener('keydown', event => { if (event.key === 'Escape') this.closeDetail(); });
-    window.addEventListener('resize', () => { if (!this.canSplit()) this.closeDetail(); });
-  },
-
-  openDetail(id, hash, card) {
-    const split = document.getElementById('split');
-    const pane = document.getElementById('detail-pane');
-    const frame = document.getElementById('detail-frame');
-    if (!split || !pane || !frame) return;
-    const src = '/opportunity?id=' + encodeURIComponent(id) + '&embed=1' + (hash || '');
-    if (frame.getAttribute('src') !== src) frame.setAttribute('src', src);
-    split.classList.add('is-open');
-    pane.setAttribute('aria-hidden', 'false');
-    document.querySelectorAll('a.d-opp-card.is-active').forEach(el => el.classList.remove('is-active'));
-    card?.classList.add('is-active');
-  },
-
   closeDetail() {
-    const split = document.getElementById('split');
-    if (!split || !split.classList.contains('is-open')) return;
-    split.classList.remove('is-open');
-    document.getElementById('detail-pane')?.setAttribute('aria-hidden', 'true');
-    document.querySelectorAll('a.d-opp-card.is-active').forEach(el => el.classList.remove('is-active'));
+    if(typeof Panels!=='undefined')Panels.close();
   },
 
   renderCard(o) {
-    const selected = Filters.selectedTotal();
-    const showDist = this.currentSort === 'closest' && this.distanceMap[o.id] != null && this.distanceMap[o.id] !== Infinity;
-    const hits = Filters.matchCounts[o.id] || 0;
+    if(o.kind==='post')return this.renderRegularPost(o);
     const loc = Utils.locText(o.location);
     const isRemote = o.remote !== undefined ? !!o.remote : /remote/i.test(o.location || '');
     const all = o.skills || [];
@@ -265,20 +198,20 @@ const Feed = {
       links ? Utils.meta('↗', 'Contact', links + (links === 1 ? ' link' : ' links')) : ''
     ].filter(Boolean).join('');
 
-    return `<a class="d-opp-card" href="/opportunity?id=${encodeURIComponent(o.id)}${o.has_unread_applications && o.latest_unread_application_at >= (o.latest_unread_comment_at || '') ? '#applied' : (o.unread_reply_comment_id ? '#comment-' + o.unread_reply_comment_id : (o.has_unread_comments ? '#comments' : ''))}" style="${o.has_unread_comments || o.has_unread_applications || o.unread_reply_comment_id ? 'border-color: #dc3545;' : ''}">
+    return `<article class="d-opp-card" data-pane-href="/opportunity?id=${encodeURIComponent(o.id)}${o.has_unread_applications && o.latest_unread_application_at >= (o.latest_unread_comment_at || '') ? '#applied' : (o.unread_reply_comment_id ? '#comment-' + o.unread_reply_comment_id : (o.has_unread_comments ? '#comments' : ''))}" style="${o.has_unread_comments || o.has_unread_applications || o.unread_reply_comment_id ? 'border-color: #dc3545;' : ''}">
       <div class="d-opp-top">
         <div class="d-opp-title">
           ${(o.has_unread_comments || o.has_unread_applications || o.unread_reply_comment_id) ? `<span style="display:inline-block; margin-right:4px; background:#dc3545; color:white; font-size:0.65rem; font-weight:bold; border-radius:50%; width:16px; height:16px; text-align:center; line-height:16px;">!</span>` : ''}
-          ${Utils.escapeHtml(o.title || 'Untitled')}
+          <a class="d-post-open" href="/opportunity?id=${encodeURIComponent(o.id)}${o.has_unread_applications && o.latest_unread_application_at >= (o.latest_unread_comment_at || '') ? '#applied' : (o.unread_reply_comment_id ? '#comment-' + o.unread_reply_comment_id : (o.has_unread_comments ? '#comments' : ''))}">${Utils.escapeHtml(o.project_name || 'Untitled')}</a>
         </div>
         <div style="display:flex;gap:0.35rem;align-items:center;">
-          ${selected ? `<span class="d-badge d-badge--match">${hits}/${selected} matched</span>` : ''}
-          ${showDist ? `<span class="d-badge d-badge--match">${this.distanceMap[o.id] === 0 ? 'Remote' : Math.round(this.distanceMap[o.id]) + ' mi'}</span>` : ''}
+          ${o.flagged ? '<span class="d-badge d-badge--draft">Under review</span>' : ''}
+          <span class="d-badge">Opportunity</span>
           ${preferenceBadge}
           <span class="d-badge d-badge--${o.type || 'project'}">${TYPE[o.type] || 'Project'}</span>
         </div>
       </div>
-      <div class="d-opp-issuer">Posted by <strong>${Utils.escapeHtml(o.issuer_name || 'Unknown')}</strong>${o.issuer_context ? ' · ' + Utils.escapeHtml(o.issuer_context) : ''}</div>
+      <div class="d-opp-issuer">Posted by <strong>${Utils.userLink(o.created_by,o.issuer_name || 'Unknown')}</strong>${o.issuer_context ? ' · ' + Utils.escapeHtml(o.issuer_context) : ''}</div>
       ${o.description ? `<div class="d-opp-desc">${Utils.escapeHtml(Utils.truncate(o.description, 30))}</div>` : ''}
       ${bits ? `<div class="d-opp-meta">${bits}</div>` : ''}
       ${skills ? `<div class="d-opp-looking">${skills}</div>` : ''}
@@ -295,37 +228,117 @@ const Feed = {
           ${mine ? 'Manage' : 'Learn more'} →
         </span>
       </div>
-    </a>`;
+    </article>`;
   },
 
-  editOpportunity(id, type) {
-    window.location.href = `/create_student?type=${encodeURIComponent(type || 'project')}&edit=${encodeURIComponent(id)}`;
+  renderRegularPost(post) {
+    const esc=Utils.escapeHtml;
+    const href='/post?id='+encodeURIComponent(post.id)+(post.unread_reply_comment_id ? '#comment-'+encodeURIComponent(post.unread_reply_comment_id) : (post.has_unread_comments ? '#comments' : ''));
+    const mine=this.showingYours && post.created_by===this.currentUser?.id;
+    const asset=post.media;
+    const preview=asset ? (asset.kind==='video' ? `<video class="d-post-media" controls playsinline loop preload="metadata" src="${esc(asset.url)}"></video>` : `<img class="d-post-media" loading="lazy" src="${esc(asset.url)}" alt="${esc(post.title)}">`) : '';
+    return `<article class="d-opp-card d-regular-post">
+      <div class="d-opp-top"><a class="d-post-open d-opp-title" href="${href}">${esc(post.title)}</a><span class="d-badge">Post</span></div>
+      <div class="d-opp-issuer">${esc(post.project_name)} · Posted by <strong>${Utils.userLink(post.created_by,post.issuer_name)}</strong></div>
+      <p class="d-opp-desc">${esc(post.content)}</p>${preview}
+      ${mine ? `<div class="d-own-actions"><button class="d-btn d-btn-sm" type="button" onclick="Feed.editOpportunity('${post.id}','${post.type}','post')">Edit</button><button class="d-btn d-btn-sm d-btn-danger" type="button" onclick="Feed.deleteOpportunity('${post.id}','post')">Delete</button></div>` : ''}
+      <div class="d-opp-footer"><button class="d-btn d-btn-sm" type="button" aria-pressed="${post.liked}" onclick="Feed.toggleLike('${post.id}',this)">${post.liked ? '♥ Liked' : '♡ Like'} · ${post.like_count}</button><a class="d-post-open" href="${href}">${post.comment_count} comments →</a><span class="d-opp-posted">${Utils.postedAgo(post.created_at)}</span></div>
+    </article>`;
   },
 
-  async deleteOpportunity(id) {
-    if (!confirm('Are you sure you want to delete this opportunity? This cannot be undone.')) return;
+  async toggleLike(id,button) {
+    if(!this.currentUser){if(typeof Panels!=='undefined')Panels.navigate('/login');else location.href='/login';return;}
+    const post=[...this.opportunities,...this.myPosts].find(p=>p.id===id);
+    if(!post)return;
+    button.disabled=true;
+    try{
+      const result=await DataStore.request('/api/posts/'+encodeURIComponent(id)+'/like',{method:post.liked ? 'DELETE' : 'POST'});
+      for(const row of [...this.opportunities,...this.myPosts])if(row.id===id)Object.assign(row,result);
+      button.textContent=(result.liked ? '♥ Liked' : '♡ Like')+' · '+result.like_count;
+      button.setAttribute('aria-pressed',String(result.liked));
+    }catch(error){alert(error.message);}finally{button.disabled=false;}
+  },
+
+  editOpportunity(id, type,kind='opportunity') {
+    const url=`/create_student?kind=${encodeURIComponent(kind)}&edit=${encodeURIComponent(id)}`;
+    if(typeof Panels!=='undefined')Panels.navigate(url);else window.location.href=url;
+  },
+
+  async deleteOpportunity(id,kind='opportunity') {
+    if (!confirm('Are you sure you want to delete this post? This cannot be undone.')) return;
     try {
-      const res = await fetch('/api/opportunities/' + encodeURIComponent(id), { method: 'DELETE', credentials: 'same-origin' });
+      const res = await fetch((kind==='post' ? '/api/posts/' : '/api/opportunities/') + encodeURIComponent(id), { method: 'DELETE', credentials: 'same-origin' });
       if (!res.ok) { alert('Failed to delete.'); return; }
       this.opportunities = this.opportunities.filter(o => o.id !== id);
-      this.render();
+      this.myPosts = this.myPosts.filter(o => o.id !== id);
+      this.closeDetail();this.render();
     } catch { alert('Network error.'); }
   },
 
+  renderYours(list,count) {
+    count.title='';
+    const projectsTab=this.yoursTab==='projects';
+    document.querySelectorAll('[data-yours-tab]').forEach(button=>{
+      const active=button.dataset.yoursTab===this.yoursTab;
+      button.setAttribute('aria-selected',String(active));button.tabIndex=active ? 0 : -1;
+    });
+    list.setAttribute('role','tabpanel');list.setAttribute('aria-labelledby','yours-'+this.yoursTab);
+    const create=document.getElementById('yours-create');
+    create.href=projectsTab ? '/create_student?new_project=1' : '/create_student';
+    create.textContent=projectsTab ? '+ Create project' : '+ Create post';
+    if(projectsTab){
+      count.textContent=`${this.projects.length} ${this.projects.length===1 ? 'project' : 'projects'}`;
+      list.innerHTML=this.projects.map(project=>this.renderProject(project)).join('') || '<div class="d-empty">You have not created a project yet.</div>';
+      return;
+    }
+    const rows=[...this.myPosts].sort((a,b)=>(b.latest_notification_at || b.created_at || '').localeCompare(a.latest_notification_at || a.created_at || ''));
+    count.textContent=`${rows.length} ${rows.length===1 ? 'post' : 'posts'} · ${this.drafts.length} ${this.drafts.length===1 ? 'draft' : 'drafts'}`;
+    list.innerHTML=(this.drafts.length ? '<h2 class="d-own-section">Drafts</h2>'+this.drafts.map(d=>this.renderDraft(d)).join('') : '')
+      +(rows.length ? '<h2 class="d-own-section">Posts</h2>'+rows.map(o=>this.renderCard(o)).join('') : '')
+      || '<div class="d-empty">You have no posts or drafts yet.</div>';
+  },
+
+  renderProject(project) {
+    const fields=project.fields || {};
+    const posts=this.myPosts.filter(p=>p.project_id===project.id).length;
+    const drafts=this.drafts.filter(d=>d.project_id===project.id).length;
+    const busy=posts || drafts;
+    const esc=Utils.escapeHtml;
+    return `<article class="d-opp-card">
+      <div class="d-opp-top"><h2 class="d-opp-title">${esc(fields.name)}</h2><span class="d-badge d-badge--${esc(project.type)}">${esc({project:'Project',nonprofit:'Nonprofit',company:'Company / startup'}[project.type])}</span></div>
+      <p class="d-opp-desc">${esc(fields.elevator_pitch)}</p>
+      <div class="d-opp-looking">${(fields.tags || []).map(t=>`<span class="d-skill-tag">${esc(t)}</span>`).join('')}</div>
+      <p class="d-own-note">${posts} ${posts===1 ? 'post' : 'posts'} · ${drafts} ${drafts===1 ? 'draft' : 'drafts'}</p>
+      <div class="d-own-actions"><a class="d-btn d-btn-sm" href="/create_student?project=${encodeURIComponent(project.id)}">Create post</a><a class="d-btn d-btn-sm" href="/create_student?edit_project=${encodeURIComponent(project.id)}">Edit project</a><button type="button" class="d-btn d-btn-sm d-btn-danger" data-delete-project="${esc(project.id)}" ${busy ? 'disabled' : ''}>Delete project</button></div>
+      ${busy ? '<p class="d-own-note">Delete its posts and drafts before deleting this project.</p>' : ''}
+    </article>`;
+  },
+
+  async deleteProject(id) {
+    if(!confirm('Delete this project? This cannot be undone.'))return;
+    try{
+      await DataStore.request('/api/projects/'+encodeURIComponent(id),{method:'DELETE'});
+      this.projects=this.projects.filter(p=>p.id!==id);this.render();
+    }catch(error){document.getElementById('yours-error').textContent=error.message;}
+  },
+
+  async deleteDraft(id) {
+    if(!confirm('Delete this draft? This cannot be undone.'))return;
+    try{
+      await DataStore.request('/api/drafts/'+encodeURIComponent(id),{method:'DELETE'});
+      this.drafts=this.drafts.filter(d=>d.id!==id);this.render();
+    }catch(error){document.getElementById('yours-error').textContent=error.message;}
+  },
+
   renderDraft(d) {
-    const f = d.fields || {};
-    const skills = (f.skills || []).slice(0, 6).map(s => `<span class="d-skill-tag">${Utils.escapeHtml(s)}</span>`).join('');
-    return `<a class="d-opp-card d-opp-card--draft" href="/create_student?draft=${encodeURIComponent(d.id)}">
-      <div class="d-opp-top">
-        <div class="d-opp-title">${Utils.escapeHtml(f.title || 'Untitled draft')}</div>
-        <span class="d-badge d-badge--draft">Draft</span>
-      </div>
-      ${f.description ? `<div class="d-opp-desc">${Utils.escapeHtml(Utils.truncate(f.description, 30))}</div>` : ''}
-      ${skills ? `<div class="d-opp-looking">${skills}</div>` : ''}
-      <div class="d-opp-footer">
-        <span class="d-opp-posted">Saved ${Utils.timeAgo(d.updated_at)}</span>
-        <span class="d-opp-action">Finish it →</span>
-      </div>
-    </a>`;
+    const f=d.fields || {};
+    return `<article class="d-opp-card d-opp-card--draft">
+      <div class="d-opp-top"><div class="d-opp-title">${Utils.escapeHtml(d.project_name || f.title || 'Choose a project')}</div><span class="d-badge d-badge--draft">Draft</span></div>
+      ${d.kind==='post' ? `<p class="d-opp-desc">${Utils.escapeHtml(f.title || 'Untitled post')}</p>` : ''}
+      ${f.looking_for ? `<p class="d-opp-desc">${Utils.escapeHtml(f.looking_for)}</p>` : ''}
+      ${f.description || f.content ? `<p class="d-opp-desc">${Utils.escapeHtml(f.description || f.content)}</p>` : ''}
+      <div class="d-own-actions"><a class="d-btn d-btn-sm" href="/create_student?draft=${encodeURIComponent(d.id)}">Edit draft</a><button type="button" class="d-btn d-btn-sm d-btn-danger" data-delete-draft="${Utils.escapeHtml(d.id)}">Delete draft</button></div>
+      <p class="d-own-note">Saved ${Utils.timeAgo(d.updated_at)}</p>
+    </article>`;
   }
 };

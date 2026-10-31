@@ -1,0 +1,65 @@
+const clock=require('./helpers/test-clock')();
+﻿const assert=require('node:assert/strict');
+const fs=require('node:fs/promises');const os=require('node:os');const path=require('node:path');
+(async()=>{
+  const dir=await fs.mkdtemp(path.join(os.tmpdir(),'project-management-'));
+  Object.assign(process.env,{DATA_DIR:dir,ENCRYPTION_KEY:'d'.repeat(64),NODE_ENV:'test',RESEND_API_KEY:''});
+  const store=require('../backend/store');const auth=require('../backend/auth');const projects=require('../backend/projects');const {encryptObject,decryptObject}=require('../backend/crypto');
+  await store.saveUser('owner',{type:'student',encrypted_fields:encryptObject({first_name:'Owner'})});
+  await store.saveUser('other',{type:'student',encrypted_fields:encryptObject({first_name:'Other'})});
+  const owner=await auth.createSession('owner'),other=await auth.createSession('other');
+  const {app}=require('../server');const server=app.listen(0,'127.0.0.1');await new Promise(resolve=>server.once('listening',resolve));
+  const base='http://127.0.0.1:'+server.address().port;
+  const request=async(method,url,body,token=owner)=>{
+    const r=await fetch(base+url,{method,headers:{'Content-Type':'application/json',...(token ? {Cookie:'larpable_session='+token} : {})},...(body ? {body:JSON.stringify(body)} : {})});clock.afterPublication(method,url,r.status);return {status:r.status,body:await r.json()};
+  };
+  const fields={type:'project',name:'Original Project',elevator_pitch:'A community project',tags:['Research']};
+  const postFields={looking_for:'Researchers',description:'Build community tools',skills:['Research','Programming','Web Development']};
+  try{
+    const created=await request('POST','/api/projects',fields);assert.equal(created.status,201);const id=created.body.project.id;
+    const projectUrl='/api/projects/'+id;
+    assert.equal((await request('PATCH',projectUrl,{name:'Other edit'},other)).status,403);
+    assert.equal((await request('DELETE',projectUrl,null,other)).status,403);
+    assert.equal((await request('PATCH',projectUrl,{name:'No auth'},null)).status,401);
+    assert.equal((await request('PATCH',projectUrl,{elevator_pitch:'one'})).status,400);
+    assert.equal((await request('PATCH',projectUrl,{tags:[]})).status,400);
+    const updated=await request('PATCH',projectUrl,{name:'Renamed Project',elevator_pitch:'Learning through community tools',type:'company',field:"Science & Research",tags:['Programming'],created_by:'other'});
+    assert.equal(updated.status,200);assert.equal(updated.body.project.created_by,'owner');
+    assert.equal(updated.body.project.type,'company');assert.equal(updated.body.project.fields.name,'Renamed Project');
+    const raw=await store.getById('projects.json',id);assert.ok(raw.encrypted_fields.name.startsWith('enc:'));
+    const post=await request('POST','/api/opportunities',{...postFields,project_id:id});assert.equal(post.status,200);
+    assert.equal((await request('DELETE',projectUrl)).status,409,'a project with posts cannot be deleted');
+    const nextEdit=await request('PATCH',projectUrl,{name:'Latest Project Name',type:'nonprofit'});assert.equal(nextEdit.status,200);
+    const detail=(await request('GET','/api/opportunities/'+post.body.id)).body;
+    assert.equal(detail.project.fields.name,'Latest Project Name');assert.equal(detail.type,'nonprofit');
+    assert.equal((await request('GET','/api/opportunities/mine')).body.opportunities.find(p=>p.id===post.body.id).project_name,'Latest Project Name');
+    assert.equal((await request('DELETE','/api/opportunities/'+post.body.id)).status,200);
+    const draft=await request('POST','/api/drafts',{...postFields,project_id:id});assert.equal(draft.status,200);
+    assert.equal((await request('GET','/api/drafts')).body.drafts[0].type,'nonprofit');
+    assert.equal((await request('DELETE',projectUrl)).status,409,'a project with drafts cannot be deleted');
+    assert.equal((await request('DELETE','/api/drafts/'+draft.body.id,null,other)).status,403);
+    assert.equal((await request('DELETE','/api/drafts/'+draft.body.id)).status,200);
+    assert.equal((await request('DELETE',projectUrl)).status,200);
+    assert.equal(await store.getById('projects.json',id),null);
+    await require('../backend/startup').run();
+    assert.equal(await store.getById('projects.json',id),null,'deleted projects must not be recreated by startup');
+    // Deletion must wait for an in-flight post to establish its parent reference.
+    const raceProject=await projects.create('owner',fields);
+    const originalSave=store.atomicUpdate;
+    let release,entered;const pause=new Promise(resolve=>{release=resolve;});const entering=new Promise(resolve=>{entered=resolve;});
+    let intercepted=false;
+    store.atomicUpdate=async(file,...args)=>{if(file==='opportunities.json' && !intercepted){intercepted=true;entered();await pause;}return originalSave(file,...args);};
+    const posting=request('POST','/api/opportunities',{...postFields,project_id:raceProject.id});
+    await entering;
+    const deleting=request('DELETE','/api/projects/'+raceProject.id);
+    release();
+    const [published,deleted]=await Promise.all([posting,deleting]);
+    store.atomicUpdate=originalSave;
+    assert.equal(published.status,200);assert.equal(deleted.status,409);
+    assert.ok(await projects.get(raceProject.id));
+    const held=await request('POST','/api/opportunities',{...postFields,project_id:raceProject.id,description:'fuck this'});assert.equal(held.body.flagged,true);
+    assert.ok((await request('GET','/api/opportunities/mine')).body.opportunities.some(p=>p.id===held.body.id));
+    assert.ok(!(await request('GET','/api/opportunities',null,null)).body.opportunities.some(p=>p.id===held.body.id));
+    console.log('Project management: owner-only edits/deletes, validation/encryption, current parent names/types, draft deletion, child guards, no resurrection, concurrent create/delete, private held-post management passed.');
+  }finally{await new Promise(resolve=>server.close(resolve));await fs.rm(dir,{recursive:true,force:true});}
+})().catch(error=>{console.error(error);process.exitCode=1;});

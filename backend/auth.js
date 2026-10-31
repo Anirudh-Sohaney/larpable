@@ -145,7 +145,7 @@ async function login(username, password, signal) {
   const usernameHash = sha256Lookup(username);
   
   const found = await store.findUserByUsernameHash(usernameHash);
-  if (!found) {
+  if (!found || found.record.deletion_pending) {
     // Do comparable password work for unknown usernames to reduce account
     // enumeration through response timing.
     await verifyPassword(password, '0'.repeat(128), 'bGFycGFibGUtZHVtbXktc2FsdA==', 'scrypt', signal);
@@ -306,7 +306,7 @@ async function getUserFromToken(token) {
   }
 
   const user = await store.getUser(session.userId);
-  if (!user) return null;
+  if (!user || user.deletion_pending) return null;
   
   user.id = session.userId;
   return user;

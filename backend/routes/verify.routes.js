@@ -14,7 +14,7 @@
  */
 
 const express = require('express');
-const { randomInt } = require('crypto');
+const { randomInt, randomBytes } = require('crypto');
 const fs = require('fs').promises;
 const verifyRouter = express.Router();
 const validateRouter = express.Router();
@@ -35,7 +35,7 @@ const VERIFY_FROM_EMAIL = process.env.VERIFY_FROM_EMAIL || 'verification@larpabl
 // email(lowercased) -> { codeHash, expiresAt, attempts }
 const verifications = new Map();
 
-// email(lowercased) -> timestamp of successful code verification.
+// email(lowercased) -> { at, proofHash } for the browser that verified the code.
 // Consumed by signup / email-change so an address can't be stored
 // without proof of ownership (frontend step order alone is bypassable).
 const verifiedEmails = new Map();
@@ -44,6 +44,7 @@ let emailIndex = null;
 let emailIndexSignature = null;
 let emailIndexPromise = null;
 const VERIFIED_TTL_MS = 30 * 60 * 1000;   // 30 minutes
+const VERIFICATION_COOKIE = 'larpable_email_verification';
 
 // Purge expired codes periodically
 const verificationCleanup = setInterval(() => {
@@ -51,8 +52,8 @@ const verificationCleanup = setInterval(() => {
   for (const [email, entry] of verifications) {
     if (now > entry.expiresAt) verifications.delete(email);
   }
-  for (const [email, at] of verifiedEmails) {
-    if (now - at > VERIFIED_TTL_MS) verifiedEmails.delete(email);
+  for (const [email, entry] of verifiedEmails) {
+    if (now - entry.at > VERIFIED_TTL_MS) verifiedEmails.delete(email);
   }
 }, 60 * 1000);
 verificationCleanup.unref();
@@ -264,7 +265,12 @@ verifyRouter.post('/code', (req, res) => {
   }
 
   verifications.delete(email);
-  verifiedEmails.set(email, Date.now());
+  const proof = randomBytes(32).toString('hex');
+  verifiedEmails.set(email, { at: Date.now(), proofHash: sha256Lookup(proof) });
+  res.cookie(VERIFICATION_COOKIE, proof, {
+    httpOnly: true, sameSite: 'strict', secure: IS_PRODUCTION,
+    path: '/', maxAge: VERIFIED_TTL_MS
+  });
   res.json({ ok: true });
 });
 
@@ -311,19 +317,20 @@ validateRouter.get('/username/:username', async (req, res) => {
 /**
  * Check a successful verification stamp without consuming it.
  */
-function isEmailVerified(email) {
-  const at = verifiedEmails.get(String(email || '').trim().toLowerCase());
-  if (!at) return false;
-  if (Date.now() - at > VERIFIED_TTL_MS) {
+function isEmailVerified(email, req) {
+  const entry = verifiedEmails.get(String(email || '').trim().toLowerCase());
+  if (!entry) return false;
+  if (Date.now() - entry.at > VERIFIED_TTL_MS) {
     verifiedEmails.delete(String(email || '').trim().toLowerCase());
     return false;
   }
-  return true;
+  const proof = req?.cookies?.[VERIFICATION_COOKIE];
+  return typeof proof === 'string' && hashesMatch(sha256Lookup(proof), entry.proofHash);
 }
 
-function claimVerifiedEmail(email) {
+function claimVerifiedEmail(email, req) {
   const key = String(email || '').trim().toLowerCase();
-  if (!isEmailVerified(key) || claimedVerifiedEmails.has(key)) return false;
+  if (!isEmailVerified(key, req) || claimedVerifiedEmails.has(key)) return false;
   claimedVerifiedEmails.add(key);
   return true;
 }
@@ -335,9 +342,9 @@ function releaseVerifiedEmail(email) {
 /**
  * Consume a verification stamp (single use — call after a successful write).
  */
-function consumeVerifiedEmail(email) {
+function consumeVerifiedEmail(email, req) {
   const key = String(email || '').trim().toLowerCase();
-  const ok = isEmailVerified(key);
+  const ok = isEmailVerified(key, req);
   if (ok) verifiedEmails.delete(key);
   claimedVerifiedEmails.delete(key);
   return ok;

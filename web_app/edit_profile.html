@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LARPABLE. — Profile</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/styles.css?v=ede539185a89">
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header class="d-header">
+    <a href="/feed" class="d-logo">LARPABLE.</a>
+    <div class="d-header-right">
+      <a href="/create_student" class="d-btn d-btn-sm" style="font-size:0.82rem;">+ Create</a>
+      <div class="d-user-menu">
+        <button class="d-user-btn" type="button">
+          <span class="d-user-avatar" id="header-avatar"></span>
+          <span class="d-user-name" id="header-username"></span>
+        </button>
+        <div class="d-user-dropdown">
+          <a href="/profile">My Profile</a>
+          <a href="/staff" id="staff-portal-link" style="display:none;">Staff Portal</a>
+          <hr>
+          <button onclick="App.logout()">Log out</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- PROFILE -->
+  <div class="d-profile">
+    <div id="profile-content">
+
+      <div class="d-profile-avatar" id="profile-avatar"></div>
+      <h1 style="font-size:1.3rem; font-weight:700; margin-bottom:4px;" id="profile-name"></h1>
+      <p style="color:var(--fg-secondary); margin-bottom:24px;" id="profile-handle"></p>
+
+      <!-- Account details -->
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+        <div class="d-form-group">
+          <label class="d-label">First name</label>
+          <input type="text" class="d-input" id="p-first">
+        </div>
+        <div class="d-form-group">
+          <label class="d-label">Last name</label>
+          <input type="text" class="d-input" id="p-last">
+        </div>
+      </div>
+
+      <!-- Location -->
+      <div class="d-form-group">
+        <label class="d-label">Location</label>
+        <input type="text" class="d-input" id="p-location" placeholder="City, State, Country">
+      </div>
+
+      <!-- INTERESTS -->
+      <div class="d-form-group">
+        <label class="d-label" style="display:flex; justify-content:space-between;">
+          Interests <span id="p-int-count" style="font-weight:500; color:var(--fg-tertiary);">0 / 5</span>
+        </label>
+        <div class="d-autocomplete-wrap" id="p-int-picker">
+          <input type="text" class="d-autocomplete-search" id="p-int-search" placeholder="Start typing an interest..." autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="p-int-options">
+          <div class="d-autocomplete-dropdown" id="p-int-options" role="listbox"></div>
+        </div>
+        <div class="d-selected-chips" id="p-int-selected" aria-live="polite"></div>
+        <div class="d-chipminhint" id="p-int-min-hint">Select at least 3 interests</div>
+      </div>
+
+      <!-- SKILLS -->
+      <div class="d-form-group">
+        <label class="d-label" style="display:flex; justify-content:space-between;">
+          Skills <span id="p-sk-count" style="font-weight:500; color:var(--fg-tertiary);">0 / 15</span>
+        </label>
+        <div class="d-autocomplete-wrap" id="p-sk-picker">
+          <input type="text" class="d-autocomplete-search" id="p-sk-search" placeholder="Start typing a skill..." autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="p-sk-options">
+          <div class="d-autocomplete-dropdown" id="p-sk-options" role="listbox"></div>
+        </div>
+        <div class="d-selected-chips" id="p-sk-selected" aria-live="polite"></div>
+        <div class="d-chipminhint" id="p-sk-min-hint">Select at least 3 skills</div>
+      </div>
+
+      <!-- OPPORTUNITY PREFERENCE -->
+      <div class="d-form-group">
+        <label class="d-label" for="p-opportunity-preference">Opportunity preference</label>
+        <select class="d-input" id="p-opportunity-preference">
+          <option value="paid">Paid</option>
+          <option value="unpaid">Unpaid</option>
+          <option value="volunteer">Volunteering</option>
+          <option value="all">All opportunities</option>
+        </select>
+      </div>
+
+      <!-- EMAIL PERMISSION -->
+      <div class="d-form-group">
+        <label class="d-label" style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+          <input type="checkbox" id="p-email-opt" style="width:16px; height:16px; accent-color:var(--accent); cursor:pointer;">
+          Email me about new opportunities and applications
+        </label>
+      </div>
+
+      <div class="d-form-group">
+        <label class="d-label">Experience</label>
+        <p style="font-size:.78rem;color:var(--fg-tertiary);margin-bottom:8px;">Edit up to 5 projects, internships, or jobs.</p>
+        <div id="profile-experiences"></div>
+      </div>
+
+      <!-- Actions -->
+      <div style="display:flex; gap:8px; margin-top:20px; align-items:center;">
+        <button class="d-btn d-btn-accent" id="save-btn" disabled>Save changes</button>
+        <a href="/feed" class="d-btn">Cancel</a>
+        <span id="save-msg" style="font-size:0.82rem; color:var(--success); font-weight:600; display:none;">&#10003; Profile saved</span>
+      </div>
+
+      <!-- Danger Zone -->
+      <div class="d-danger-zone">
+        <h2>Danger Zone</h2>
+        <p>Permanently delete your account and all associated data. This cannot be undone.</p>
+        <button class="d-btn d-btn-danger" onclick="document.getElementById('delete-modal').classList.add('open')">Delete account</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONFIRM DELETE MODAL -->
+  <div class="d-modal-overlay" id="delete-modal">
+    <div class="d-modal">
+      <div class="d-modal-header">
+        <div class="d-modal-title">Delete your account?</div>
+        <button class="d-modal-close" onclick="document.getElementById('delete-modal').classList.remove('open')">&times;</button>
+      </div>
+      <p style="font-size:0.88rem; color:var(--fg-secondary); margin-bottom:20px;">
+        This will permanently delete your profile, all your posted opportunities, and your account.
+        This action cannot be undone.
+      </p>
+      <div style="display:flex; gap:8px; justify-content:flex-end;">
+        <button class="d-btn" onclick="document.getElementById('delete-modal').classList.remove('open')">Cancel</button>
+        <button class="d-btn d-btn-danger" onclick="deleteAccount()">Yes, delete</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/utils.js?v=2c88deb1c2fc"></script><script src="/js/data.js?v=d4852fb31c4b"></script><script src="/js/panes.js?v=e35447ed08a2"></script><script src="/js/app.js?v=6764190cfc2d"></script><script src="/js/experience-editor.js?v=6307a06e40fb"></script>
+  <script>
+    const SKILL_MAX = 15, SKILL_MIN = 3;
+    const INTEREST_MAX = 5, INTEREST_MIN = 3;
+    const profilePickers = {};
+    let profileUser = null;
+
+    (async () => {
+      await App.init();
+      if (!App.requireAuth()) return;
+      App.setupUserMenu();
+
+      const user = App.currentUser;
+      if (!user) return;
+      profileUser = user;
+
+      // Profile header
+      const fullName = (user.firstName || '') + ' ' + (user.lastName || '');
+      document.getElementById('profile-avatar').textContent = Utils.initials(fullName.trim());
+      document.getElementById('profile-name').textContent = fullName.trim() || user.username;
+      document.getElementById('profile-handle').textContent = '@' + user.username;
+
+      // Form fields
+      document.getElementById('p-first').value = user.firstName || '';
+      document.getElementById('p-last').value = user.lastName || '';
+      document.getElementById('p-location').value = user.location || '';
+      document.getElementById('p-opportunity-preference').value = user.opportunity_preference || 'all';
+      document.getElementById('p-email-opt').checked = user.email_opt_in !== false;
+      ExperienceEditor.mount('profile-experiences', user.experiences || []);
+
+      profilePickers.interests = setupProfilePicker('p-int', user.interests || [], INTEREST_MAX, INTEREST_MIN);
+      profilePickers.skills = setupProfilePicker('p-sk', user.skills || [], SKILL_MAX, SKILL_MIN);
+      document.getElementById('save-btn').disabled = false;
+      await loadTaxonomy();
+    })();
+
+    async function loadTaxonomy() {
+      let taxonomy;
+      try {
+        const res = await fetch('/api/match/entities', { credentials: 'include' });
+        if (!res.ok) throw new Error('Could not load profile options');
+        taxonomy = await res.json();
+      } catch {
+        return;
+      }
+
+      profilePickers.interests.setOptions(taxonomy.interests || [], taxonomy.taxonomy_synonyms?.synonyms?.interests || {});
+      profilePickers.skills.setOptions(taxonomy.skills || [], taxonomy.skill_synonyms || {});
+      ExperienceEditor.setSkills('profile-experiences', taxonomy.skills || []);
+    }
+
+    function setupProfilePicker(prefix, initial, max, min) {
+      const wrap = document.getElementById(`${prefix}-picker`);
+      const search = document.getElementById(`${prefix}-search`);
+      const dropdown = document.getElementById(`${prefix}-options`);
+      const selectedEl = document.getElementById(`${prefix}-selected`);
+      const countEl = document.getElementById(`${prefix}-count`);
+      const hint = document.getElementById(`${prefix}-min-hint`);
+      const selected = new Set(Array.isArray(initial) ? initial : []);
+      let options = [];
+      let synonyms = {};
+      let activeIndex = -1;
+
+      function close() {
+        dropdown.style.display = 'none';
+        search.setAttribute('aria-expanded', 'false');
+        activeIndex = -1;
+      }
+
+      function renderSelected() {
+        selectedEl.replaceChildren();
+        [...selected].sort((a, b) => a.localeCompare(b)).forEach(item => {
+          const chip = document.createElement('span');
+          chip.className = 'd-selected-chip';
+          chip.append(document.createTextNode(item));
+          const remove = document.createElement('button');
+          remove.type = 'button';
+          remove.setAttribute('aria-label', `Remove ${item}`);
+          remove.textContent = '×';
+          remove.addEventListener('click', () => {
+            selected.delete(item);
+            renderSelected();
+            renderOptions();
+          });
+          chip.appendChild(remove);
+          selectedEl.appendChild(chip);
+        });
+        countEl.textContent = `${selected.size} / ${max}`;
+        countEl.style.color = selected.size >= max ? 'var(--accent)' : (selected.size < min ? 'var(--error)' : 'var(--fg-tertiary)');
+        hint.classList.toggle('show', selected.size < min);
+      }
+
+      function renderOptions() {
+        const query = search.value.trim().toLowerCase();
+        dropdown.replaceChildren();
+        activeIndex = -1;
+        if (!query || selected.size >= max) { close(); return; }
+        const matches = options.filter(item => !selected.has(item) &&
+          (item.toLowerCase().includes(query) || (synonyms[item] || []).some(s => s.toLowerCase().includes(query))));
+        if (!matches.length) {
+          const empty = document.createElement('div');
+          empty.className = 'd-autocomplete-empty';
+          empty.textContent = 'No matches found';
+          dropdown.appendChild(empty);
+        } else matches.forEach(item => {
+          const option = document.createElement('button');
+          option.type = 'button';
+          option.className = 'd-autocomplete-option';
+          option.setAttribute('role', 'option');
+          option.textContent = item;
+          option.addEventListener('click', () => {
+            selected.add(item);
+            search.value = '';
+            renderSelected();
+            close();
+            search.focus();
+          });
+          dropdown.appendChild(option);
+        });
+        dropdown.style.display = 'block';
+        search.setAttribute('aria-expanded', 'true');
+      }
+
+      search.addEventListener('input', renderOptions);
+      search.addEventListener('focus', renderOptions);
+      search.addEventListener('keydown', event => {
+        const items = [...dropdown.querySelectorAll('.d-autocomplete-option')];
+        if (event.key === 'Escape') { close(); return; }
+        if ((event.key === 'ArrowDown' || event.key === 'ArrowUp') && items.length) {
+          event.preventDefault();
+          activeIndex = event.key === 'ArrowDown' ? Math.min(activeIndex + 1, items.length - 1) : Math.max(activeIndex - 1, 0);
+          items.forEach((item, index) => item.classList.toggle('is-active', index === activeIndex));
+          items[activeIndex].scrollIntoView({ block: 'nearest' });
+        } else if (event.key === 'Enter' && activeIndex >= 0) {
+          event.preventDefault();
+          items[activeIndex].click();
+        }
+      });
+      search.addEventListener('blur', () => setTimeout(() => { if (!wrap.contains(document.activeElement)) close(); }, 0));
+      renderSelected();
+      return {
+        values: () => [...selected],
+        setOptions(items, nextSynonyms) {
+          options = [...new Set(items)].sort((a, b) => a.localeCompare(b));
+          synonyms = nextSynonyms;
+          if (document.activeElement === search) renderOptions();
+        }
+      };
+    }
+
+    // Save profile
+    document.getElementById('save-btn').addEventListener('click', async () => {
+      const btn = document.getElementById('save-btn');
+      btn.disabled = true;
+      btn.textContent = 'Saving...';
+
+      let experiences;
+      try { experiences = ExperienceEditor.get('profile-experiences'); }
+      catch (error) {
+        alert(error.message);
+        btn.disabled = false;
+        btn.textContent = 'Save changes';
+        return;
+      }
+      const body = {
+        first_name: document.getElementById('p-first').value.trim(),
+        last_name: document.getElementById('p-last').value.trim(),
+        location: document.getElementById('p-location').value.trim(),
+        interests: profilePickers.interests.values(),
+        skills: profilePickers.skills.values(),
+        experiences,
+        opportunity_preference: document.getElementById('p-opportunity-preference').value,
+        email_opt_in: document.getElementById('p-email-opt').checked
+      };
+
+      try {
+        const res = await fetch('/api/users/me', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify(body)
+        });
+        if (res.ok) {
+          profileUser.interests = [...body.interests];
+          profileUser.skills = [...body.skills];
+          profileUser.experiences = experiences;
+          profileUser.email_opt_in = body.email_opt_in;
+          const msg = document.getElementById('save-msg');
+          msg.style.display = 'block';
+          setTimeout(() => { msg.style.display = 'none'; }, 2500);
+        } else {
+          const d = await res.json();
+          alert(d.error || 'Failed to save');
+        }
+      } catch (e) {
+        alert('Connection error');
+      }
+
+      btn.disabled = false;
+      btn.textContent = 'Save changes';
+    });
+
+    // Delete account
+    async function deleteAccount() {
+      try {
+        const res = await fetch('/api/users/me', { method: 'DELETE', credentials: 'include' });
+        if (res.ok) {
+          window.location.href = '/';
+        } else {
+          const d = await res.json();
+          alert(d.error || 'Failed to delete');
+        }
+      } catch (e) {
+        alert('Connection error');
+      }
+    }
+  </script>
+  <script src="/scaling.js?v=392ddece5414"></script>
+  <script src="/js/activity.js?v=6f8f952dd151"></script>
+</body>
+</html>

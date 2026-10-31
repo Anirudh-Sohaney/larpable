@@ -1,0 +1,32 @@
+const assert=require('node:assert/strict');const fs=require('node:fs');const path=require('node:path');const vm=require('node:vm');
+let wide=true;const classes=new Set(),listeners={};
+const frame={src:'',title:''},pane={setAttribute(){}},close={addEventListener(){},setAttribute(){}};
+const split={classList:{add:value=>classes.add(value),remove:value=>classes.delete(value)}};
+const elements={split,'detail-frame':frame,'detail-pane':pane,'detail-close':close};
+const location={href:'https://larpable.test/feed',origin:'https://larpable.test',search:''};
+const document={getElementById:id=>elements[id],addEventListener:(name,fn)=>{listeners[name]=fn;},querySelector:()=>null,querySelectorAll:()=>[]};
+const window={matchMedia:()=>({matches:wide}),addEventListener(){}};
+window.top=window;
+const panels=vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../web_app/js/panes.js'),'utf8')+'\nPanels;',{document,window,location,URL,URLSearchParams});
+const embedded=vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../web_app/js/panes.js'),'utf8')+'\nPanels;',{window:{top:{}},location,URLSearchParams});
+assert.equal(embedded.embedded,true,'iframe navigation stays embedded even if a legacy redirect omits the query flag');
+panels.init();
+function click(href,{nav=false,ctrl=false,target=''}={}){
+  const link={target,closest:()=>nav ? {} : null,getAttribute:()=>href,hasAttribute:()=>false};
+  const event={button:0,ctrlKey:ctrl,target:{closest:selector=>selector==='a[href]' ? link : null},preventDefault(){this.defaultPrevented=true;},stopImmediatePropagation(){this.stopped=true;}};
+  listeners.click(event);return event;
+}
+assert.equal(click('/profile?id=person').defaultPrevented,true);assert.equal(location.href,'https://larpable.test/feed');
+assert.equal(new URL(frame.src).searchParams.get('embed'),'1');assert.ok(classes.has('is-open'));
+click('/post?id=post#comments');assert.equal(new URL(frame.src).pathname,'/post');assert.equal(new URL(frame.src).hash,'#comments');
+click('/edit_profile');assert.equal(new URL(frame.src).pathname,'/edit_profile');assert.equal(location.href,'https://larpable.test/feed');
+const last=frame.src;
+assert.ok(!click('/profile',{nav:true}).defaultPrevented);assert.equal(frame.src,last,'navigation-bar links keep their normal main-page behavior');
+assert.ok(!click('/profile',{ctrl:true}).defaultPrevented);assert.ok(!click('/profile',{target:'_blank'}).defaultPrevented);
+assert.ok(!click('https://other.example/profile').defaultPrevented);
+panels.embedded=true;location.href=last;
+panels.navigate('/profile?id=next');assert.equal(new URL(location.href).searchParams.get('embed'),'1');assert.equal(frame.src,last,'nested content replaces the current right pane without creating another split');
+panels.navigate('/feed?mine=1');assert.equal(new URL(location.href).searchParams.get('embed'),'1','embedded return links preserve their pane');
+panels.embedded=false;wide=false;panels.navigate('/profile?id=narrow');assert.equal(location.href,'https://larpable.test/profile?id=narrow');
+panels.close();assert.ok(!classes.has('is-open'));
+console.log('Shared panes: desktop preservation, nested profile/post/editor navigation, navigation-bar and modifier exceptions, external links and narrow-screen takeover passed.');

@@ -40,12 +40,7 @@ const DataStore = {
   async init() {
     if (this.initialized) return this.currentUser;
     try {
-      const auth = await this.request('/api/auth/me');
-      this.currentUser = this.normalizeUser(auth.user);
-      if (this.currentUser.role !== 'admin') {
-        const profile = await this.request('/api/users/me');
-        this.currentUser = this.normalizeUser(profile);
-      }
+      this.currentUser = this.normalizeUser(await this.request('/api/users/me'));
     } catch {
       this.currentUser = null;
     }
@@ -93,11 +88,19 @@ const DataStore = {
   },
 
   async getOpportunities() {
-    const data = await this.request('/api/opportunities');
-    const list = Array.isArray(data) ? data : (data.opportunities || []);
+    const data = await this.request('/api/feed');
+    const list = Array.isArray(data) ? data : (data.posts || []);
     this.opportunities = list;
     this.opportunityTotal = Array.isArray(data) ? list.length : (data.total ?? list.length);
     return list.map(o => ({ ...o, skills: Array.isArray(o.skills) ? [...o.skills] : [] }));
+  },
+
+  async getProjects() {
+    return (await this.request('/api/projects/mine')).projects || [];
+  },
+
+  async getMyOpportunities() {
+    return (await this.request('/api/feed/mine')).posts || [];
   },
 
   async getDrafts() {
@@ -120,7 +123,7 @@ const DataStore = {
     const scores = {};
     for (let i = 0; i < opportunities.length; i += 50) {
       const batch = opportunities.slice(i, i + 50).map(o => ({
-        id: o.id, skills: o.skills || [], industry: o.industry || o.nonprofit_field || '', type: o.type,
+        id: o.id, kind:o.kind || 'opportunity', skills: o.skills || [], industry: o.field || o.industry || o.nonprofit_field || '', type: o.type,
         latitude: o.latitude || null, longitude: o.longitude || null, remote: o.remote,
         opportunity_preference: o.opportunity_preference || 'unpaid'
       }));
@@ -156,7 +159,7 @@ const DataStore = {
     const preferenceScore = normalizedUserPreference === 'all'
       ? 1
       : (normalizedUserPreference === postPreference ? 1 : 0);
-    const result = normalizedUserPreference === 'all'
+    const result = opp.kind === 'post' || normalizedUserPreference === 'all'
       ? skillScore
       : skillScore * 0.70 + preferenceScore * 0.30;
     return Math.round(result * 100) / 100;

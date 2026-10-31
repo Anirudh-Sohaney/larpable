@@ -9,7 +9,13 @@
 const fs = require('fs');
 const fsp = fs.promises;
 const path = require('path');
-const { encryptObject, decryptObject } = require('./crypto');
+const { decryptObject } = require('./crypto');
+// Capture source transitions, including removals by staff and account cleanup.
+// The score ledger is excluded, so recording awards cannot recurse.
+const tracksScore = filename => require('./larpscore').SOURCES.includes(filename);
+async function scoreChange(filename,before,after) {
+  if(before!==null)await require('./larpscore').capture(filename,before,after);
+}
 
 // Data storage path.
 // - If DATA_DIR env var is set (production), use that.
@@ -86,22 +92,39 @@ function filePath(name) {
  * @param {string} filename - e.g. "users.json"
  * @returns {Promise<Object>} parsed JSON or empty object
  */
-async function read(filename, retries = 2) {
-  const fp = filePath(filename);
-  for (let attempt = 0; attempt <= retries; attempt++) {
-    try {
-      const data = await fsp.readFile(fp, 'utf8');
-      return JSON.parse(data);
-    } catch (e) {
-      if (e.code === 'ENOENT') return {};
-      if (attempt < retries && (e instanceof SyntaxError)) {
-        // Partial write detected — wait briefly and retry
-        await new Promise(r => setTimeout(r, 10));
-        continue;
-      }
-      throw e;
-    }
+// Cache encrypted snapshots only. Callers receive copies; stat detects external replacements.
+const snapshots=new Map();
+async function readSnapshot(filename,retries=2){
+  const fp=filePath(filename);
+  for(let attempt=0;attempt<=retries;attempt++)try{
+    const stat=await fsp.stat(fp,{bigint:true});
+    const signature=`${stat.ino}:${stat.size}:${stat.mtimeNs}:${stat.ctimeNs}`;
+    const cached=snapshots.get(fp);
+    if(cached?.signature===signature)return cached.data;
+    const text=await fsp.readFile(fp,'utf8'),data=JSON.parse(text);
+    if(Buffer.byteLength(text)<=2*1024*1024){
+      snapshots.set(fp,{signature,data});
+      if(snapshots.size>32)snapshots.delete(snapshots.keys().next().value);
+    }else snapshots.delete(fp);
+    return data;
+  }catch(error){
+    snapshots.delete(fp);
+    if(error.code==='ENOENT')return {};
+    if(attempt<retries && error instanceof SyntaxError){await new Promise(r=>setTimeout(r,10));continue;}
+    throw error;
   }
+}
+async function read(filename,retries=2){return structuredClone(await readSnapshot(filename,retries));}
+async function persist(filename,before,after){
+  if(require('node:util').isDeepStrictEqual(before,after)){
+    try{await fsp.access(filePath(filename));return;}catch(error){if(error.code!=='ENOENT')throw error;}
+  }
+  await ensureDataDir();
+  const fp=filePath(filename),tmp=fp+'.tmp.'+process.pid;
+  await fsp.writeFile(tmp,JSON.stringify(after,null,2),'utf8');
+  await fsp.rename(tmp,fp);
+  snapshots.delete(fp);
+  await scoreChange(filename,tracksScore(filename) ? before : null,after);
 }
 
 /**
@@ -111,14 +134,8 @@ async function read(filename, retries = 2) {
  * @param {Object} data
  * @returns {Promise<void>}
  */
-async function write(filename, data) {
-  const fp = filePath(filename);
-  const tmp = fp + '.tmp.' + process.pid;
-  await ensureDataDir();
-  await enqueueWrite(fp, async () => {
-    await fsp.writeFile(tmp, JSON.stringify(data, null, 2), 'utf8');
-    await fsp.rename(tmp, fp);
-  });
+async function write(filename,data){
+  await enqueueWrite(filePath(filename),async()=>persist(filename,await readSnapshot(filename),data));
 }
 
 // ── Collection Operations ────────────────────────────────────
@@ -130,8 +147,8 @@ async function write(filename, data) {
  * @returns {Promise<Object|null>}
  */
 async function getById(filename, id) {
-  const data = await read(filename);
-  return data[id] || null;
+  const data = await readSnapshot(filename);
+  return Object.hasOwn(data,id) ? structuredClone(data[id]) : null;
 }
 
 /**
@@ -149,16 +166,8 @@ async function getAll(filename) {
  * @param {string} id
  * @param {Object} record
  */
-async function save(filename, id, record) {
-  const fp = filePath(filename);
-  const tmp = fp + '.tmp.' + process.pid;
-  await enqueueWrite(fp, async () => {
-    const data = await read(filename);
-    data[id] = record;
-    await ensureDataDir();
-    await fsp.writeFile(tmp, JSON.stringify(data, null, 2), 'utf8');
-    await fsp.rename(tmp, fp);
-  });
+async function save(filename,id,record){
+  await atomicUpdate(filename,data=>{data[id]=record;return data;});
 }
 
 /**
@@ -167,22 +176,9 @@ async function save(filename, id, record) {
  * @param {string} id
  * @returns {Promise<boolean>}
  */
-async function remove(filename, id) {
-  const fp = filePath(filename);
-  const tmp = fp + '.tmp.' + process.pid;
-  let deleted = false;
-  await enqueueWrite(fp, async () => {
-    const data = await read(filename);
-    if (!data[id]) {
-      deleted = false;
-      return;
-    }
-    delete data[id];
-    deleted = true;
-    await ensureDataDir();
-    await fsp.writeFile(tmp, JSON.stringify(data, null, 2), 'utf8');
-    await fsp.rename(tmp, fp);
-  });
+async function remove(filename,id){
+  let deleted=false;
+  await atomicUpdate(filename,data=>{deleted=Object.hasOwn(data,id);delete data[id];return data;});
   return deleted;
 }
 
@@ -194,13 +190,13 @@ async function remove(filename, id) {
  * @returns {Promise<Array<{ id: string, record: Object }>>}
  */
 async function findBy(filename, field, value) {
-  const data = await read(filename);
+  const data = await readSnapshot(filename);
   const results = [];
 
   for (const [id, record] of Object.entries(data)) {
     const fieldValue = field.split('.').reduce((obj, key) => obj?.[key], record);
     if (fieldValue === value) {
-      results.push({ id, record });
+      results.push({ id, record:structuredClone(record) });
     }
   }
 
@@ -259,7 +255,7 @@ async function getOpportunity(oppId) {
   if (!opp) return null;
   const decrypted = decryptObject(opp);
   decrypted.id = oppId;
-  return decrypted;
+  return (await require('./projects').attach([decrypted]))[0];
 }
 
 /**
@@ -267,14 +263,15 @@ async function getOpportunity(oppId) {
  * @param {string} type - optional filter by type
  * @returns {Promise<Array<Object>>}
  */
-async function getAllOpportunities(type) {
-  const data = await getAll('opportunities.json');
-  let opps = Object.entries(data).map(([id, opp]) => {
+async function getAllOpportunities(type,{createdBy,projectId,approvedOnly=false}={}) {
+  const data = await readSnapshot('opportunities.json');
+  let opps = Object.entries(data).filter(([,opp])=>(!createdBy || opp.created_by===createdBy) && (!projectId || opp.project_id===projectId) && (!approvedOnly || !opp.flagged)).map(([id, opp]) => {
     const decrypted = decryptObject(opp);
     decrypted.id = id;
     return decrypted;
   });
 
+  opps = await require('./projects').attach(opps);
   if (type) {
     opps = opps.filter(o => o.type === type);
   }
@@ -299,18 +296,12 @@ async function deleteOpportunity(oppId) {
  * @param {Function} modifier - async (data) => modifiedData
  * @returns {Promise<Object>} the modified data
  */
-async function atomicUpdate(filename, modifier) {
-  const fp = filePath(filename);
-  const tmp = fp + '.tmp.' + process.pid;
+async function atomicUpdate(filename,modifier){
   let result;
-  await enqueueWrite(fp, async () => {
-    // Only a genuinely missing file is an empty collection. Parse, permission,
-    // and I/O errors must abort the update rather than overwrite data with {}.
-    const data = await read(filename);
-    result = await modifier(data);
-    await ensureDataDir();
-    await fsp.writeFile(tmp, JSON.stringify(result, null, 2), 'utf8');
-    await fsp.rename(tmp, fp);
+  await enqueueWrite(filePath(filename),async()=>{
+    const before=await readSnapshot(filename);
+    result=await modifier(structuredClone(before));
+    await persist(filename,before,result);
   });
   return result;
 }
@@ -333,5 +324,6 @@ module.exports = {
   deleteOpportunity,
   filePath,
   DATA_DIR,
+  flush:()=>Promise.all([...writeQueues.values()]),
   atomicUpdate
 };

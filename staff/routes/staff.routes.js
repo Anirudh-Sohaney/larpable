@@ -1381,18 +1381,12 @@ router.get('/overview', requireAuth, requireStaff, async (req, res) => {
       };
     });      const posts = await store.getAllOpportunities(null);
     const staff = await store.read(STAFF_FILE);
-    const count = new Map();
-    const countValues = (values) => (values || []).forEach(value => {
-      const key = String(value || '').trim();
-      if (key) count.set(key, (count.get(key) || 0) + 1);
-    });
     const top = (map, limit = 8) => [...map.entries()]
       .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
       .slice(0, limit)
       .map(([label, value]) => ({ label, count: value }));
     const skillCounts = new Map(), interestCounts = new Map(), fieldCounts = new Map(), countryCounts = new Map();
     users.forEach(user => { 
-      countValues(user.skills); 
       (user.skills || []).forEach(value => skillCounts.set(value, (skillCounts.get(value) || 0) + 1)); 
       (user.interests || []).forEach(value => interestCounts.set(value, (interestCounts.get(value) || 0) + 1));
       const loc = user.country;
@@ -1417,7 +1411,7 @@ router.get('/overview', requireAuth, requireStaff, async (req, res) => {
     const recentUsers = [...users].sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)).slice(0, 8);
     const recentPosts = [...posts].sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)).slice(0, 8).map(post => {
       const fields = post.encrypted_fields || {};
-      return { title: fields.title || post.title || 'Untitled', type: post.type || 'unknown', field: fields.industry || fields.nonprofit_field || fields.field || '', created_at: post.created_at };
+      return { title: post.project_name || fields.title || post.title || 'Untitled', type: post.type || 'unknown', field: fields.industry || fields.nonprofit_field || fields.field || '', created_at: post.created_at };
     });
     const growth = [];
     const start = new Date(launchDate + 'T00:00:00Z');
@@ -1824,57 +1818,8 @@ router.delete('/work/users/:id', requireAuth, requireStaff, requireStaffAdmin, a
     const isStaffAdminUser = member && !member.added_by; // original admin
     if (isStaffAdminUser) return res.status(400).json({ error: 'The platform admin cannot be removed' });
 
-    await store.atomicUpdate('users.json', latestUsers => {
-      delete latestUsers[userId];
-      return latestUsers;
-    });
-
-    // Drop sessions
-    const sessions = await store.read('sessions.json');
-    const sessionHashes = Object.keys(sessions).filter(h => sessions[h].user_id === userId);
-    if (sessionHashes.length) {
-      await store.atomicUpdate('sessions.json', (s) => {
-        sessionHashes.forEach(h => delete s[h]);
-        return s;
-      });
-    }
-
-    // Drop drafts
-    const drafts = await store.read('drafts.json');
-    const draftIds = Object.keys(drafts).filter(id => drafts[id].user_id === userId);
-    if (draftIds.length) {
-      await store.atomicUpdate('drafts.json', (d) => {
-        draftIds.forEach(id => delete d[id]);
-        return d;
-      });
-    }
-
-    // Drop opportunities
-    const opportunities = await store.read('opportunities.json');
-    const oppIds = Object.keys(opportunities).filter(id => {
-      try { return crypto.decryptObject(opportunities[id]).created_by === userId; } catch { return false; }
-    });
-    if (oppIds.length) {
-      await store.atomicUpdate('opportunities.json', (o) => {
-        oppIds.forEach(id => delete o[id]);
-        return o;
-      });
-    }
-
-    // Drop feedback and future prompt state for the removed account.
-    await removeUserFeedback(store, userId);
-    await applicationsStore.removeUser(userId);
-    for (const oppId of oppIds) await applicationsStore.removeOpportunity(oppId);
-
-    // Revoke staff access
-    if (member) {
-      await store.atomicUpdate(STAFF_FILE, (s) => {
-        delete s.staff_members?.[userId];
-        return s;
-      });
-    }
-
-    res.json({ success: true, removed: userId, sessions: sessionHashes.length, drafts: draftIds.length, opportunities: oppIds.length, staff: !!member });
+    const result=await require('../../backend/deleted_users').remove(userId);
+    res.json({success:true,removed:userId,sessions:result.records_changed['sessions.json'] || 0,drafts:result.records_changed['drafts.json'] || 0,opportunities:result.records_changed['opportunities.json'] || 0,staff:!!member});
   } catch (e) {
     console.error('Delete work user error:', e);
     res.status(500).json({ error: 'Server error' });
@@ -1896,7 +1841,7 @@ router.get('/work/opportunities', requireAuth, requireStaff, requirePermission('
         type: opp.type || 'project',
         created_by: opp.created_by || '',
         created_at: opp.created_at || null,
-        title: fields.title || '',
+        title: opp.project_name || fields.title || '',
         description: fields.description || '',
         location: fields.location || '',
         remote: !!fields.remote,
@@ -1923,7 +1868,7 @@ router.delete('/work/opportunities/:id', requireAuth, requireStaff, requirePermi
     const existing = await store.getById('opportunities.json', req.params.id);
     if (!existing) return res.status(404).json({ error: 'Opportunity not found' });
     const decrypted = crypto.decryptObject(existing);
-    const title = decrypted.encrypted_fields?.title || '';
+    const title = (await store.getOpportunity(req.params.id))?.project_name || decrypted.encrypted_fields?.title || '';
     await store.deleteOpportunity(req.params.id);
     await applicationsStore.removeOpportunity(req.params.id);
     await addLog({
@@ -1958,7 +1903,7 @@ router.get('/work/flagged', requireAuth, requireStaff, requirePermission('flagge
           flagged_at: opp.flagged_at || null,
           flagged_terms: opp.flagged_terms || [],
           flagged_fields: opp.flagged_fields || [],
-          title: fields.title || '',
+          title: opp.project_name || fields.title || '',
           description: fields.description || '',
           location: fields.location || '',
           remote: !!fields.remote,
@@ -1986,7 +1931,7 @@ router.post('/work/flagged/:id/approve', requireAuth, requireStaff, requirePermi
     const opp = await store.getById('opportunities.json', req.params.id);
     if (!opp || !opp.flagged) return res.status(404).json({ error: 'Flagged opportunity not found' });
     const decrypted = crypto.decryptObject(opp);
-    const title = decrypted.encrypted_fields?.title || '';
+    const title = (await store.getOpportunity(req.params.id))?.project_name || decrypted.encrypted_fields?.title || '';
     applyApproval(opp, req.user.id);
     await store.saveOpportunity(req.params.id, opp);
     await addLog({
@@ -2011,7 +1956,7 @@ router.delete('/work/flagged/:id', requireAuth, requireStaff, requirePermission(
     const opp = await store.getById('opportunities.json', req.params.id);
     if (!opp || !opp.flagged) return res.status(404).json({ error: 'Flagged opportunity not found' });
     const decrypted = crypto.decryptObject(opp);
-    const title = decrypted.encrypted_fields?.title || '';
+    const title = (await store.getOpportunity(req.params.id))?.project_name || decrypted.encrypted_fields?.title || '';
     await store.deleteOpportunity(req.params.id);
     await applicationsStore.removeOpportunity(req.params.id);
     await addLog({

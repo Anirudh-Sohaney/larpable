@@ -15,6 +15,10 @@ const cookieParser = require('cookie-parser');
 const path = require('path');
 
 const app = express();
+let startupReady = Promise.resolve();
+app.use((req, res, next) => {
+  startupReady.then(() => next(), () => res.status(503).json({error:'Startup failed; inspect server logs'}));
+});
 // The production app sits behind Nginx on the same host. Trust only loopback
 // proxies so Express can use Nginx's forwarded client address for per-IP
 // rate limiting without trusting arbitrary client-supplied proxy headers.
@@ -158,6 +162,12 @@ app.use('/api/activity', rateLimit('api'));
 app.use('/api/verify', rateLimit('auth'));
 app.use('/api/validate', rateLimit('auth'));
 app.use('/api/opportunities', rateLimit('api'));
+app.use('/api/projects', rateLimit('api'));
+app.use('/api/profiles', rateLimit('api'));
+app.use('/api/posts', rateLimit('api'));
+app.use('/api/feed', rateLimit('api'));
+app.use('/api/media', rateLimit('api'));
+app.use('/api/media', require('./backend/routes/media.routes'));
 app.use('/api/users', rateLimit('api'));
 app.use('/api/legal', rateLimit('api'));
 app.use('/api/feedback', rateLimit('api'));
@@ -191,6 +201,10 @@ app.use('/api/auth', authRoutes);
 app.use('/api/password', require('./backend/routes/password.routes'));
 
 app.use('/api/opportunities', opportunityRoutes);
+app.use('/api/projects', require('./backend/routes/project.routes'));
+app.use('/api/profiles', require('./backend/routes/profile.routes'));
+app.use('/api/posts', require('./backend/routes/post.routes'));
+app.use('/api/feed', require('./backend/routes/feed.routes'));
 app.use('/api/users', userRoutes);
 app.use('/api/legal', legalRoutes);
 app.use('/api/feedback', feedbackRoutes);
@@ -246,6 +260,7 @@ app.get('/api/match/entities', (req, res) => {
   for (const field of new Set(matching.industries)) entities.push({ name: field, type: 'industry', category: field });
   res.json({
     entities,
+    fields:[...matching.industries],
     interests,
     skills,
     skill_aliases: skillTaxonomy.skill_aliases || {},
@@ -329,6 +344,8 @@ app.get('/get-started', (req, res) => {
   });
   res.redirect('/feed');
 });
+
+app.get('/post', (req,res)=>res.sendFile(path.join(__dirname,'web_app','opportunity.html')));
 
 // ── Static File Serving ──────────────────────────────────────
 // Serve web_app/ at root
@@ -422,7 +439,7 @@ app.get('/staff/', async (req, res) => {
   }
 });
 
-// Serve staff/ static assets (CSS, JS) — for /staff/staff.js, /staff/staff.css, etc.
+// Serve the staff portal's styles, controller, data layer, and component assets.
 app.use('/staff', express.static(path.join(__dirname, 'staff')));
 
 // ── 404 Catch-all ────────────────────────────────────────────
@@ -436,14 +453,10 @@ app.use((req, res) => {
 
 // ── Start Server ─────────────────────────────────────────────
 function startServer(port) {
+  startupReady = require('./backend/startup').run();
+  startupReady.catch(err => console.error('[startup] failed:', err.message));
   const server = app.listen(port, HOST, async () => {
-    // Rewrite legacy skill/field values onto the canonical taxonomy on boot.
-    // Idempotent; only writes a data file when a record actually changes.
-    try {
-      await require('./backend/migrations/normalize-values').run();
-    } catch (err) {
-      console.error('[migration] normalize-values failed:', err.message);
-    }
+    await startupReady.catch(() => {});
     console.log(`\n  ┌─────────────────────────────────────┐`);
     console.log(`  │  LARPABLE. server                    │`);
     console.log(`  │  http://${HOST}:${port}                │`);

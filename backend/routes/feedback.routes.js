@@ -59,7 +59,7 @@ router.get('/post-prompt', requireAuth, async (req, res) => {
         const fields = opportunity.encrypted_fields || {};
         selected = {
           opportunity_id: opportunity.id,
-          title: fields.title || 'Your opportunity post',
+          title: opportunity.project_name || fields.title || 'Your opportunity post',
           posted_at: opportunity.created_at
         };
         data.post_prompts[req.user.id] ||= {};
@@ -150,7 +150,7 @@ router.post('/post', requireAuth, async (req, res) => {
         created_at: now,
         encrypted_fields: encryptObject({
           ...identity,
-          opportunity_title: opportunity.encrypted_fields?.title || 'Opportunity post',
+          opportunity_title: opportunity.project_name || opportunity.encrypted_fields?.title || 'Opportunity post',
           text: parsed.text
         })
       };

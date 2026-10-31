@@ -82,11 +82,6 @@ const Resources = {
     container.innerHTML = html;
   },
 
-  setScope(scope) {
-    App.resourcesScope = scope;
-    this.render(document.getElementById('main-content'));
-  },
-
   handleSearch: Utils.debounce(function(query) {
     App.resourcesSearch = query;
     Resources.render(document.getElementById('main-content'));

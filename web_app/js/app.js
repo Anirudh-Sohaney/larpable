@@ -4,6 +4,7 @@ const App = {
   async init() {
     await DataStore.init();
     this.currentUser = DataStore.getCurrentUser();
+    if(typeof Panels!=='undefined')Panels.init();
   },
 
   requireAuth() { return DataStore.requireAuth(); },
@@ -65,20 +66,20 @@ const App = {
        const nav = document.createElement('nav');
        nav.className = 'd-bottom-nav';
        nav.innerHTML = this.renderBottomNav(guest);
-       const main = document.querySelector('main');
+       const main = document.querySelector('main,.d-pane-main');
        if (main) main.appendChild(nav);
        else document.body.appendChild(nav);
 
        if (user) {
          const updateNavBadge = () => {
-           fetch('/api/opportunities/mine', { credentials: 'same-origin' })
+           fetch('/api/feed/mine', { credentials: 'same-origin' })
              .then(r => r.json())
              .then(data => {
                const yoursBtn = document.getElementById('nav-yours-tab');
                if (!yoursBtn) return;
                
                let badge = yoursBtn.querySelector('.nav-yours-badge');
-               const hasUnread = data.opportunities && data.opportunities.some(o => o.has_unread_comments || o.has_unread_applications);
+               const hasUnread = data.posts && data.posts.some(o => o.has_unread_comments || o.has_unread_applications);
                
                if (hasUnread && !badge) {
                  yoursBtn.insertAdjacentHTML('beforeend', `<span class="nav-yours-badge" style="position:absolute; top:4px; right:12px; background:#dc3545; color:white; font-size:0.6rem; font-weight:bold; border-radius:50%; width:14px; height:14px; display:flex; align-items:center; justify-content:center;">!</span>`);
@@ -133,7 +134,7 @@ const App = {
       <a href="/create_student" class="d-nav-item ${location.pathname==='/create_student' ? 'is-active' : ''}">${svg.plus}<span>Create</span></a>
       <a href="/feed?mine=1" id="nav-yours-tab" class="d-nav-item ${location.search.includes('mine=1') ? 'is-active' : ''}" style="position:relative;">${svg.folder}<span>Yours</span></a>
       <div class="d-nav-item-wrap" style="position:relative; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-        <button type="button" class="d-nav-item ${['/profile','/feedback'].includes(location.pathname) ? 'is-active' : ''}" id="bottom-nav-profile-btn" style="border: none; background: transparent; cursor: pointer;">${svg.user}<span>Profile</span></button>
+        <button type="button" class="d-nav-item ${['/profile','/edit_profile','/feedback'].includes(location.pathname) ? 'is-active' : ''}" id="bottom-nav-profile-btn" style="border: none; background: transparent; cursor: pointer;">${svg.user}<span>Profile</span></button>
         <div id="bottom-nav-profile-menu" style="display:none; position:absolute; bottom: 100%; right: 0; margin-bottom: 8px; background: var(--card, #FFFDF8); border: 1px solid var(--border, #D6D1C9); border-radius: 8px; box-shadow: 0 -4px 16px rgba(0,0,0,0.1); flex-direction: column; min-width: 140px; overflow: hidden; text-align: left;">
           <a href="/profile" style="padding: 12px 16px; text-decoration: none; color: var(--font, #2D2A26); font-size: 0.9rem; display: block; border-bottom: 1px solid var(--border, #D6D1C9);">Profile</a>
           <a href="/feedback" style="padding: 12px 16px; text-decoration: none; color: var(--font, #2D2A26); font-size: 0.9rem; display: block; border-bottom: 1px solid var(--border, #D6D1C9);">Feedback</a>

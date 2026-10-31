@@ -67,19 +67,4 @@ async function geocodeStructured(city, state, country) {
   return geocode(parts.join(', '));
 }
 
-/**
- * Batch geocode an array of { id, location } objects.
- * Returns a Map of id → { lat, lon } (only successful lookups).
- * Respects rate limits with sequential calls.
- */
-async function batchGeocode(items) {
-  const results = new Map();
-  for (const item of items) {
-    if (!item.location || item.location.toLowerCase() === 'remote') continue;
-    const coords = await geocode(item.location);
-    if (coords) results.set(item.id, coords);
-  }
-  return results;
-}
-
-module.exports = { geocode, geocodeStructured, batchGeocode };
+module.exports = { geocode, geocodeStructured };

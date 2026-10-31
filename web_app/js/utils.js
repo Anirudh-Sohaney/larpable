@@ -1,4 +1,8 @@
 const Utils = {
+  userLink(id,name) {
+    const label=Utils.escapeHtml(name || 'Student');
+    return id ? `<a class="d-user-link" href="/profile?id=${encodeURIComponent(id)}">${label}</a>` : label;
+  },
   escapeHtml(value) {
     if (value === null || value === undefined) return '';
     const div = document.createElement('div'); div.textContent = String(value); return div.innerHTML;

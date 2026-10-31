@@ -12,7 +12,6 @@ const { runAuthWork } = require('./auth_work_queue');
 const ALGORITHM = 'aes-256-gcm';
 const SALT_BYTES = 16;
 const IV_BYTES = 12;
-const KEY_BYTES = 32;
 const scryptAsync = promisify(crypto.scrypt);
 const PASSWORD_SCRYPT = Object.freeze({ N: 1 << 14, r: 8, p: 1, maxmem: 64 * 1024 * 1024 });
 const PASSWORD_KEY_BYTES = 64;
@@ -180,14 +179,14 @@ function isEncrypted(value) {
 }
 
 /**
- * Deep-encrypt an object: encrypt all string values that aren't already encrypted
+ * Deep-encrypt plaintext: every string is data, including strings starting with enc:.
  * @param {Object} obj
  * @returns {Object} new object with encrypted values
  */
 function encryptObject(obj) {
   if (obj === null || obj === undefined) return obj;
   if (Array.isArray(obj)) return obj.map(encryptObject);
-  if (typeof obj === 'string') return isEncrypted(obj) ? obj : encrypt(obj);
+  if (typeof obj === 'string') return encrypt(obj);
   if (typeof obj === 'number' || typeof obj === 'boolean') return obj;
   
   const encrypted = {};

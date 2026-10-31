@@ -31,11 +31,12 @@ async function run() {
     profile: { first_name: 'Second', last_name: 'Tester', interests: ['a', 'b', 'c'], skills: ['a', 'b', 'c'] }
   });
 
+  const project=await require('../backend/projects').create(signup.userId,{type:'project',name:'Feedback project',elevator_pitch:'Tools for feedback',tags:['Programming']});
   const opportunityId = 'opp_feedback_test';
   await store.saveOpportunity(opportunityId, {
-    type: 'project', created_by: signup.userId,
+    type: 'project', project_id:project.id, created_by: signup.userId,
     created_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-    encrypted_fields: encryptObject({ title: 'Test feedback post', description: 'A test' })
+    encrypted_fields: encryptObject({ description: 'A test', skills:[] })
   });
 
   const server = startServer(0);

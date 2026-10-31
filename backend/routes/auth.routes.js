@@ -104,7 +104,7 @@ router.post('/signup', async (req, res) => {
     // address can be stored that way.) Stamp is consumed after success so
     // failed validations don't burn it.
     const signupEmail = profile.email ? String(profile.email).trim().toLowerCase() : '';
-    if (signupEmail && !claimVerifiedEmail(signupEmail)) {
+    if (signupEmail && !claimVerifiedEmail(signupEmail, req)) {
       return res.status(403).json({ error: 'Please verify your email before signing up' });
     }
     if (signupEmail) reservedSignupEmail = signupEmail;
@@ -126,7 +126,7 @@ router.post('/signup', async (req, res) => {
     };
     const result = await auth.signup({ username, password, type, profile, legalAgreement, emailOptIn: email_opt_in, signal: requestAbortSignal(req, res) });
     if (signupEmail) {
-      consumeVerifiedEmail(signupEmail);
+      consumeVerifiedEmail(signupEmail, req);
       reservedSignupEmail = '';
     }
     

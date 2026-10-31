@@ -173,7 +173,7 @@ const Admin = {
       });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || 'Could not save permissions');
-      const member = DEMO_DATA.staffMembers.find(m => m.userId === userId);
+      const member = STAFF_DATA.staffMembers.find(m => m.userId === userId);
       if (member) member.permissions = permissions;
       alert('Permissions saved.');
     } catch (error) {

@@ -14,8 +14,6 @@ const auth = require('../auth');
 const store = require('../store');
 const { encryptObject, decryptObject } = require('../crypto');
 const { emailExists, claimVerifiedEmail, releaseVerifiedEmail, consumeVerifiedEmail } = require('./verify.routes');
-const { removeUserFeedback } = require('../feedback');
-const applicationsStore = require('../applications');
 const { validateExperiences } = require('../experiences');
 
 const COOKIE_NAME = 'larpable_session';
@@ -130,7 +128,7 @@ router.patch('/me', requireAuth, async (req, res) => {
       if (await emailExists(newEmail)) {
         return res.status(409).json({ error: 'Email already associated with an account' });
       }
-      if (!claimVerifiedEmail(newEmail)) {
+      if (!claimVerifiedEmail(newEmail, req)) {
         return res.status(403).json({ error: 'Please verify the new email address first' });
       }
       reservedEmail = newEmail;
@@ -148,7 +146,7 @@ router.patch('/me', requireAuth, async (req, res) => {
       return users;
     });
     if (emailChanged) {
-      consumeVerifiedEmail(newEmail);
+      consumeVerifiedEmail(newEmail, req);
       reservedEmail = '';
     }
 
@@ -205,33 +203,9 @@ router.delete('/me', requireAuth, async (req, res) => {
   try {
     const userId = req.user.id;
 
-    // 1. Delete all opportunities created by this user
-    const allOpps = await store.read('opportunities.json');
-    for (const [oppId, opp] of Object.entries(allOpps)) {
-      if (opp.created_by === userId) {
-        await store.remove('opportunities.json', oppId);
-        await applicationsStore.removeOpportunity(oppId);
-      }
-    }
+    await require('../deleted_users').remove(userId);
 
-    // 2. Destroy all sessions for this user
-    await store.atomicUpdate('sessions.json', (sessions) => {
-      for (const [hash, session] of Object.entries(sessions)) {
-        if (session.user_id === userId) {
-          delete sessions[hash];
-        }
-      }
-      return sessions;
-    });
-
-    // 3. Delete feedback and prompt history owned by this user
-    await removeUserFeedback(store, userId);
-    await applicationsStore.removeUser(userId);
-
-    // 4. Delete user record
-    await store.remove('users.json', userId);
-
-    // 5. Clear session cookie
+    // Clear session cookie
     res.clearCookie(COOKIE_NAME, { path: '/' });
     res.json({ ok: true });
   } catch (e) {

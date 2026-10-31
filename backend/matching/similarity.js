@@ -47,20 +47,14 @@ function skillHit(target, candidates) {
   for (const group of neighborhoods) {
     if (group.has(target) && candidates.some(x => group.has(x))) return 0.65;
   }
-  if (vector('skill', target)) return 0;
-  return bestAgainst('skill', target, candidates);
-}
-function bestAgainst(kind, target, candidates) {
-  const tv = vector(kind, target);
-  if (!tv || !candidates?.length) return 0;
-  return Math.max(...candidates.map(x => x === target ? 1 : semantic(tv, vector(kind, x))));
+  return 0;
 }
 function score(user, opportunity) {
   const userSkills = (user?.skills || []).map(canonicalSkill), interests = (user?.interests || []).map(canonicalInterest);
   const required = (opportunity?.skills || opportunity?.required_skills || []).map(canonicalSkill);
   const field = canonicalField(opportunity?.field || opportunity?.industry || opportunity?.nonprofit_field);
   const skillScore = required.length ? required.reduce((sum, req) => sum + skillHit(req, userSkills), 0) / required.length : 0;
-  const fieldSkills = new Set(TAXONOMY.skills_by_field?.[field] || []);
+  const fieldSkills = new Set(opportunity.kind === 'post' ? required : TAXONOMY.skills_by_field?.[field] || []);
   const interestFit = interests.map(i => {
     const related = new Set(TAXONOMY.skills_by_interest?.[i] || []);
     return related.size && fieldSkills.size ? [...related].filter(x => fieldSkills.has(x)).length / Math.min(related.size, fieldSkills.size) : 0;
@@ -82,7 +76,7 @@ function rank(user, opportunities) {
     const preferenceScore = userPreference === 'all' || !userPreference
       ? 1
       : (userPreference === postPreference ? 1 : 0);
-    const blended = userPreference === 'all' || !userPreference
+    const blended = o.kind === 'post' || userPreference === 'all' || !userPreference
       ? baseScore
       : baseScore * 0.70 + preferenceScore * 0.30;
     return [o.id, blended];
@@ -139,11 +133,6 @@ module.exports = {
   canonicalField,
   canonicalSkill,
   canonicalInterest,
-  matchScore: score,
-  rankOpportunities: (user, opps) => {
-    const scores = rank(user, opps);
-    return opps.map(o => ({ opportunity: o, score: scores[o.id] || 0, breakdown: {} })).sort((a, b) => b.score - a.score);
-  },
   score,
   rank,
   computeDistanceScore,

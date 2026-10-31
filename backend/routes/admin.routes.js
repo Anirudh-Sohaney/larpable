@@ -13,8 +13,6 @@ const auth = require('../auth');
 const store = require('../store');
 const { decryptObject, encryptObject } = require('../crypto');
 const { geocode, geocodeStructured } = require('../geocode');
-const { removeUserFeedback } = require('../feedback');
-const applicationsStore = require('../applications');
 
 const COOKIE_NAME = 'larpable_session';
 
@@ -82,32 +80,8 @@ router.delete('/:id', requireAdmin, async (req, res) => {
       return res.status(400).json({ error: 'Cannot delete admin account' });
     }
     
-    // 1. Delete all opportunities created by this user
-    const allOpps = await store.getAllOpportunities();
-    for (const opp of allOpps) {
-      if (opp.created_by === userId) {
-        await store.deleteOpportunity(opp.id);
-        await applicationsStore.removeOpportunity(opp.id);
-      }
-    }
-    
-    // 2. Destroy all sessions for this user
-    await store.atomicUpdate('sessions.json', (sessions) => {
-      for (const [hash, session] of Object.entries(sessions)) {
-        if (session.user_id === userId) {
-          delete sessions[hash];
-        }
-      }
-      return sessions;
-    });
-    
-    // 3. Delete feedback and prompt history owned by this user
-    await removeUserFeedback(store, userId);
-    await applicationsStore.removeUser(userId);
+    await require('../deleted_users').remove(userId);
 
-    // 4. Delete user record
-    await store.remove('users.json', userId);
-    
     res.json({ ok: true });
   } catch (e) {
     console.error('Admin delete user error:', e);

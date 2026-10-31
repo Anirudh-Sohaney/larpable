@@ -27,42 +27,12 @@ const { scanFields, scanText, applyFlag, flagNotice } = require('../profanity');
 const applicationsStore = require('../applications');
 const { notifyPosterOfApplication } = require('../reengagement');
 const { normalizeSkills, normalizeField } = require('../canonical');
+const { validatePostContent } = require('../post_content');
 
 const OPPORTUNITY_PREFERENCES = new Set(['volunteering', 'paid', 'unpaid']);
-const MIN_SKILLS = 3;
-const MAX_DESCRIPTION_WORDS = 15;
-
-function countWords(text) {
-  return String(text || '').trim().split(/\s+/).filter(Boolean).length;
-}
-
-// Shared create/edit checks: new listings need at least MIN_SKILLS skills and a
-// description of at most MAX_DESCRIPTION_WORDS words.
-function validatePostContent({ skills, description, requireSkills }) {
-  if (requireSkills && normalizeSkills(skills).length < MIN_SKILLS) {
-    return `Select at least ${MIN_SKILLS} skills`;
-  }
-  if (description !== undefined && countWords(description) > MAX_DESCRIPTION_WORDS) {
-    return `Description must be ${MAX_DESCRIPTION_WORDS} words or fewer`;
-  }
-  return null;
-}
 const DEFAULT_OPPORTUNITY_PREFERENCE = { project: 'unpaid', nonprofit: 'volunteering', company: 'paid' };
 
-function addCommentPermissions(comments, user) {
-  if (!Array.isArray(comments)) return;
-  const canModerateAny = String(user?.encrypted_fields?.username || '').toLowerCase() === 'anisohaney';
-  for (const comment of comments) {
-    if (!comment || typeof comment !== 'object') continue;
-    comment.can_edit = !!user && comment.user_id === user.id;
-    comment.can_delete = comment.can_edit || canModerateAny;
-    for (const reply of Array.isArray(comment.replies) ? comment.replies : []) {
-      if (!reply || typeof reply !== 'object') continue;
-      reply.can_edit = !!user && reply.user_id === user.id;
-      reply.can_delete = reply.can_edit || canModerateAny;
-    }
-  }
-}
+const {addCommentPermissions} = require('./comments.routes');
 
 // ── Middleware: require auth ──────────────────────────────────
 async function requireAuth(req, res, next) {
@@ -121,8 +91,7 @@ router.get('/', optionalAuth, async (req, res) => {
 // ── GET /api/opportunities/mine ──────────────────────────────
 router.get('/mine', requireAuth, async (req, res) => {
   try {
-    const allOpps = await store.getAllOpportunities(null);
-    const mine = allOpps.filter(o => o.created_by === req.user.id && !o.flagged);
+    const mine = await store.getAllOpportunities(null,{createdBy:req.user.id});
     
     const enriched = await Promise.all(mine.map(opp => enrichOppWithCoords(opp, req.user)));
     const applications = await applicationsStore.read();
@@ -231,6 +200,8 @@ router.get('/:id', optionalAuth, async (req, res) => {
     res.json({
       id: opp.id,
       type: opp.type,
+      project_id: opp.project_id,
+      project: opp.project,
       created_by: opp.created_by || '',
       created_at: opp.created_at,
       flagged: opp.flagged || false,
@@ -256,7 +227,8 @@ router.post('/:id/applications', requireAuth, async (req, res) => {
     if (!opportunity || opportunity.flagged) return res.status(404).json({ error: 'Opportunity not found' });
     if (opportunity.created_by === req.user.id) return res.status(403).json({ error: 'You cannot apply to your own post' });
     let created = false;
-    await store.atomicUpdate(applicationsStore.FILE, applications => {
+    await store.atomicUpdate(applicationsStore.FILE, async applications => {
+      await require('../deleted_users').requireActive(req.user.id);
       const applicants = applications[req.params.id] ||= {};
       if (!applicants[req.user.id]) {
         applicants[req.user.id] = { applied_at: new Date().toISOString(), read_at: null };
@@ -329,7 +301,8 @@ router.post('/:id/applications/seen', requireAuth, async (req, res) => {
     if (!Array.isArray(applicantIds) || applicantIds.length > 10000 || applicantIds.some(id => typeof id !== 'string')) {
       return res.status(400).json({ error: 'Applicant IDs are required' });
     }
-    await store.atomicUpdate(applicationsStore.FILE, applications => {
+    await store.atomicUpdate(applicationsStore.FILE, async applications => {
+      await require('../deleted_users').requireActive(req.user.id);
       const applicants = applications[req.params.id] || {};
       for (const id of applicantIds) {
         const entry = applicants[id];
@@ -348,341 +321,16 @@ router.post('/:id/applications/seen', requireAuth, async (req, res) => {
 // ── POST /api/opportunities ──────────────────────────────────
 router.post('/', requireAuth, async (req, res) => {
   try {
-    const { type, ...fields } = req.body;
-    
-    if (!type || !['project', 'nonprofit', 'company'].includes(type)) {
-      return res.status(400).json({ error: 'Valid type is required (project, nonprofit, company)' });
-    }
-    
-    if (!fields.title) {
-      return res.status(400).json({ error: 'Title is required' });
-    }
-    
-    // Sanitize all input fields (prevent XSS)
-    const cleanFields = sanitizeObject(fields);
-
-    // New listings must meet the content requirements.
-    const validationError = validatePostContent({ skills: cleanFields.skills, description: cleanFields.description, requireSkills: true });
-    if (validationError) return res.status(400).json({ error: validationError });
-
-    // Store canonical skills/fields so listings match the create form + filters.
-    cleanFields.skills = normalizeSkills(cleanFields.skills);
-    if (cleanFields.nonprofit_field !== undefined) cleanFields.nonprofit_field = normalizeField(cleanFields.nonprofit_field);
-    if (cleanFields.industry !== undefined) cleanFields.industry = normalizeField(cleanFields.industry);
-
-
-    const opportunityPreference = cleanFields.opportunity_preference || DEFAULT_OPPORTUNITY_PREFERENCE[type];
-    if (!OPPORTUNITY_PREFERENCES.has(opportunityPreference)) {
-      return res.status(400).json({ error: 'Invalid opportunity preference' });
-    }
-
-    // A timestamp alone can collide when two identical posts arrive in the
-    // same millisecond; random IDs keep one creation from replacing another.
-    const oppId = 'opp_' + require('crypto').randomBytes(12).toString('hex');
-    
-    // Build issuer info from user profile
-    const userFields = decryptObject(req.user.encrypted_fields || {});
-    const issuerName = [userFields.firstName || userFields.first_name, userFields.lastName || userFields.last_name].filter(Boolean).join(' ') || 'Student';
-    const issuerContext = [userFields.grade].filter(Boolean).join(', ');
-    
-    const oppData = {
-      type,
-      created_by: req.user.id,
-      created_at: new Date().toISOString(),
-      encrypted_fields: {
-        title: cleanFields.title,
-        description: cleanFields.description || '',
-        issuer_name: issuerName,
-        issuer_context: issuerContext,
-        looking_for: cleanFields.looking_for || '',
-        location: cleanFields.location || '',
-        remote: cleanFields.remote !== undefined ? cleanFields.remote : true,
-        latitude: cleanFields.latitude || null,
-        longitude: cleanFields.longitude || null,
-        contact_links: Array.isArray(cleanFields.contact_links) ? cleanFields.contact_links.filter(l => l && l.trim()) : (cleanFields.contact ? [cleanFields.contact] : []),
-        skills: cleanFields.skills || [],
-        details: cleanFields.details || '',
-        opportunity_preference: opportunityPreference,
-        // Nonprofit-specific
-        ...(type === 'nonprofit' && {
-          nonprofit_field: cleanFields.nonprofit_field || ''
-        }),
-        // Company-specific
-        ...(type === 'company' && {
-          industry: cleanFields.industry || ''
-        })
-      }
-    };
-
-    // Profanity filter: any prohibited word in the new post's input fields
-    // flags it — held from the public feed until a staff member acts, and the
-    // author is told the post is under review.
-    const scan = scanFields(oppData.encrypted_fields);
-    applyFlag(oppData, scan, oppData.created_at);
-    const flagged = scan.flagged;
-
-    oppData.encrypted_fields = encryptObject(oppData.encrypted_fields);
-    
-    await store.saveOpportunity(oppId, oppData);
-    
-    res.json(flagged
-      ? { id: oppId, flagged: true, message: flagNotice(scan.terms) }
-      : { id: oppId });
+    const {id,scan} = await require('../posts').create(req.user,req.body);
+    res.json(scan.flagged ? {id,flagged:true,message:flagNotice(scan.terms)} : {id});
   } catch (e) {
-    console.error('Create opportunity error:', e);
-    res.status(500).json({ error: 'Server error' });
+    if(!e.status)console.error('Create opportunity error:', e);
+    res.status(e.status || 500).json({error:e.status ? e.message : 'Server error'});
   }
 });
 
 
-// ── POST /api/opportunities/:id/comments ─────────────────────
-router.post('/:id/comments', requireAuth, async (req, res) => {
-  try {
-    const opp = await store.getById('opportunities.json', req.params.id);
-    if (!opp) return res.status(404).json({ error: 'Opportunity not found' });
-    
-    // Held-from-feed posts are only visible to their author (and admins).
-    if (opp.flagged && opp.created_by !== req.user.id && req.user.id !== 'admin_larpable') {
-      return res.status(404).json({ error: 'Opportunity not found' });
-    }
-
-    const text = req.body?.text;
-    if (typeof text !== 'string') return res.status(400).json({ error: 'Comment text is required' });
-    const cleanText = sanitizeObject({ text }).text;
-    if (!cleanText) {
-      return res.status(400).json({ error: 'Comment cannot be empty' });
-    }
-
-    const words = cleanText.split(/\s+/);
-    if (words.length > 200) {
-      return res.status(400).json({ error: 'Comment exceeds 200 words limit' });
-    }
-
-    // Apply profanity filter
-    if (scanText(cleanText)) {
-      return res.status(400).json({ error: 'Profanity detected. Comment not accepted.' });
-    }
-
-    // Get user details for author name
-    const userFields = decryptObject(req.user.encrypted_fields || {});
-    const authorName = [userFields.firstName || userFields.first_name, userFields.lastName || userFields.last_name].filter(Boolean).join(' ') || req.user.username || 'Anonymous';
-
-    const newComment = {
-      id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
-      user_id: req.user.id,
-      user_name: authorName,
-      text: cleanText,
-      created_at: new Date().toISOString(),
-      read_by_op: req.user.id === opp.created_by
-    };
-
-    await store.atomicUpdate('opportunities.json', opportunities => {
-      const latest = opportunities[req.params.id];
-      if (!latest || (latest.flagged && latest.created_by !== req.user.id && req.user.id !== 'admin_larpable')) {
-        throw Object.assign(new Error('Opportunity not found'), { status: 404, expectedStoreConflict: true });
-      }
-      const currentFields = decryptObject(latest.encrypted_fields || {});
-      const comments = Array.isArray(currentFields.comments) ? currentFields.comments : [];
-      comments.push(newComment);
-      currentFields.comments = comments;
-      latest.encrypted_fields = encryptObject(currentFields);
-      return opportunities;
-    });
-
-    res.json({ ok: true, comment: { ...newComment, can_edit: true, can_delete: true } });
-  } catch (e) {
-    console.error('Add comment error:', e);
-    res.status(e.status || 500).json({ error: e.status ? e.message : 'Server error' });
-  }
-});
-
-// Comment authors may edit their own text. The authorization check happens
-// inside the write queue so it applies to the current stored comment.
-router.patch('/:id/comments/:commentId', requireAuth, async (req, res) => {
-  try {
-    const text = req.body?.text;
-    if (typeof text !== 'string') return res.status(400).json({ error: 'Comment cannot be empty' });
-    const cleanText = sanitizeObject({ text }).text;
-    if (!cleanText) return res.status(400).json({ error: 'Comment cannot be empty' });
-    if (cleanText.split(/\s+/).length > 200) return res.status(400).json({ error: 'Comment exceeds 200 words limit' });
-    if (scanText(cleanText)) return res.status(400).json({ error: 'Profanity detected. Comment not accepted.' });
-
-    let updatedComment;
-    await store.atomicUpdate('opportunities.json', opportunities => {
-      const opp = opportunities[req.params.id];
-      if (!opp) {
-        throw Object.assign(new Error('Opportunity not found'), { status: 404, expectedStoreConflict: true });
-      }
-      const fields = decryptObject(opp.encrypted_fields || {});
-      const comment = (fields.comments || []).find(c => c.id === req.params.commentId);
-      if (!comment) throw Object.assign(new Error('Comment not found'), { status: 404, expectedStoreConflict: true });
-      if (comment.user_id !== req.user.id) throw Object.assign(new Error('Not authorized'), { status: 403, expectedStoreConflict: true });
-      comment.text = cleanText;
-      comment.edited_at = new Date().toISOString();
-      updatedComment = comment;
-      opp.encrypted_fields = encryptObject(fields);
-      return opportunities;
-    });
-    res.json({ ok: true, comment: updatedComment });
-  } catch (e) {
-    if (!e.status || e.status >= 500) console.error('Edit comment error:', e);
-    res.status(e.status || 500).json({ error: e.status ? e.message : 'Server error' });
-  }
-});
-
-router.delete('/:id/comments/:commentId', requireAuth, async (req, res) => {
-  try {
-    const isAnisohaney = req.user.encrypted_fields?.username?.toLowerCase() === 'anisohaney';
-    await store.atomicUpdate('opportunities.json', opportunities => {
-      const opp = opportunities[req.params.id];
-      if (!opp) {
-        throw Object.assign(new Error('Opportunity not found'), { status: 404, expectedStoreConflict: true });
-      }
-      const fields = decryptObject(opp.encrypted_fields || {});
-      const comments = Array.isArray(fields.comments) ? fields.comments : [];
-      const index = comments.findIndex(c => c.id === req.params.commentId);
-      if (index < 0) throw Object.assign(new Error('Comment not found'), { status: 404, expectedStoreConflict: true });
-      if (comments[index].user_id !== req.user.id && !isAnisohaney) {
-        throw Object.assign(new Error('Not authorized'), { status: 403, expectedStoreConflict: true });
-      }
-      comments.splice(index, 1);
-      fields.comments = comments;
-      opp.encrypted_fields = encryptObject(fields);
-      return opportunities;
-    });
-    res.json({ ok: true });
-  } catch (e) {
-    if (!e.status || e.status >= 500) console.error('Delete comment error:', e);
-    res.status(e.status || 500).json({ error: e.status ? e.message : 'Server error' });
-  }
-});
-
-router.patch('/:id/comments/:commentId/replies/:replyId', requireAuth, async (req, res) => {
-  try {
-    const text = req.body?.text;
-    if (typeof text !== 'string') return res.status(400).json({ error: 'Reply cannot be empty' });
-    const cleanText = sanitizeObject({ text }).text;
-    if (!cleanText) return res.status(400).json({ error: 'Reply cannot be empty' });
-    if (cleanText.split(/\s+/).length > 200) return res.status(400).json({ error: 'Reply exceeds 200 words limit' });
-    if (scanText(cleanText)) return res.status(400).json({ error: 'Profanity detected. Reply not accepted.' });
-
-    let updatedReply;
-    await store.atomicUpdate('opportunities.json', opportunities => {
-      const opp = opportunities[req.params.id];
-      if (!opp) throw Object.assign(new Error('Opportunity not found'), { status: 404, expectedStoreConflict: true });
-      const fields = decryptObject(opp.encrypted_fields || {});
-      const comment = (fields.comments || []).find(c => c.id === req.params.commentId);
-      if (!comment) throw Object.assign(new Error('Comment not found'), { status: 404, expectedStoreConflict: true });
-      const reply = (comment.replies || []).find(r => r.id === req.params.replyId);
-      if (!reply) throw Object.assign(new Error('Reply not found'), { status: 404, expectedStoreConflict: true });
-      if (reply.user_id !== req.user.id) throw Object.assign(new Error('Not authorized'), { status: 403, expectedStoreConflict: true });
-      reply.text = cleanText;
-      reply.edited_at = new Date().toISOString();
-      updatedReply = reply;
-      opp.encrypted_fields = encryptObject(fields);
-      return opportunities;
-    });
-    res.json({ ok: true, reply: updatedReply });
-  } catch (e) {
-    if (!e.status || e.status >= 500) console.error('Edit reply error:', e);
-    res.status(e.status || 500).json({ error: e.status ? e.message : 'Server error' });
-  }
-});
-
-router.delete('/:id/comments/:commentId/replies/:replyId', requireAuth, async (req, res) => {
-  try {
-    const isAnisohaney = req.user.encrypted_fields?.username?.toLowerCase() === 'anisohaney';
-    await store.atomicUpdate('opportunities.json', opportunities => {
-      const opp = opportunities[req.params.id];
-      if (!opp) throw Object.assign(new Error('Opportunity not found'), { status: 404, expectedStoreConflict: true });
-      const fields = decryptObject(opp.encrypted_fields || {});
-      const comment = (fields.comments || []).find(c => c.id === req.params.commentId);
-      if (!comment) throw Object.assign(new Error('Comment not found'), { status: 404, expectedStoreConflict: true });
-      const replies = Array.isArray(comment.replies) ? comment.replies : [];
-      const index = replies.findIndex(r => r.id === req.params.replyId);
-      if (index < 0) throw Object.assign(new Error('Reply not found'), { status: 404, expectedStoreConflict: true });
-      if (replies[index].user_id !== req.user.id && !isAnisohaney) {
-        throw Object.assign(new Error('Not authorized'), { status: 403, expectedStoreConflict: true });
-      }
-      replies.splice(index, 1);
-      comment.replies = replies;
-      opp.encrypted_fields = encryptObject(fields);
-      return opportunities;
-    });
-    res.json({ ok: true });
-  } catch (e) {
-    if (!e.status || e.status >= 500) console.error('Delete reply error:', e);
-    res.status(e.status || 500).json({ error: e.status ? e.message : 'Server error' });
-  }
-});
-
-
-// ── POST /api/opportunities/:id/comments/:commentId/replies ──
-router.post('/:id/comments/:commentId/replies', requireAuth, async (req, res) => {
-  try {
-    const opp = await store.getById('opportunities.json', req.params.id);
-    if (!opp) return res.status(404).json({ error: 'Opportunity not found' });
-    
-    if (opp.flagged && opp.created_by !== req.user.id && req.user.id !== 'admin_larpable') {
-      return res.status(404).json({ error: 'Opportunity not found' });
-    }
-
-    const text = req.body?.text;
-    if (typeof text !== 'string') return res.status(400).json({ error: 'Reply text is required' });
-    const cleanText = sanitizeObject({ text }).text;
-    if (!cleanText) {
-      return res.status(400).json({ error: 'Reply cannot be empty' });
-    }
-
-    const words = cleanText.split(/\s+/);
-    if (words.length > 200) {
-      return res.status(400).json({ error: 'Reply exceeds 200 words limit' });
-    }
-
-    if (scanText(cleanText)) {
-      return res.status(400).json({ error: 'Profanity detected. Reply not accepted.' });
-    }
-
-    const initialFields = decryptObject(opp.encrypted_fields || {});
-    const comment = (initialFields.comments || []).find(c => c.id === req.params.commentId);
-    if (!comment) {
-      return res.status(404).json({ error: 'Comment not found' });
-    }
-
-    const userFields = decryptObject(req.user.encrypted_fields || {});
-    const authorName = [userFields.firstName || userFields.first_name, userFields.lastName || userFields.last_name].filter(Boolean).join(' ') || req.user.username || 'Anonymous';
-
-    const newReply = {
-      id: Date.now().toString() + Math.random().toString(36).substr(2, 5),
-      user_id: req.user.id,
-      user_name: authorName,
-      text: cleanText,
-      created_at: new Date().toISOString(),
-      read_by_parent_author: req.user.id === comment.user_id
-    };
-
-    await store.atomicUpdate('opportunities.json', opportunities => {
-      const latest = opportunities[req.params.id];
-      if (!latest || (latest.flagged && latest.created_by !== req.user.id && req.user.id !== 'admin_larpable')) {
-        throw Object.assign(new Error('Opportunity not found'), { status: 404, expectedStoreConflict: true });
-      }
-      const currentFields = decryptObject(latest.encrypted_fields || {});
-      const comments = Array.isArray(currentFields.comments) ? currentFields.comments : [];
-      const latestComment = comments.find(c => c.id === req.params.commentId);
-      if (!latestComment) throw Object.assign(new Error('Comment not found'), { status: 404, expectedStoreConflict: true });
-      if (!Array.isArray(latestComment.replies)) latestComment.replies = [];
-      latestComment.replies.push(newReply);
-      currentFields.comments = comments;
-      latest.encrypted_fields = encryptObject(currentFields);
-      return opportunities;
-    });
-
-    res.json({ ok: true, reply: { ...newReply, can_edit: true, can_delete: true } });
-  } catch (e) {
-    console.error('Add reply error:', e);
-    res.status(e.status || 500).json({ error: e.status ? e.message : 'Server error' });
-  }
-});
+router.use(require('./comments.routes').commentsRouter('opportunities.json',requireAuth));
 
 // ── PATCH /api/opportunities/:id ─────────────────────────────
 router.patch('/:id', requireAuth, async (req, res) => {
@@ -700,7 +348,7 @@ router.patch('/:id', requireAuth, async (req, res) => {
     // Merge updates — whitelist of safe fields only (Issue #8 fix)
     // 'created_by', 'id', 'created_at' are NEVER overwritable.
     // 'type' is handled separately below.
-    const allowedFields = ['title', 'description', 'looking_for', 'location', 'remote', 'contact_links', 'skills', 'details', 'nonprofit_field', 'industry', 'opportunity_preference'];
+    const allowedFields = [ 'description', 'looking_for', 'location', 'remote', 'contact_links', 'skills', 'details', 'opportunity_preference'];
     const updates = {};
     for (const key of allowedFields) {
       if (req.body[key] !== undefined) {
@@ -712,27 +360,25 @@ router.patch('/:id', requireAuth, async (req, res) => {
     }
     // Enforce the same content rules when skills/description are actually edited,
     // then store canonical values.
+    const currentSkills = normalizeSkills(decryptObject(opp.encrypted_fields || {}).skills);
     const patchError = validatePostContent({
       skills: updates.skills,
       description: updates.description,
-      requireSkills: updates.skills !== undefined
+      requireSkills: updates.skills !== undefined && JSON.stringify(normalizeSkills(updates.skills)) !== JSON.stringify(currentSkills)
     });
     if (patchError) return res.status(400).json({ error: patchError });
     if (updates.skills !== undefined) updates.skills = normalizeSkills(updates.skills);
-    if (updates.nonprofit_field !== undefined) updates.nonprofit_field = normalizeField(updates.nonprofit_field);
-    if (updates.industry !== undefined) updates.industry = normalizeField(updates.industry);
     let scan;
-    await store.atomicUpdate('opportunities.json', opportunities => {
+    await store.atomicUpdate('opportunities.json', async opportunities => {
       const latest = opportunities[req.params.id];
       if (!latest) throw Object.assign(new Error('Opportunity not found'), { status: 404, expectedStoreConflict: true });
       if (latest.created_by !== req.user.id && req.user.id !== 'admin_larpable') {
         throw Object.assign(new Error('Not authorized'), { status: 403, expectedStoreConflict: true });
       }
       const currentFields = decryptObject(latest.encrypted_fields || {});
-      const nextType = req.body.type && ['project', 'nonprofit', 'company'].includes(req.body.type)
-        ? req.body.type
-        : latest.type;
+      const nextType = (await require('../projects').get(latest.project_id))?.type || latest.type;
       const updatedFields = { ...currentFields, ...sanitizeObject(updates) };
+      delete updatedFields.title;
       if (!OPPORTUNITY_PREFERENCES.has(updatedFields.opportunity_preference)) {
         updatedFields.opportunity_preference = DEFAULT_OPPORTUNITY_PREFERENCE[nextType] || 'unpaid';
       }
@@ -811,9 +457,11 @@ function enrichOpp(opp, user) {
 
   return {
     id: opp.id,
+    kind: 'opportunity',
     unread_reply_comment_id,
     type: opp.type,
-    title: f.title || '',
+    project_id: opp.project_id,
+    project_name: opp.project_name,
     issuer_name: f.issuer_name || '',
     issuer_context: f.issuer_context || '',
     description: f.description || '',
@@ -827,8 +475,9 @@ function enrichOpp(opp, user) {
     skills: f.skills || [],
     details: f.details || '',
     opportunity_preference: f.opportunity_preference || DEFAULT_OPPORTUNITY_PREFERENCE[opp.type] || 'unpaid',
-    nonprofit_field: f.nonprofit_field || '',
-    industry: f.industry || '',
+    field: opp.project?.fields.field || '',
+    nonprofit_field: opp.type==='nonprofit' ? (opp.project?.fields.field || '') : '',
+    industry: opp.type==='company' ? (opp.project?.fields.field || '') : '',
     flagged: !!opp.flagged,
     created_by: opp.created_by || '',
     created_at: opp.created_at || '',
@@ -891,4 +540,11 @@ async function enrichOppWithCoords(opp, user) {
   return enriched;
 }
 
+router.listForFeed=async(user,mine=false,projectId=null)=>{
+  const posts=await store.getAllOpportunities(null,{projectId,createdBy:mine ? user.id : null,approvedOnly:!mine});
+  const applications=user ? await applicationsStore.read() : {};
+  const rows=await Promise.all(posts.map(p=>enrichOppWithCoords(p,user)));
+  rows.forEach(p=>addApplicationSummary(p,user,applications));
+  return rows;
+};
 module.exports = router;

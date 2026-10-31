@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>LARPABLE. — Create Opportunity</title>
+  <title>LARPABLE. — Create Post</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/styles.css">
+  <link rel="stylesheet" href="/css/styles.css?v=ede539185a89">
 
   <style>
     :root {
@@ -27,20 +27,8 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: 'Space Grotesk', sans-serif; background: var(--bg); color: var(--font); min-height: 100vh; overflow-x: hidden; }
 
-    .page { width: 600px; margin: 0 auto; padding: 0 20px 60px; }
-
-    /* Type selector */
-    .type-selector { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 24px; }
-    .type-btn {
-      display: flex; flex-direction: column; align-items: center; gap: 4px;
-      padding: 12px 8px; background: var(--card); border: 1.5px solid var(--border); border-radius: 8px;
-      cursor: pointer; transition: all 0.15s; font-family: inherit;
-    }
-    .type-btn:hover { border-color: var(--muted); }
-    .type-btn.is-active { border-color: var(--accent); background: var(--coral-bg); }
-    .type-btn .icon { font-size: 1.3rem; }
-    .type-btn .label { font-size: 0.78rem; font-weight: 600; color: var(--muted); }
-    .type-btn.is-active .label { color: var(--accent); }
+    .page { width: 100%; max-width: 600px; margin: 0 auto; padding: 0 20px 60px; }
+    @media (max-width: 600px) { .page .d-nav-item { padding-inline: 12px; } }
 
     /* Opportunity preference */
     .opportunity-preference-options { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
@@ -129,8 +117,8 @@
       transition: all 0.15s; user-select: none;
     }
     .chip-label:hover { border-color: var(--muted); }
-    .chip-option:checked + .chip-label { background: var(--accent); border-color: var(--accent); color: #fff; }
-    .chip-option:disabled + .chip-label { opacity: 0.4; cursor: not-allowed; }
+    .chip-option:checked + .chip-label, .chip-label[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .chip-option:disabled + .chip-label, .chip-label:disabled { opacity: 0.4; cursor: not-allowed; }
 
     /* Skill search */
     .skill-search {
@@ -173,12 +161,59 @@
     .btn--ghost { background: none; border: 1px solid var(--border); color: var(--muted); }
     .btn--ghost:hover { border-color: var(--accent); color: var(--accent); }
 
-    /* Type-specific sections */
-    .type-section { display: none; }
-    .type-section.active { display: flex; flex-direction: column; gap: 18px; }
+    [hidden] { display:none !important; }
+    .project-picker{position:relative;margin-bottom:8px;min-width:0}
+    .project-picker-trigger{display:flex;align-items:center;gap:12px;width:100%;padding:14px 16px;border:1px solid var(--border);border-radius:12px;background:var(--card);color:var(--font);font:inherit;text-align:left;cursor:pointer;transition:border-color .15s,box-shadow .15s}
+    .project-picker-trigger:hover,.project-picker-trigger[aria-expanded="true"]{border-color:var(--accent)}
+    .project-picker-trigger:focus-visible,.project-picker-option:focus-visible,.project-picker-create:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+    .project-picker-trigger:disabled{cursor:default;opacity:.7}
+    .project-picker-mark{display:grid;place-items:center;flex-shrink:0;width:36px;height:36px;border-radius:10px;background:var(--accent-light);color:var(--accent);font-size:.9rem;font-weight:700}
+    .project-picker-copy{display:flex;flex:1;min-width:0;flex-direction:column;gap:3px}
+    .project-picker-name{font-size:.88rem;font-weight:600;overflow-wrap:anywhere}
+    .project-picker-meta{color:var(--muted);font-size:.73rem;line-height:1.4}
+    .project-picker-chevron{flex-shrink:0;width:18px;height:18px;color:var(--muted);transition:transform .15s}
+    .project-picker-trigger[aria-expanded="true"] .project-picker-chevron{transform:rotate(180deg)}
+    .project-picker-menu{position:absolute;top:calc(100% + 8px);left:0;right:0;z-index:300;padding:8px;border:1px solid var(--border);border-radius:14px;background:var(--card);box-shadow:0 12px 36px var(--shadow);}
+    .project-picker-search{padding:4px 4px 10px}
+    .project-picker-search input{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg-primary);color:var(--font);font:400 .82rem 'Space Grotesk',sans-serif;outline:none}
+    .project-picker-search input:focus{border-color:var(--accent)}
+    .project-picker-options{display:flex;flex-direction:column;gap:4px;max-height:min(320px,40vh);overflow-y:auto;overscroll-behavior:contain;padding:3px}
+    .project-picker-option{display:flex;align-items:center;gap:12px;flex-shrink:0;width:100%;padding:11px 12px;border:1px solid transparent;border-radius:9px;background:transparent;color:var(--font);text-align:left;font:inherit;cursor:pointer}
+    .project-picker-option:hover{background:var(--bg-tertiary)}
+    .project-picker-option[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-light)}
+    .project-picker-option .project-picker-meta{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+    .project-picker-check{margin-left:auto;color:var(--accent);font-size:1rem;font-weight:700}
+    .project-picker-create{display:flex;align-items:center;gap:10px;width:100%;margin-top:8px;padding:13px 15px;border:0;border-top:1px solid var(--border);border-radius:0 0 8px 8px;background:transparent;color:var(--accent);font:600 .82rem 'Space Grotesk',sans-serif;text-align:left;cursor:pointer}
+    .project-picker-create:hover{background:var(--accent-light)}
+    .project-picker-empty{padding:20px 12px;color:var(--muted);font-size:.82rem;text-align:center}
+    .media-heading{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+    .media-heading span{font-size:.7rem;color:var(--muted);font-weight:400}
+    .media-upload{border:1px solid var(--border);border-radius:12px;overflow:hidden;background:var(--card);transition:border-color .15s,box-shadow .15s}
+    .media-upload.is-dragging{border-color:var(--fg-primary);box-shadow:0 0 0 3px var(--border)}
+    .media-upload-empty{display:flex;flex-direction:column;align-items:center;gap:8px;width:100%;padding:25px 18px;border:0;background:transparent;color:var(--fg-primary);font:inherit;cursor:pointer;text-align:center}
+    .media-upload-empty:hover{background:var(--bg-tertiary)}
+    .media-upload-empty:focus-visible,.media-upload-actions button:focus-visible{outline:2px solid var(--fg-primary);outline-offset:-4px}
+    .media-upload-icon{display:grid;place-items:center;width:42px;height:42px;margin-bottom:2px;border:1px solid var(--border);border-radius:12px;background:var(--bg-primary)}
+    .media-upload-icon svg{width:21px;height:21px}
+    .media-upload-title{font-size:.85rem;font-weight:600}
+    .media-upload-help{font-size:.73rem;color:var(--muted)}
+    .media-upload-browse{display:inline-block;margin-top:5px;padding:7px 13px;border:1px solid var(--border);border-radius:7px;background:var(--card);font-size:.74rem;font-weight:600}
+    .media-upload .d-post-media{width:100%;max-height:280px;margin:0;border-radius:0;background:var(--bg-tertiary)}
+    .media-upload-toolbar{display:flex;align-items:center;gap:12px;padding:12px 14px;border-top:1px solid var(--border)}
+    .media-upload-info{min-width:0;flex:1;display:flex;flex-direction:column;gap:3px}
+    .media-upload-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.77rem;font-weight:600}
+    .media-upload-detail{font-size:.69rem;color:var(--muted)}
+    .media-upload-actions{display:flex;gap:4px;flex-shrink:0}
+    .media-upload-actions button{display:grid;place-items:center;padding:7px 9px;border:1px solid var(--border);border-radius:7px;background:var(--card);color:var(--fg-primary);font:500 .72rem 'Space Grotesk',sans-serif;cursor:pointer}
+    .media-upload-actions button:hover{background:var(--bg-tertiary)}
+    .media-upload-actions svg{width:15px;height:15px}
+    .media-upload-note{margin-top:5px;font-size:.68rem;color:var(--muted);line-height:1.5}
+    .media-upload-status{font-size:.73rem;color:var(--muted)}
+    .media-upload-error{font-size:.75rem;color:var(--error)}
   </style>
 </head>
 <body>
+  <figure class="d-feed-art" aria-hidden="true" data-dot-src="/assets/hero-dots.png"><canvas width="1375" height="1144"></canvas></figure>
 
   <header class="d-header">
     <a href="/feed" class="d-logo">LARPABLE.</a>
@@ -198,77 +233,82 @@
     </div>
   </header>
 
-  <div class="page" data-scale-target="600">
-    <h1 style="font-size:1.3rem; font-weight:700; margin-bottom:4px;">Create an opportunity</h1>
-    <p style="font-size:0.85rem; color:var(--muted); margin-bottom:20px;">What are you posting?</p>
-
-    <!-- TYPE SELECTOR -->
-    <div class="type-selector">
-      <button class="type-btn is-active" type="button" onclick="selectType('project', this)">
-        <span class="icon">🎓</span>
-        <span class="label">Project</span>
-      </button>
-      <button class="type-btn" type="button" onclick="selectType('nonprofit', this)">
-        <span class="icon">🌍</span>
-        <span class="label">Non-profit</span>
-      </button>
-      <button class="type-btn" type="button" onclick="selectType('company', this)">
-        <span class="icon">🏢</span>
-        <span class="label">Company</span>
-      </button>
+  <div class="page">
+    <h1 style="font-size:1.3rem; font-weight:700; margin-bottom:4px;">Create a post</h1>
+    <p style="font-size:0.85rem;color:var(--muted);margin-bottom:20px;">First choose the project this post belongs to.</p>
+    <div class="field">
+      <label id="project-picker-label" for="project-picker-trigger">Project</label>
+      <input type="hidden" id="parent-project">
+      <div class="project-picker" id="project-picker">
+        <button type="button" id="project-picker-trigger" class="project-picker-trigger" aria-haspopup="dialog" aria-expanded="false" aria-controls="project-picker-menu" aria-labelledby="project-picker-label project-picker-name" disabled>
+          <span class="project-picker-mark" id="project-picker-mark" aria-hidden="true">↗</span>
+          <span class="project-picker-copy"><span class="project-picker-name" id="project-picker-name">Loading your projects…</span><span class="project-picker-meta" id="project-picker-meta">Choose where your post belongs</span></span>
+          <svg class="project-picker-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+        <div id="project-picker-menu" class="project-picker-menu" role="dialog" aria-label="Choose a project" hidden>
+          <div class="project-picker-search"><input type="search" id="project-picker-search" aria-label="Search your projects" placeholder="Search your projects…" autocomplete="off"></div>
+          <div id="project-picker-options" class="project-picker-options" role="group" aria-label="Your projects"></div>
+          <button type="button" id="project-picker-create" class="project-picker-create"><span aria-hidden="true">＋</span> Create a new project</button>
+        </div>
+      </div>
+      <p id="project-summary" style="font-size:.85rem;color:var(--muted);"></p>
     </div>
-
-    <form class="form" onsubmit="return false;">
-
-      <!-- PROJECT: Title -->
-      <div class="type-section active" id="section-project">
-        <div class="field">
-          <label for="project-title">Project title <span class="word-count" id="project-title-count">0 / 12</span></label>
-          <input id="project-title" type="text" placeholder="e.g. Mental health tracker app" maxlength="100">
-          <div class="error-msg" id="project-title-error">Required</div>
-        </div>
+    <p id="project-error" role="alert" style="color:var(--error,#c33);"></p>
+    <section id="new-project" class="form" hidden aria-label="Create a project">
+      <h2 style="font-size:1rem;">Create a project</h2>
+      <div class="field"><label for="new-project-type">Project type</label><select id="new-project-type"><option value="project">Project</option><option value="nonprofit">Nonprofit</option><option value="company">Company / startup</option></select></div>
+      <div class="field" id="new-project-field-row" hidden><label for="new-project-field">Field</label><select id="new-project-field"><option value="">Choose a field</option></select></div>
+      <div class="field"><label for="new-project-name">Name</label><input id="new-project-name" maxlength="120" type="text"></div>
+      <div class="field"><label for="new-project-pitch">Elevator pitch (2–30 words)</label><textarea id="new-project-pitch" placeholder="Briefly describe what the project is"></textarea></div>
+      <div class="field"><label for="new-project-description">In-depth description (optional)</label><textarea id="new-project-description" maxlength="5000"></textarea></div>
+      <div class="field">
+        <label for="project-tag-search">Tags <span class="chip-count" id="project-tag-count" aria-live="polite">0 / 15 (min 1)</span></label>
+        <input class="skill-search" id="project-tag-search" type="text" placeholder="Search skills..." autocomplete="off">
+        <div class="chip-grid" id="project-tags-grid" role="group" aria-label="Project tags"></div>
       </div>
-
-      <!-- NONPROFIT: Name + Field -->
-      <div class="type-section" id="section-nonprofit">
-        <div class="field">
-          <label for="np-name">Non-profit name <span class="word-count" id="np-name-count">0 / 12</span></label>
-          <input id="np-name" type="text" placeholder="e.g. Code.org" maxlength="100">
-          <div class="error-msg" id="np-name-error">Required</div>
-        </div>
-        <div class="field">
-          <label for="np-field">Field</label>
-          <select id="np-field">
-            <option value="" disabled selected>Select a field</option>
-            <option>Science &amp; Research</option><option>Technology &amp; Software</option><option>Engineering &amp; Manufacturing</option>
-            <option>Mathematics &amp; Data</option><option>Medicine &amp; Public Health</option><option>Business &amp; Entrepreneurship</option>
-            <option>Finance &amp; Economics</option><option>Law &amp; Public Policy</option><option>Education &amp; Learning</option>
-            <option>Arts, Design &amp; Media</option><option>Humanities &amp; Social Sciences</option><option>Environment, Agriculture &amp; Sports</option>
-          </select>
-          <div class="error-msg" id="np-field-error">Required</div>
-        </div>
+      <button type="button" id="create-project-btn" class="btn btn--filled">Create project and continue</button>
+      <a id="cancel-project-edit" class="btn btn--ghost" href="/feed?mine=1" hidden>Cancel</a>
+    </section>
+    <form class="form" id="post-form" hidden>
+      <div class="checkbox-row">
+        <input type="checkbox" id="opportunity-toggle" role="switch">
+        <label for="opportunity-toggle">Opportunity</label>
       </div>
-
-      <!-- COMPANY: Name + Industry -->
-      <div class="type-section" id="section-company">
+      <p class="hint" style="font-size:.75rem;color:var(--muted);">One post per day across posts and opportunities. Resets at 00:00 UTC. You can still save drafts and edit existing posts.</p>
+      <fieldset id="regular-fields" class="form" style="border:0;padding:0;min-width:0;">
         <div class="field">
-          <label for="co-name">Company name <span class="word-count" id="co-name-count">0 / 12</span></label>
-          <input id="co-name" type="text" placeholder="e.g. Stripe" maxlength="100">
-          <div class="error-msg" id="co-name-error">Required</div>
+          <label for="post-title">Title <span id="post-title-count" class="word-count">0 / 10 words · 0 / 130 characters</span></label>
+          <input id="post-title" type="text" maxlength="130" placeholder="Give your project update a title">
         </div>
         <div class="field">
-          <label for="co-industry">Industry</label>
-          <select id="co-industry">
-            <option value="" disabled selected>Select an industry</option>
-            <option>Science &amp; Research</option><option>Technology &amp; Software</option><option>Engineering &amp; Manufacturing</option>
-            <option>Mathematics &amp; Data</option><option>Medicine &amp; Public Health</option><option>Business &amp; Entrepreneurship</option>
-            <option>Finance &amp; Economics</option><option>Law &amp; Public Policy</option><option>Education &amp; Learning</option>
-            <option>Arts, Design &amp; Media</option><option>Humanities &amp; Social Sciences</option><option>Environment, Agriculture &amp; Sports</option>
-          </select>
-          <div class="error-msg" id="co-industry-error">Required</div>
+          <label for="post-content">Content <span id="post-content-count" class="word-count">0 / 300</span></label>
+          <textarea id="post-content" maxlength="300" placeholder="Share an update about your project"></textarea>
         </div>
-      </div>
-
+        <div class="field">
+            <div class="media-heading"><label for="choose-post-media">Media</label><span>Optional</span></div>
+            <input id="post-media" type="file" accept="image/png,image/jpeg,image/gif,image/webp,video/mp4,video/quicktime,video/webm" hidden>
+            <div class="media-upload" id="media-upload">
+              <button id="choose-post-media" class="media-upload-empty" type="button" aria-label="Add a photo or video" aria-describedby="media-upload-note">
+                <span class="media-upload-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m3 16 5-5 4 4 3-3 6 6"/></svg></span>
+                <span class="media-upload-title">Add a photo or video</span>
+                <span class="media-upload-help">Drag and drop, or choose a file</span>
+                <span class="media-upload-browse">Browse files</span>
+              </button>
+              <div id="post-media-preview" hidden></div>
+              <div class="media-upload-toolbar" id="post-media-toolbar" hidden>
+                <div class="media-upload-info"><span class="media-upload-name" id="post-media-name"></span><span class="media-upload-detail" id="post-media-detail"></span></div>
+                <div class="media-upload-actions">
+                  <button id="replace-post-media" type="button">Replace</button>
+                  <button id="remove-post-media" type="button" aria-label="Remove media" title="Remove media"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17"/></svg></button>
+                </div>
+              </div>
+            </div>
+            <p class="media-upload-note" id="media-upload-note">Images or video · Up to 64 MB · Videos up to 60 seconds</p>
+            <p class="media-upload-status" id="media-upload-status" role="status" aria-live="polite" hidden></p>
+            <p class="media-upload-error" id="media-upload-error" role="alert" hidden></p>
+        </div>
+      </fieldset>
+      <fieldset id="opportunity-fields" class="form" style="border:0;padding:0;min-width:0;" hidden disabled>
       <!-- LOOKING FOR (all types) -->
       <div class="field">
         <label for="looking-for">Looking for <span class="word-count" id="looking-for-count">0 / 15</span></label>
@@ -341,9 +381,10 @@
         <div class="error-msg" id="contact-error">Add at least one link</div>
       </div>
 
+      </fieldset>
       <div class="btn-row">
         <a href="/feed" class="btn btn--ghost">Cancel</a>
-        <button class="btn btn--filled" type="submit" id="submit-btn">Post opportunity</button>
+        <button class="btn btn--filled" type="submit" id="submit-btn">Post</button>
       </div>
 
     </form>
@@ -469,9 +510,6 @@
       });
     }
 
-    setupWordCount('project-title', 'project-title-count', 12);
-    setupWordCount('np-name', 'np-name-count', 12);
-    setupWordCount('co-name', 'co-name-count', 12);
     setupWordCount('looking-for', 'looking-for-count', 15);
     setupWordCount('description', 'desc-count', 15);
 
@@ -512,8 +550,7 @@
       });
     }
 
-    // ─── TYPE SELECTOR ───
-    let selectedType = 'project';
+    // Collaboration preference belongs to the post.
     let selectedOpportunityPreference = 'unpaid';
     const opportunityPreferenceDefaults = { project: 'unpaid', nonprofit: 'volunteering', company: 'paid' };
 
@@ -529,15 +566,6 @@
     document.querySelectorAll('[data-opportunity-preference]').forEach(button => {
       button.addEventListener('click', () => setOpportunityPreference(button.dataset.opportunityPreference));
     });
-
-    function selectType(type, btn) {
-      selectedType = type;
-      document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('is-active'));
-      btn.classList.add('is-active');
-      document.querySelectorAll('.type-section').forEach(s => s.classList.remove('active'));
-      document.getElementById('section-' + type).classList.add('active');
-      setOpportunityPreference(opportunityPreferenceDefaults[type]);
-    }
 
     // ─── REMOTE / LOCATION ───
     const remoteCheck = document.getElementById('remote-check');
@@ -639,441 +667,11 @@
       el.addEventListener('change', () => clearError(el.id));
     });
 
-    // ─── DRAFT AUTO-SAVE ───
-    let currentDraftId = null;
-    let draftSaveTimer = null;
-    let draftSaveInProgress = false;
-    let suppressAutoSave = false; // suppress while loading draft data
-
-    function collectFormData() {
-      const contactInputs = document.querySelectorAll('.contact-link-input');
-      const contactLinks = [];
-      contactInputs.forEach(inp => { const v = inp.value.trim(); if (v) contactLinks.push(v); });
-
-      const body = {
-        type: selectedType,
-        looking_for: (document.getElementById('looking-for').value || '').trim(),
-        skills: selectedSkills,
-        description: (document.getElementById('description').value || '').trim(),
-        details: (document.getElementById('details').value || '').trim(),
-        remote: remoteCheck.checked,
-        location: remoteCheck.checked ? 'Remote' : (selectedLocation ? selectedLocation.display : ''),
-        latitude: (!remoteCheck.checked && selectedLocation) ? selectedLocation.lat : null,
-        longitude: (!remoteCheck.checked && selectedLocation) ? selectedLocation.lon : null,
-        contact_links: contactLinks
-      };
-      body.opportunity_preference = selectedOpportunityPreference;
-
-      if (selectedType === 'project') {
-        body.title = (document.getElementById('project-title').value || '').trim();
-      } else if (selectedType === 'nonprofit') {
-        body.title = (document.getElementById('np-name').value || '').trim();
-        body.nonprofit_field = document.getElementById('np-field').value;
-      } else if (selectedType === 'company') {
-        body.title = (document.getElementById('co-name').value || '').trim();
-        body.industry = document.getElementById('co-industry').value;
-      }
-
-      return body;
-    }
-
-    function hasAnyContent(body) {
-      if (body.title) return true;
-      if (body.looking_for) return true;
-      if (body.description) return true;
-      if (body.details) return true;
-      if (body.skills && body.skills.length > 0) return true;
-      if (body.contact_links && body.contact_links.length > 0) return true;
-      return false;
-    }
-
-    async function saveDraft() {
-      if (suppressAutoSave || draftSaveInProgress) return;
-
-      // Don't save if already in edit mode (editing an existing opportunity, not a draft)
-      const editId = new URLSearchParams(window.location.search).get('edit');
-      if (editId) return;
-
-      const body = collectFormData();
-      if (!hasAnyContent(body)) return; // nothing to save yet
-
-      draftSaveInProgress = true;
-      try {
-        if (currentDraftId) body.id = currentDraftId;
-        const res = await fetch('/api/drafts', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'same-origin',
-          body: JSON.stringify(body)
-        });
-        if (res.ok) {
-          const data = await res.json();
-          if (data.id) currentDraftId = data.id;
-          showDraftIndicator();
-        }
-      } catch (e) {
-        console.error('Draft save failed:', e);
-      } finally {
-        draftSaveInProgress = false;
-      }
-    }
-
-    function scheduleDraftSave() {
-      clearTimeout(draftSaveTimer);
-      draftSaveTimer = setTimeout(saveDraft, 800); // 800ms debounce
-    }
-
-    function showDraftIndicator() {
-      // Show a subtle "Draft saved" indicator near the submit button
-      let indicator = document.getElementById('draft-indicator');
-      if (!indicator) {
-        indicator = document.createElement('span');
-        indicator.id = 'draft-indicator';
-        indicator.style.cssText = 'font-size:0.72rem; color:var(--muted); font-weight:500; margin-left:8px; transition: opacity 0.3s;';
-        const btnRow = document.querySelector('.btn-row');
-        if (btnRow) btnRow.appendChild(indicator);
-      }
-      indicator.textContent = 'Draft saved';
-      indicator.style.opacity = '1';
-      clearTimeout(indicator._hideTimer);
-      indicator._hideTimer = setTimeout(() => { indicator.style.opacity = '0'; }, 3000);
-    }
-
-    // Attach auto-save listeners to all form inputs
-    function attachDraftListeners() {
-      // Text inputs and textareas: save on blur (user finishes typing)
-      document.querySelectorAll('.field input[type="text"], .field textarea').forEach(el => {
-        el.addEventListener('blur', () => { if (!suppressAutoSave) scheduleDraftSave(); });
-        el.addEventListener('input', () => { if (!suppressAutoSave) scheduleDraftSave(); });
-      });
-
-      // Selects: save on change
-      document.querySelectorAll('.field select').forEach(el => {
-        el.addEventListener('change', () => { if (!suppressAutoSave) scheduleDraftSave(); });
-      });
-
-      // Remote checkbox: save on change
-      remoteCheck.addEventListener('change', () => { if (!suppressAutoSave) scheduleDraftSave(); });
-
-      // Skills chips: save on change (via delegation on the grid)
-      const skillsGrid = document.getElementById('skills-grid');
-      if (skillsGrid) {
-        skillsGrid.addEventListener('change', () => { if (!suppressAutoSave) scheduleDraftSave(); });
-      }
-
-      // Location selection: save on selection
-      locInput.addEventListener('blur', () => { if (!suppressAutoSave) scheduleDraftSave(); });
-
-      // Contact link inputs
-      const contactContainer = document.getElementById('contact-links');
-      if (contactContainer) {
-        contactContainer.addEventListener('blur', () => { if (!suppressAutoSave) scheduleDraftSave(); }, true);
-        contactContainer.addEventListener('input', (e) => {
-          if (e.target.classList.contains('contact-link-input') && !suppressAutoSave) scheduleDraftSave();
-        });
-      }
-    }
-
-    async function deleteCurrentDraft() {
-      if (!currentDraftId) return;
-      try {
-        await fetch(`/api/drafts/${currentDraftId}`, { method: 'DELETE', credentials: 'same-origin' });
-        currentDraftId = null;
-      } catch (e) { /* best effort */ }
-    }
-
-    async function loadDraft(draftId) {
-      try {
-        const res = await fetch('/api/drafts', { credentials: 'same-origin' });
-        if (!res.ok) return;
-        const data = await res.json();
-        const draft = (data.drafts || []).find(d => d.id === draftId);
-        if (!draft) return;
-
-        suppressAutoSave = true;
-        currentDraftId = draft.id;
-        const f = draft.fields || {};
-        const type = draft.type || 'project';
-
-        // Update page title
-        document.querySelector('h1').textContent = 'Edit draft';
-        document.getElementById('submit-btn').textContent = 'Post opportunity';
-
-        // Select type
-        const typeBtn = document.querySelector(`.type-btn[onclick*="'${type}'"]`);
-        if (typeBtn) selectType(type, typeBtn);
-        if (['paid', 'unpaid', 'volunteering'].includes(f.opportunity_preference)) {
-          setOpportunityPreference(f.opportunity_preference);
-        }
-
-        // Fill type-specific fields
-        if (type === 'project') {
-          document.getElementById('project-title').value = f.title || '';
-          document.getElementById('project-title').dispatchEvent(new Event('input'));
-        } else if (type === 'nonprofit') {
-          document.getElementById('np-name').value = f.title || '';
-          document.getElementById('np-name').dispatchEvent(new Event('input'));
-          if (f.nonprofit_field) document.getElementById('np-field').value = f.nonprofit_field;
-        } else if (type === 'company') {
-          document.getElementById('co-name').value = f.title || '';
-          document.getElementById('co-name').dispatchEvent(new Event('input'));
-          if (f.industry) document.getElementById('co-industry').value = f.industry;
-        }
-
-        // Fill common fields
-        document.getElementById('looking-for').value = f.looking_for || '';
-        document.getElementById('looking-for').dispatchEvent(new Event('input'));
-
-        // Skills
-        const skills = f.skills || [];
-        await skillsReady.catch(() => {});
-        selectedSkills = canonicalizeSelectedSkills(skills);
-        renderSkills();
-        showUnrecognizedSavedSkills();
-
-        // Description
-        document.getElementById('description').value = f.description || '';
-        document.getElementById('description').dispatchEvent(new Event('input'));
-
-        // Details
-        document.getElementById('details').value = f.details || '';
-        document.getElementById('details').dispatchEvent(new Event('input'));
-
-        // Remote / Location
-        if (f.remote === false || f.remote === 'false') {
-          document.getElementById('remote-check').checked = false;
-          document.getElementById('location-field').style.display = 'block';
-          if (f.location) {
-            document.getElementById('location-input').value = f.location;
-            document.getElementById('location-display').textContent = f.location;
-            document.getElementById('location-selected').style.display = 'flex';
-            selectedLocation = { display: f.location };
-            document.getElementById('location-data').value = JSON.stringify(selectedLocation);
-          }
-        }
-
-        // Contact links
-        const links = Array.isArray(f.contact_links) ? f.contact_links : (f.contact ? [f.contact] : []);
-        const container = document.getElementById('contact-links');
-        container.innerHTML = '';
-        links.forEach((link) => {
-          const row = document.createElement('div');
-          row.className = 'contact-link-row';
-          row.innerHTML = '<input type="text" class="contact-link-input" placeholder="https://... or email" value="' + link.replace(/"/g, '&quot;') + '"><button type="button" class="contact-remove-btn" onclick="removeContactLink(this)"' + (links.length <= 1 ? ' style="display:none;"' : '') + '>&times;</button>';
-          container.appendChild(row);
-        });
-
-        showDraftIndicator();
-        // Re-enable auto-save after a tick
-        setTimeout(() => { suppressAutoSave = false; }, 100);
-      } catch (e) {
-        console.error('Failed to load draft:', e);
-        suppressAutoSave = false;
-      }
-    }
-
-    // ─── SUBMIT ───
-    document.querySelector('form').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      let valid = true;
-
-      // Type-specific validation
-      if (selectedType === 'project') {
-        const title = document.getElementById('project-title');
-        if (!title.value.trim() || countWords(title.value) > 12) { showError('project-title', 'Required (max 12 words)'); valid = false; }
-      } else if (selectedType === 'nonprofit') {
-        const name = document.getElementById('np-name');
-        const field = document.getElementById('np-field');
-        if (!name.value.trim() || countWords(name.value) > 12) { showError('np-name', 'Required (max 12 words)'); valid = false; }
-        if (!field.value) { showError('np-field', 'Required'); valid = false; }
-      } else if (selectedType === 'company') {
-        const name = document.getElementById('co-name');
-        const ind = document.getElementById('co-industry');
-        if (!name.value.trim() || countWords(name.value) > 12) { showError('co-name', 'Required (max 12 words)'); valid = false; }
-        if (!ind.value) { showError('co-industry', 'Required'); valid = false; }
-      }
-
-      // Common validation
-      const lookingFor = document.getElementById('looking-for');
-      if (!lookingFor.value.trim() || countWords(lookingFor.value) > 15) { showError('looking-for', 'Required (max 15 words)'); valid = false; }
-
-      if (MIN_SKILLS > 0 && selectedSkills.length < MIN_SKILLS) { showError('skills', `Select at least ${MIN_SKILLS} skills`); valid = false; }
-
-      const desc = document.getElementById('description');
-      if (!desc.value.trim() || countWords(desc.value) > 15) { showError('desc', 'Required (max 15 words)'); valid = false; }
-
-      if (!remoteCheck.checked && !selectedLocation) { showError('location', 'Select a location from the list'); valid = false; }
-
-      const contactInputs = document.querySelectorAll('.contact-link-input');
-      const contactLinks = [];
-      contactInputs.forEach(inp => { const v = inp.value.trim(); if (v) contactLinks.push(v); });
-      if (contactLinks.length === 0) { showError('contact', 'Add at least one link'); valid = false; }
-
-      if (!valid) return;
-
-      const btn = document.getElementById('submit-btn');
-      btn.disabled = true;
-      btn.textContent = 'Posting...';
-
-      // Build body
-      const body = {
-        type: selectedType,
-        looking_for: lookingFor.value.trim(),
-        skills: selectedSkills,
-        opportunity_preference: selectedOpportunityPreference,
-        description: desc.value.trim(),
-        details: document.getElementById('details').value.trim(),
-        remote: remoteCheck.checked,
-        location: remoteCheck.checked ? 'Remote' : (selectedLocation ? selectedLocation.display : ''),
-        contact_links: contactLinks
-      };
-
-      if (selectedType === 'project') {
-        body.title = document.getElementById('project-title').value.trim();
-      } else if (selectedType === 'nonprofit') {
-        body.title = document.getElementById('np-name').value.trim();
-        body.nonprofit_field = document.getElementById('np-field').value;
-      } else if (selectedType === 'company') {
-        body.title = document.getElementById('co-name').value.trim();
-        body.industry = document.getElementById('co-industry').value;
-      }
-
-      const editId = new URLSearchParams(window.location.search).get('edit');
-      const url = editId ? `/api/opportunities/${editId}` : '/api/opportunities';
-      const method = editId ? 'PATCH' : 'POST';
-
-      try {
-        const res = await fetch(url, {
-          method,
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'same-origin',
-          body: JSON.stringify(body)
-        });
-        if (res.ok) {
-          const result = await res.json();
-          // Flagged posts are held for review — tell the author explicitly.
-          if (result.message) alert(result.message);
-          // Delete the draft if this was a draft submission
-          if (!editId && currentDraftId) await deleteCurrentDraft();
-          window.location.href = '/feed';
-        }
-        else { const d = await res.json(); alert(d.error || 'Failed'); btn.disabled = false; btn.textContent = editId ? 'Save changes' : 'Post opportunity'; }
-      } catch (err) { alert('Connection error'); btn.disabled = false; btn.textContent = editId ? 'Save changes' : 'Post opportunity'; }
-    });
-
-    // ─── AUTH CHECK + EDIT MODE ───
-    (async () => {
-      try {
-        const res = await fetch('/api/auth/me', { credentials: 'same-origin' });
-        if (!res.ok) { window.location.href = '/login'; return; }
-        const authData = await res.json();
-        // Check legal agreement (skip for admin)
-        if (authData.user?.role !== 'admin') {
-          try {
-            const legalRes = await fetch('/api/legal/status', { credentials: 'include' });
-            if (legalRes.ok) {
-              const legalData = await legalRes.json();
-              if (!legalData.all_agreed) { window.location.href = '/agreement'; return; }
-            }
-          } catch {}
-        }
-
-        const params = new URLSearchParams(window.location.search);
-        const editId = params.get('edit');
-        const draftId = params.get('draft');
-        if (editId) {
-          await loadForEdit(editId);
-        } else if (draftId) {
-          await loadDraft(draftId);
-        }
-        // Attach auto-save listeners after page is ready
-        attachDraftListeners();
-      } catch (e) { window.location.href = '/login'; }
-    })();
-
-    async function loadForEdit(id) {
-      try {
-        const res = await fetch(`/api/opportunities/${id}`, { credentials: 'same-origin' });
-        if (!res.ok) return;
-        const data = await res.json();
-        const f = data.fields || {};
-        const type = data.type || 'project';
-
-        // Update page title
-        document.querySelector('h1').textContent = 'Edit opportunity';
-        document.getElementById('submit-btn').textContent = 'Save changes';
-
-        // Select type
-        const typeBtn = document.querySelector(`.type-btn[onclick*="'${type}'"]`);
-        if (typeBtn) selectType(type, typeBtn);
-        if (['paid', 'unpaid', 'volunteering'].includes(f.opportunity_preference)) {
-          setOpportunityPreference(f.opportunity_preference);
-        }
-
-        // Fill type-specific fields
-        if (type === 'project') {
-          document.getElementById('project-title').value = f.title || '';
-          document.getElementById('project-title').dispatchEvent(new Event('input'));
-        } else if (type === 'nonprofit') {
-          document.getElementById('np-name').value = f.title || '';
-          document.getElementById('np-name').dispatchEvent(new Event('input'));
-          if (f.nonprofit_field) document.getElementById('np-field').value = f.nonprofit_field;
-        } else if (type === 'company') {
-          document.getElementById('co-name').value = f.title || '';
-          document.getElementById('co-name').dispatchEvent(new Event('input'));
-          if (f.industry) document.getElementById('co-industry').value = f.industry;
-        }
-
-        // Fill common fields
-        document.getElementById('looking-for').value = f.looking_for || '';
-        document.getElementById('looking-for').dispatchEvent(new Event('input'));
-
-        // Skills
-        const skills = f.skills || [];
-        await skillsReady.catch(() => {});
-        selectedSkills = canonicalizeSelectedSkills(skills);
-        renderSkills();
-        showUnrecognizedSavedSkills();
-
-        // Description
-        document.getElementById('description').value = f.description || '';
-        document.getElementById('description').dispatchEvent(new Event('input'));
-
-        // Details
-        document.getElementById('details').value = f.details || '';
-        document.getElementById('details').dispatchEvent(new Event('input'));
-
-        // Remote / Location
-        if (f.remote === false || f.remote === 'false') {
-          document.getElementById('remote-check').checked = false;
-          document.getElementById('location-field').style.display = 'block';
-          if (f.location) {
-            document.getElementById('location-input').value = f.location;
-            document.getElementById('location-display').textContent = f.location;
-            document.getElementById('location-selected').style.display = 'flex';
-            selectedLocation = { display: f.location };
-            document.getElementById('location-data').value = JSON.stringify(selectedLocation);
-          }
-        }
-
-        // Contact links
-        const links = Array.isArray(f.contact_links) ? f.contact_links : (f.contact ? [f.contact] : []);
-        const container = document.getElementById('contact-links');
-        container.innerHTML = '';
-        links.forEach((link, i) => {
-          const row = document.createElement('div');
-          row.className = 'contact-link-row';
-          row.innerHTML = '<input type="text" class="contact-link-input" placeholder="https://... or email" value="' + link.replace(/"/g, '&quot;') + '"><button type="button" class="contact-remove-btn" onclick="removeContactLink(this)"' + (links.length <= 1 ? ' style="display:none;"' : '') + '>&times;</button>';
-          container.appendChild(row);
-        });
-      } catch (e) {
-        console.error('Failed to load for edit:', e);
-      }
-    }
   </script>
-  <script src="/js/utils.js"></script><script src="/js/data.js"></script><script src="/js/app.js"></script>
+
+  <script src="/js/utils.js?v=2c88deb1c2fc"></script><script src="/js/data.js?v=d4852fb31c4b"></script><script src="/js/panes.js?v=e35447ed08a2"></script><script src="/js/app.js?v=6764190cfc2d"></script><script src="/js/post-editor.js?v=4cc7ea80029e"></script>
   <script>(async () => { await App.init(); App.setupUserMenu(); })();</script>
-  <script src="/scaling.js"></script>
-  <script src="/js/activity.js"></script>
+  <script>window._dAnimDone = true;</script><script src="/js/dot-art.js?v=8beac077c4fe"></script>
+  <script src="/js/activity.js?v=6f8f952dd151"></script>
 </body>
 </html>

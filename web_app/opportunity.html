@@ -4,7 +4,7 @@
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>LARPABLE. — Opportunity</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="/css/styles.css">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="/css/styles.css?v=ede539185a89">
   <style>
     .d-detail-header{padding-bottom:30px;border-bottom:1px solid var(--border)}
     .d-detail-kicker{display:flex;align-items:center;gap:8px;margin-bottom:14px;color:var(--fg-tertiary);font-size:.72rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
@@ -12,7 +12,7 @@
     .d-detail-issuer{display:flex;align-items:center;gap:9px;margin:0}.d-detail-issuer-mark{display:grid;place-items:center;width:30px;height:30px;border-radius:50%;background:var(--fg-primary);color:var(--bg-secondary);font-size:.64rem;font-weight:700}
     .d-detail-story{padding:25px 0;border-top:1px solid var(--border)}.d-detail-story:first-child{border-top:0;padding-top:0}
     .d-detail-section-heading{display:flex;align-items:center;gap:12px;margin-bottom:15px}.d-detail-eyebrow{color:var(--fg-tertiary);font-size:.68rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase}.d-detail-rule{width:40px;height:1px;background:var(--accent)}
-    .d-detail-facts{display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+    .d-detail-facts{display:grid;grid-template-columns:repeat(2,1fr);border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
     .d-detail-fact{padding:15px 16px 16px 0;min-width:0}.d-detail-fact+.d-detail-fact{padding-left:16px;border-left:1px solid var(--border)}.d-detail-fact .d-detail-info-label{margin-bottom:5px}.d-detail-fact .d-detail-info-value{line-height:1.45}
     .d-detail-contact{padding:20px;border-radius:var(--radius-lg);background:var(--bg-tertiary);color:var(--fg-primary)}.d-detail-contact h2{margin-bottom:8px;font-size:.86rem;color:var(--fg-primary)}.d-detail-contact p{margin-bottom:14px;color:var(--fg-secondary);font-size:.78rem}.d-detail-contact a{display:block;padding:9px 11px;margin-top:5px;border-radius:var(--radius-sm);background:var(--accent);color:#fff;font-size:.82rem;word-break:break-all}.d-detail-contact a:hover{background:var(--accent-hover)}
     .d-admin{display:none;padding:18px;border:1px solid #fecaca;border-radius:var(--radius-md);background:#fff5f5}.d-admin h2{margin-bottom:8px;color:#dc3545;font-size:.86rem}.d-admin p{margin-bottom:12px;color:var(--fg-secondary);font-size:.78rem}.d-admin-row{display:flex;gap:8px;flex-wrap:wrap}.d-admin button{padding:7px 13px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg-secondary);font:600 .78rem var(--font-family);cursor:pointer}.d-admin button:hover{border-color:var(--accent);color:var(--accent)}.d-admin .danger{border-color:#dc3545;color:#dc3545}
@@ -23,9 +23,9 @@
 </head>
 <body>
   <main class="d-detail">
-    <div id="detail"><div class="d-empty">Loading opportunity...</div></div>
+    <div id="detail"><div class="d-empty">Loading post...</div></div>
   </main>
-  <script src="/js/utils.js"></script><script src="/js/data.js"></script><script src="/js/app.js"></script>
+  <script src="/js/utils.js?v=2c88deb1c2fc"></script><script src="/js/data.js?v=d4852fb31c4b"></script><script src="/js/panes.js?v=e35447ed08a2"></script><script src="/js/app.js?v=6764190cfc2d"></script>
   <script>
     const esc = value => { const d = document.createElement('div'); d.textContent = value == null ? '' : String(value); return d.innerHTML; };
     const text = value => value == null ? '' : String(value);
@@ -42,10 +42,12 @@
       }).join('')}</section>`;
     };
 
+    const isRegular = location.pathname === '/post';
+    const apiBase = isRegular ? '/api/posts' : '/api/opportunities';
     const embed = new URLSearchParams(window.location.search).get('embed') === '1';
     // Navigation from inside the pane (login, signup, etc.) must take over the
     // whole tab, never load another page next to the feed inside the frame.
-    const goTo = url => { (embed && window.top !== window ? window.top : window).location.href = url; };
+    const goTo = url => Panels.navigate(url);
 
     (async () => {
       await App.init();
@@ -57,6 +59,7 @@
         document.documentElement.classList.add('d-embed');
         document.addEventListener('click', event => {
           const link = event.target.closest('a[href]');
+          if (event.defaultPrevented) return;
           if (!link || link.target === '_blank') return;
           const href = link.getAttribute('href');
           if (!href || href.charAt(0) === '#' || /^[a-z][a-z0-9+.-]*:/i.test(href)) return;
@@ -66,53 +69,58 @@
       } else App.setupUserMenu();
       const id = params.get('id');
       const root = document.getElementById('detail');
-      if (!id) { root.innerHTML = '<div class="d-empty">Opportunity not found.</div>'; return; }
+      if (!id) { root.innerHTML = '<div class="d-empty">Post not found.</div>'; return; }
       try {
-        const response = await fetch('/api/opportunities/' + encodeURIComponent(id) + (location.hash === '#applied' ? '?view=applications' : ''), { credentials: 'same-origin' });
-        if (!response.ok) { root.innerHTML = '<div class="d-empty">Opportunity not found.</div>'; return; }
+        const response = await fetch(apiBase + '/' + encodeURIComponent(id) + (location.hash === '#applied' ? '?view=applications' : ''), { credentials: 'same-origin' });
+        if (!response.ok) { root.innerHTML = '<div class="d-empty">Post not found.</div>'; return; }
         const data = await response.json();
         const fields = data.fields || {};
         const issuer = data.issuer || {};
+        const projectName = data.project?.fields?.name || 'Project unavailable';
+        const projectPitch = data.project?.fields?.elevator_pitch || '';
         const kind = data.type || 'project';
         const name = issuer.name || fields.issuer_name || 'Unknown';
-        const field = fields.industry || fields.nonprofit_field || fields.field || '';
         const loc = typeof fields.location === 'object' ? (fields.location.display || [fields.location.city, fields.location.state, fields.location.country].filter(Boolean).join(', ')) : fields.location;
         const links = (Array.isArray(fields.contact_links) ? fields.contact_links : (fields.contact ? [fields.contact] : [])).map(linkValue).filter(Boolean);
         const typeLabel = { project: 'Project', nonprofit: 'Nonprofit', company: 'Company' }[kind] || kind;
-        const skills = Array.isArray(fields.skills) ? fields.skills : [];
-        document.title = 'LARPABLE. — ' + (fields.title || 'Opportunity');
+        const skills = isRegular ? data.skills || [] : Array.isArray(fields.skills) ? fields.skills : [];
+        document.title = 'LARPABLE. — ' + (isRegular ? fields.title : projectName);
         
         // Check saved state using the currently initialized App data
         const currentUser = DataStore.getCurrentUser();
         const isSaved = currentUser?.saved_posts?.includes(id);
         const ownsPost = !!currentUser && currentUser.id === data.created_by;
-        const canDeleteAnyComment = currentUser?.username?.toLowerCase() === 'anisohaney';
+        const canDeleteAnyComment = currentUser?.username === 'anisohaney';
         const canEdit = item => typeof item.can_edit === 'boolean' ? item.can_edit : currentUser?.id === item.user_id;
         const canDelete = item => typeof item.can_delete === 'boolean' ? item.can_delete : (currentUser?.id === item.user_id || canDeleteAnyComment);
         const commentActions = c => `${canEdit(c) ? '<button class="d-btn-ghost edit-comment" type="button">Edit</button>' : ''}${canDelete(c) ? '<button class="d-btn-ghost delete-comment" type="button">Delete</button>' : ''}`;
         const replyActions = r => `${canEdit(r) ? '<button class="d-btn-ghost edit-reply" type="button">Edit</button>' : ''}${canDelete(r) ? '<button class="d-btn-ghost delete-reply" type="button">Delete</button>' : ''}`;
 
-        root.innerHTML = `
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
-            <a class="d-detail-back" href="/feed" style="margin-bottom:0;">← Back to feed</a>
-            <div style="display:flex;gap:8px;align-items:center;">${currentUser ? `<button class="d-btn d-btn-sm" id="detail-save-btn" type="button">${isSaved ? '★ Saved' : '☆ Save'}</button>` : `<button class="d-btn d-btn-sm" type="button" onclick="goTo('/login')">☆ Save</button>`}${ownsPost ? `<button class="d-btn d-btn-sm d-applied-btn" id="detail-applied-btn" type="button" ${data.application?.count ? '' : 'disabled'}>Applied (${data.application?.count || 0})${data.application?.has_unread ? ' !' : ''}</button>` : ''}</div>
-          </div>
-          <section class="d-detail-header">
-            <div class="d-detail-kicker"><span class="d-detail-type d-badge d-badge--${esc(kind)}">${esc(typeLabel)}</span><span class="d-detail-dot">·</span><span>${esc(fields.industry || fields.nonprofit_field || 'Student-led')}</span></div>
-            <h1 class="d-detail-title">${esc(fields.title || 'Untitled opportunity')}</h1>
-            <div class="d-detail-issuer"><span class="d-detail-issuer-mark">${esc(initials(name))}</span><span>Posted by <strong>${esc(name)}</strong>${fields.issuer_context ? ' · ' + esc(fields.issuer_context) : ''}</span></div>
-          </section>
-          <section class="d-detail-story"><div class="d-detail-section-heading"><span class="d-detail-eyebrow">About this opportunity</span><span class="d-detail-rule"></span></div><p class="d-detail-desc">${esc(fields.description || 'No description provided.')}</p></section>
+        const opportunityBody = `          <section class="d-detail-story"><div class="d-detail-section-heading"><span class="d-detail-eyebrow">About this opportunity</span><span class="d-detail-rule"></span></div><p class="d-detail-desc">${esc(fields.description || 'No description provided.')}</p></section>
           ${fields.looking_for ? `<section class="d-detail-looking-for"><div class="d-detail-looking-for-label">◉ &nbsp;Looking for</div><div class="d-detail-looking-for-value">${esc(fields.looking_for)}</div></section>` : ''}
           ${skills.length ? `<section class="d-detail-story"><div class="d-detail-section-heading"><span class="d-detail-eyebrow">Skills needed</span><span class="d-detail-rule"></span></div><div class="d-detail-skills">${skills.map(skill => `<span class="d-chip">${esc(skill)}</span>`).join('')}</div></section>` : ''}
           ${fields.details ? `<section class="d-detail-story"><div class="d-detail-section-heading"><span class="d-detail-eyebrow">Additional details</span><span class="d-detail-rule"></span></div><p class="d-detail-desc">${esc(fields.details)}</p></section>` : ''}
-          <section class="d-detail-story"><div class="d-detail-section-heading"><span class="d-detail-eyebrow">Details</span><span class="d-detail-rule"></span></div><div class="d-detail-facts"><div class="d-detail-fact"><div class="d-detail-info-label">Location</div><div class="d-detail-info-value">${esc(loc || 'Remote')}${fields.remote ? '<span class="d-detail-fact-note">Remote OK</span>' : ''}</div></div><div class="d-detail-fact"><div class="d-detail-info-label">${kind === 'nonprofit' ? 'Field' : 'Industry'}</div><div class="d-detail-info-value">${esc(field || '—')}</div></div><div class="d-detail-fact"><div class="d-detail-info-label">Posted</div><div class="d-detail-info-value">${esc(posted(data.created_at).replace(/^Posted /, '') || '—')}</div></div></div></section>
+          <section class="d-detail-story"><div class="d-detail-facts"><div class="d-detail-fact"><div class="d-detail-info-label">Location</div><div class="d-detail-info-value">${esc(loc || 'Remote')}${fields.remote ? '<span class="d-detail-fact-note">Remote OK</span>' : ''}</div></div><div class="d-detail-fact"><div class="d-detail-info-label">Posted</div><div class="d-detail-info-value">${esc(posted(data.created_at).replace(/^Posted /, '') || '—')}</div></div></div></section>
           ${currentUser
             ? `<section class="d-detail-story"><div class="d-detail-contact"><h2>Contact / sign-up</h2><p>Reach out to the person behind this opportunity.</p><div>${links.length ? links.map(link => /^https?:\/\//i.test(link) ? `<a href="${esc(link)}" target="_blank" rel="noopener">${esc(link)}</a>` : `<a href="mailto:${esc(link)}">${esc(link)}</a>`).join('') : '<span>No contact link provided.</span>'}</div></div></section>`
             : `<section class="d-detail-story"><div class="d-detail-contact d-detail-contact--locked"><h2>Contact / sign-up</h2><p>Log in to see how to reach out and sign up for this opportunity.</p><div class="d-detail-locked-links" aria-hidden="true"><span>••••••••••••••••</span><span>••••••••••••••</span><span>••••••••••••</span></div><a href="/login" class="d-btn d-btn-accent d-detail-locked-btn">Log in to view contact details</a></div></section>`}
           ${!currentUser
             ? `<div class="d-apply-locked"><button class="d-apply-btn" type="button" tabindex="-1" aria-hidden="true">Apply now</button><div class="d-apply-locked-overlay"><a href="/login" class="d-btn d-btn-accent">Log in to apply</a></div></div>`
             : (ownsPost ? '' : `<button id="apply-now-btn" class="d-apply-btn" type="button" ${data.application?.applied ? 'disabled' : ''}>${data.application?.applied ? 'Applied' : 'Apply now'}</button><p id="apply-error" role="alert" style="color:var(--error);font-size:.8rem;margin-top:8px;"></p>`)}
+`;
+        root.innerHTML = `
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
+            <a class="d-detail-back" href="/feed" style="margin-bottom:0;">← Back to feed</a>
+            <div style="display:flex;gap:8px;align-items:center;">${currentUser ? `<button class="d-btn d-btn-sm" id="detail-save-btn" type="button">${isSaved ? '★ Saved' : '☆ Save'}</button>` : `<button class="d-btn d-btn-sm" type="button" onclick="goTo('/login')">☆ Save</button>`}${ownsPost && !isRegular ? `<button class="d-btn d-btn-sm d-applied-btn" id="detail-applied-btn" type="button" ${data.application?.count ? '' : 'disabled'}>Applied (${data.application?.count || 0})${data.application?.has_unread ? ' !' : ''}</button>` : ''}</div>
+          </div>
+          <section class="d-detail-header">
+            <div class="d-detail-kicker"><span class="d-detail-type d-badge d-badge--${esc(kind)}">${esc(typeLabel)}</span><span class="d-detail-dot">·</span><span>${esc(data.project?.fields.field || 'Student-led')}</span></div>
+            <h1 class="d-detail-title">${esc(isRegular ? fields.title : projectName)}</h1>
+            <div class="d-detail-issuer"><span class="d-detail-issuer-mark">${esc(initials(name))}</span><span>Posted by <strong>${Utils.userLink(data.created_by,name)}</strong>${fields.issuer_context ? ' · ' + esc(fields.issuer_context) : ''}</span></div>
+          </section>
+          ${projectPitch ? `<section class="d-detail-story" aria-label="Project elevator pitch"><p class="d-detail-desc">${esc(projectPitch)}</p></section>` : ''}
+          ${!isRegular && data.project ? `<details class="d-project-more"><summary><span class="d-project-more-open">View more</span><span class="d-project-more-close">Show less</span></summary><div class="d-project-more-content">${data.project.fields.description ? `<p class="d-detail-desc">${esc(data.project.fields.description)}</p>` : ''}${data.project.fields.tags?.length ? `<div class="d-detail-skills">${data.project.fields.tags.map(tag=>`<span class="d-chip">${esc(tag)}</span>`).join('')}</div>` : ''}${data.project.fields.field ? `<p class="d-detail-desc">Field: ${esc(data.project.fields.field)}</p>` : ''}</div></details>` : ''}
+          ${isRegular ? `<section class="d-detail-story"><p class="d-detail-desc" style="white-space:pre-wrap;">${esc(fields.content)}</p>${data.media ? (data.media.kind==='video' ? `<video class="d-post-media" controls preload="metadata" src="${esc(data.media.url)}"></video>` : `<img class="d-post-media" src="${esc(data.media.url)}" alt="Post image">`) : ''}<p class="d-detail-eyebrow">${esc(projectName)} · ${esc(posted(data.created_at))}</p><button id="detail-like-btn" class="d-btn d-btn-sm" type="button" aria-pressed="${!!data.liked}">${data.liked ? 'Liked' : 'Like'} (${data.like_count || 0})</button><p id="like-error" role="alert"></p></section>` : opportunityBody}
           <section class="d-detail-story">
             <div class="d-detail-section-heading">
               <span class="d-detail-eyebrow">Comments</span>
@@ -127,7 +135,7 @@
                   <div style="flex: 1; min-width: 0;">
                     <div style="background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 0 var(--radius-lg) var(--radius-lg) var(--radius-lg); padding: 14px 18px; box-shadow: 0 2px 8px var(--shadow);">
                       <div style="display: flex; justify-content: space-between; margin-bottom: 6px; align-items: baseline;">
-                        <strong style="font-size: 0.9rem; color: var(--fg-primary);">${esc(c.user_name)}</strong>
+                        <strong style="font-size: 0.9rem; color: var(--fg-primary);">${Utils.userLink(c.user_id,c.user_name)}</strong>
                         <span style="font-size: 0.72rem; color: var(--fg-tertiary);">${esc(posted(c.created_at))}</span>
                       </div>
                       <p class="comment-body" style="font-size: 0.92rem; color: var(--fg-secondary); margin: 0; line-height: 1.5; white-space: pre-wrap;">${esc(c.text)}</p>
@@ -144,7 +152,7 @@
                           <div style="flex: 1; min-width: 0;">
                             <div style="background: var(--bg-tertiary); border-radius: 0 var(--radius-md) var(--radius-md) var(--radius-md); padding: 12px 16px;">
                               <div style="display: flex; justify-content: space-between; margin-bottom: 4px; align-items: baseline;">
-                                <strong style="font-size: 0.82rem; color: var(--fg-primary);">${esc(r.user_name)}</strong>
+                                <strong style="font-size: 0.82rem; color: var(--fg-primary);">${Utils.userLink(r.user_id,r.user_name)}</strong>
                                 <span style="font-size: 0.68rem; color: var(--fg-tertiary);">${esc(posted(r.created_at))}</span>
                               </div>
                               <p class="reply-body" style="font-size: 0.88rem; color: var(--fg-secondary); margin: 0; line-height: 1.45; white-space: pre-wrap;">${esc(r.text)}</p>
@@ -176,12 +184,24 @@
           </section>
           <section class="d-admin" id="admin-controls"><h2 id="admin-title">Admin controls</h2><p id="admin-desc">This opportunity can be managed from here.</p><div class="d-admin-row"><button id="admin-edit">Edit</button><button class="danger" id="admin-delete">Delete</button><button id="admin-user">View user</button></div></section>`;
 
+        const likeBtn=document.getElementById('detail-like-btn');
+        if(likeBtn)likeBtn.onclick=async()=>{
+          if(!currentUser){goTo('/login');return;}
+          likeBtn.disabled=true;
+          try{
+            const response=await fetch(`${apiBase}/${encodeURIComponent(id)}/like`,{method:data.liked ? 'DELETE' : 'POST'});
+            const result=await response.json();if(!response.ok)throw new Error(result.error || 'Could not update like');
+            data.liked=result.liked;data.like_count=result.like_count;
+            likeBtn.setAttribute('aria-pressed',String(data.liked));likeBtn.textContent=`${data.liked ? 'Liked' : 'Like'} (${data.like_count})`;
+          }catch(error){document.getElementById('like-error').textContent=error.message;}
+          finally{likeBtn.disabled=false;}
+        };
         const applyBtn = document.getElementById('apply-now-btn');
         if (applyBtn) applyBtn.onclick = async () => {
           applyBtn.disabled = true;
           applyBtn.textContent = 'Applying...';
           try {
-            const result = await fetch(`/api/opportunities/${encodeURIComponent(id)}/applications`, { method: 'POST', credentials: 'same-origin' });
+            const result = await fetch(`${apiBase}/${encodeURIComponent(id)}/applications`, { method: 'POST', credentials: 'same-origin' });
             const body = await result.json();
             if (!result.ok) throw new Error(body.error || 'Could not apply');
             applyBtn.textContent = 'Applied';
@@ -202,21 +222,21 @@
             history.replaceState(null, '', location.pathname + location.search);
             // A direct applicant notification opens the list first. Mark
             // comments read only when the owner actually returns to the post.
-            fetch(`/api/opportunities/${encodeURIComponent(id)}`, { credentials: 'same-origin' }).then(() =>
-              fetch('/api/opportunities/mine', { credentials: 'same-origin' })).then(r => r.json()).then(mine => {
-              if (!mine.opportunities?.some(post => post.has_unread_comments || post.has_unread_applications)) document.querySelector('.nav-yours-badge')?.remove();
+            fetch(`${apiBase}/${encodeURIComponent(id)}`, { credentials: 'same-origin' }).then(() =>
+              fetch('/api/feed/mine', { credentials: 'same-origin' })).then(r => r.json()).then(mine => {
+              if (!mine.posts?.some(post => post.has_unread_comments || post.has_unread_applications)) document.querySelector('.nav-yours-badge')?.remove();
             }).catch(console.error);
           };
           const showApplicants = async () => {
-            const response = await fetch(`/api/opportunities/${encodeURIComponent(id)}/applications`, { credentials: 'same-origin' });
+            const response = await fetch(`${apiBase}/${encodeURIComponent(id)}/applications`, { credentials: 'same-origin' });
             if (!response.ok) return;
             const { applicants } = await response.json();
             const list = document.getElementById('applicant-list');
-            list.innerHTML = applicants.map((person, index) => `<div><button type="button" class="d-applicant-row" data-index="${index}" aria-expanded="false"><span class="d-detail-issuer-mark" style="width:36px;height:36px;">${esc(initials(person.name))}</span><span>${esc(person.name)}</span></button><div class="d-applicant-details" hidden><strong>${esc(person.name)}</strong><div>Grade: ${esc(person.grade || '—')}</div><div>Skills: ${esc((person.skills || []).join(', ') || '—')}</div><div>Email: ${esc(person.email || '—')}</div>${renderRelevantExperiences(person)}</div></div>`).join('');
+            list.innerHTML = applicants.map((person, index) => `<div><div class="d-applicant-row"><span class="d-detail-issuer-mark" style="width:36px;height:36px;">${esc(initials(person.name))}</span><span style="flex:1;">${Utils.userLink(person.id,person.name)}</span><button type="button" class="d-btn d-btn-sm d-applicant-toggle" data-index="${index}" aria-expanded="false">View application</button></div><div class="d-applicant-details" hidden><strong>${Utils.userLink(person.id,person.name)}</strong><div>Grade: ${esc(person.grade || '—')}</div><div>Skills: ${esc((person.skills || []).join(', ') || '—')}</div><div>Email: ${esc(person.email || '—')}</div>${renderRelevantExperiences(person)}</div></div>`).join('');
             list.onclick = event => {
-              const button = event.target.closest('.d-applicant-row');
+              const button = event.target.closest('.d-applicant-toggle');
               if (!button) return;
-              const details = button.nextElementSibling;
+              const details = button.closest('.d-applicant-row').nextElementSibling;
               details.hidden = !details.hidden;
               button.setAttribute('aria-expanded', String(!details.hidden));
             };
@@ -224,11 +244,11 @@
             root.classList.add('show-applicants');
             history.replaceState(null, '', location.pathname + location.search + '#applied');
             window.scrollTo(0, 0);
-            const seen = await fetch(`/api/opportunities/${encodeURIComponent(id)}/applications/seen`, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ applicant_ids: applicants.map(person => person.id) }) });
+            const seen = await fetch(`${apiBase}/${encodeURIComponent(id)}/applications/seen`, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ applicant_ids: applicants.map(person => person.id) }) });
             if (seen.ok) {
               appliedBtn.textContent = `Applied (${applicants.length})`;
-              const mine = await fetch('/api/opportunities/mine', { credentials: 'same-origin' }).then(r => r.json());
-              if (!mine.opportunities?.some(post => post.has_unread_comments || post.has_unread_applications)) document.querySelector('.nav-yours-badge')?.remove();
+              const mine = await fetch('/api/feed/mine', { credentials: 'same-origin' }).then(r => r.json());
+              if (!mine.posts?.some(post => post.has_unread_comments || post.has_unread_applications)) document.querySelector('.nav-yours-badge')?.remove();
             }
           };
           appliedBtn.onclick = () => showApplicants().catch(console.error);
@@ -258,7 +278,7 @@
               if (!confirm('Delete this comment and its replies?')) return;
               actionTarget.disabled = true;
               try {
-                const response = await fetch(`/api/opportunities/${encodeURIComponent(data.id)}/comments/${encodeURIComponent(block.dataset.commentId)}`, { method: 'DELETE', credentials: 'same-origin' });
+                const response = await fetch(`${apiBase}/${encodeURIComponent(data.id)}/comments/${encodeURIComponent(block.dataset.commentId)}`, { method: 'DELETE', credentials: 'same-origin' });
                 const result = await response.json();
                 if (!response.ok) throw new Error(result.error || 'Could not delete comment');
                 block.remove();
@@ -286,7 +306,7 @@
               if (!value || value.split(/\s+/).length > 200) { error.textContent = 'Enter 1–200 words.'; return; }
               e.target.disabled = true;
               try {
-                const response = await fetch(`/api/opportunities/${encodeURIComponent(data.id)}/comments/${encodeURIComponent(block.dataset.commentId)}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: value }) });
+                const response = await fetch(`${apiBase}/${encodeURIComponent(data.id)}/comments/${encodeURIComponent(block.dataset.commentId)}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: value }) });
                 const result = await response.json();
                 if (!response.ok) throw new Error(result.error || 'Could not edit comment');
                 block.querySelector('.comment-body').textContent = result.comment.text;
@@ -301,7 +321,7 @@
               if (!confirm('Delete this reply?')) return;
               e.target.disabled = true;
               try {
-                const response = await fetch(`/api/opportunities/${encodeURIComponent(data.id)}/comments/${encodeURIComponent(comment.dataset.commentId)}/replies/${encodeURIComponent(reply.dataset.replyId)}`, { method: 'DELETE' });
+                const response = await fetch(`${apiBase}/${encodeURIComponent(data.id)}/comments/${encodeURIComponent(comment.dataset.commentId)}/replies/${encodeURIComponent(reply.dataset.replyId)}`, { method: 'DELETE' });
                 const result = await response.json();
                 if (!response.ok) throw new Error(result.error || 'Could not delete reply');
                 reply.remove();
@@ -328,7 +348,7 @@
               if (!value || value.split(/\s+/).length > 200) { error.textContent = 'Enter 1–200 words.'; return; }
               e.target.disabled = true;
               try {
-                const response = await fetch(`/api/opportunities/${encodeURIComponent(data.id)}/comments/${encodeURIComponent(comment.dataset.commentId)}/replies/${encodeURIComponent(reply.dataset.replyId)}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: value }) });
+                const response = await fetch(`${apiBase}/${encodeURIComponent(data.id)}/comments/${encodeURIComponent(comment.dataset.commentId)}/replies/${encodeURIComponent(reply.dataset.replyId)}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: value }) });
                 const result = await response.json();
                 if (!response.ok) throw new Error(result.error || 'Could not edit reply');
                 reply.querySelector('.reply-body').textContent = result.reply.text;
@@ -388,7 +408,7 @@
               errEl.style.display = 'none';
               
               try {
-                const res = await fetch(`/api/opportunities/${encodeURIComponent(data.id)}/comments/${encodeURIComponent(commentId)}/replies`, {
+                const res = await fetch(`${apiBase}/${encodeURIComponent(data.id)}/comments/${encodeURIComponent(commentId)}/replies`, {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ text })
@@ -405,7 +425,7 @@
                       <div style="flex: 1; min-width: 0;">
                         <div style="background: var(--bg-tertiary); border-radius: 0 var(--radius-md) var(--radius-md) var(--radius-md); padding: 12px 16px;">
                           <div style="display: flex; justify-content: space-between; margin-bottom: 4px; align-items: baseline;">
-                            <strong style="font-size: 0.82rem; color: var(--fg-primary);">${esc(r.user_name)}</strong>
+                            <strong style="font-size: 0.82rem; color: var(--fg-primary);">${Utils.userLink(r.user_id,r.user_name)}</strong>
                             <span style="font-size: 0.68rem; color: var(--fg-tertiary);">Just now</span>
                           </div>
                           <p class="reply-body" style="font-size: 0.88rem; color: var(--fg-secondary); margin: 0; line-height: 1.45; white-space: pre-wrap;">${esc(r.text)}</p>
@@ -464,7 +484,7 @@
             commentError.style.display = 'none';
 
             try {
-              const res = await fetch(`/api/opportunities/${encodeURIComponent(data.id)}/comments`, {
+              const res = await fetch(`${apiBase}/${encodeURIComponent(data.id)}/comments`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ text })
@@ -486,7 +506,7 @@
                     <div style="flex: 1; min-width: 0;">
                       <div style="background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 0 var(--radius-lg) var(--radius-lg) var(--radius-lg); padding: 14px 18px; box-shadow: 0 2px 8px var(--shadow);">
                         <div style="display: flex; justify-content: space-between; margin-bottom: 6px; align-items: baseline;">
-                          <strong style="font-size: 0.9rem; color: var(--fg-primary);">${esc(c.user_name)}</strong>
+                          <strong style="font-size: 0.9rem; color: var(--fg-primary);">${Utils.userLink(c.user_id,c.user_name)}</strong>
                           <span style="font-size: 0.72rem; color: var(--fg-tertiary);">Just now</span>
                         </div>
                         <p class="comment-body" style="font-size: 0.92rem; color: var(--fg-secondary); margin: 0; line-height: 1.5; white-space: pre-wrap;">${esc(c.text)}</p>
@@ -522,12 +542,12 @@
         const isAdmin = authData.user?.role === 'admin';
         if (isAdmin) {
           document.getElementById('admin-controls').style.display = 'block';
-          document.getElementById('admin-edit').onclick = () => { goTo(`/create_student?type=${encodeURIComponent(kind)}&edit=${encodeURIComponent(data.id)}`); };
+          document.getElementById('admin-edit').onclick = () => { goTo(`/create_student?kind=${isRegular ? 'post' : 'opportunity'}&edit=${encodeURIComponent(data.id)}`); };
           document.getElementById('admin-user').onclick = () => { if (data.created_by) goTo(`/admin_user?id=${encodeURIComponent(data.created_by)}`); };
           document.getElementById('admin-delete').onclick = async () => {
-            if (!confirm('Delete this opportunity? This cannot be undone.')) return;
+            if (!confirm('Delete this post? This cannot be undone.')) return;
             try {
-              const result = await fetch('/api/opportunities/' + encodeURIComponent(data.id), { method: 'DELETE', credentials: 'include' });
+              const result = await fetch(apiBase + '/' + encodeURIComponent(data.id), { method: 'DELETE', credentials: 'include' });
               if (result.ok) {
                 goTo('/feed?mine=1');
               } else {
@@ -561,9 +581,9 @@
             }
           }, 300);
         }
-      } catch (error) { console.error('Failed to load opportunity:', error); root.innerHTML = '<div class="d-empty">Could not load this opportunity.</div>'; }
+      } catch (error) { console.error('Failed to load opportunity:', error); root.innerHTML = '<div class="d-empty">Could not load this post.</div>'; }
     })();
   </script>
-  <script src="/js/activity.js"></script>
+  <script src="/js/activity.js?v=6f8f952dd151"></script>
 </body>
 </html>

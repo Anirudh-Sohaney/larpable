@@ -7,7 +7,6 @@
  * INTEGRATION: When integrating with the real backend:
  *   - Replace DataStore calls with fetch() to /api/staff/* endpoints
  *   - Add cookie-based auth check on init (GET /api/auth/me)
- *   - Replace DEMO_DATA.currentUser with the real user from /api/staff/check
  */
 
 const App = {
@@ -33,7 +32,6 @@ const App = {
    *   const me = await fetch('/api/auth/me', { credentials: 'include' });
    *   const staff = await fetch('/api/staff/check', { credentials: 'include' });
    *   if (!staff.ok) window.location.href = '/feed';
-   *   This mirrors the checkStaffAccess() in existing app/staff/staff.js
    */
   async init() {
     try {
