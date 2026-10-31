@@ -161,7 +161,9 @@ projectTagSearch.addEventListener('input',renderProjectTags);
 
 async function editorRequest(url,options={}) {
   const response=await fetch(url,{credentials:'same-origin',...options});
-  const data=await response.json();
+  if(response.status===413)throw new Error('Choose a file up to 64 MB.');
+  let data;
+  try{data=await response.json();}catch{throw new Error('Request failed ('+response.status+'). Please try again.');}
   if(!response.ok)throw new Error(data.error || 'Request failed');
   return data;
 }

@@ -18,7 +18,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs/promises'),os=req
   assert.equal(await fs.readFile(store.filePath('opportunities.json.before-project-field-v7.bak'),'utf8'),before);
   const files=await fs.readdir(dir),stable=await Promise.all(files.map(f=>fs.readFile(store.filePath(f),'utf8')));
   assert.deepEqual(await migration.run(),{projects_updated:0,posts_updated:0});assert.deepEqual(await Promise.all(files.map(f=>fs.readFile(store.filePath(f),'utf8'))),stable);
-  assert.throws(()=>migration.plan({n:{type:'company',encrypted_fields:encryptObject({})}},{}),/requires review/);
+  assert.deepEqual(migration.plan({n:{type:'company',encrypted_fields:encryptObject({})}},{}),{projects:{},posts:{}});
   console.log('Project field migration: dry run, backups, interrupted retry, content preservation, project exclusion and byte-stable rerun passed.');
  }finally{await fs.rm(dir,{recursive:true,force:true});}
 })().catch(e=>{console.error(e);process.exitCode=1;});

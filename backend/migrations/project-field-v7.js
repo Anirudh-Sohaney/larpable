@@ -11,8 +11,8 @@ function plan(projects,posts){
   else{
    const values=[...new Set(sources.map(([,o])=>{const f=decryptObject(o.encrypted_fields || {});return normalizeField(p.type==='nonprofit' ? f.nonprofit_field : f.industry);}).filter(Boolean))];
    if(!next.field){
-    if(values.length!==1)throw new Error('Project field requires review: '+id+' ('+values.length+' source values)');
-    next.field=values[0];
+    if(values.length>1)throw new Error('Conflicting project fields require review: '+id);
+    if(values.length===1)next.field=values[0];
    }
   }
   if(JSON.stringify(next)!==JSON.stringify(fields))updates[id]={...p,encrypted_fields:encryptObject(next)};
