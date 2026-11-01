@@ -252,6 +252,7 @@ router.get('/me', async (req, res) => {
     created_at: user.created_at,
     email_opt_in: user.email_opt_in !== false,
     displayName,
+    can_promote:await require('../promotion').canPromote(user.id),
     latitude,
     longitude
   };

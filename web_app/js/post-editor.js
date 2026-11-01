@@ -359,7 +359,7 @@ postForm.addEventListener('submit',async event=>{
 (async()=>{
   try{
     const auth=await editorRequest('/api/auth/me');
-    document.getElementById('promote-option').hidden=auth.user?.username!=='anisohaney';
+    document.getElementById('promote-option').hidden=auth.user?.can_promote!==true;
     if(auth.user?.role!=='admin'){
       const legal=await editorRequest('/api/legal/status');
       if(!legal.all_agreed){Panels.navigate('/agreement');return;}

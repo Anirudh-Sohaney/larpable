@@ -21,6 +21,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs/promises'),path=r
   const {app}=require('../server');server=app.listen(0,'127.0.0.1');await new Promise(r=>server.once('listening',r));const base='http://127.0.0.1:'+server.address().port;
   const tokens={};for(const id of ['owner','other','variant','admin_larpable'])tokens[id]=await auth.createSession(id);
   async function req(method,url,body,id='owner'){const r=await fetch(base+url,{method,headers:{'Content-Type':'application/json',Cookie:'larpable_session='+tokens[id]},body:JSON.stringify(body)});return {status:r.status,body:await r.json()};}
+  for(const id of ['owner','other','variant','admin_larpable']){const me=await fetch(base+'/api/auth/me',{headers:{Cookie:'larpable_session='+tokens[id]}}).then(r=>r.json());assert.equal(me.user.can_promote===true,id==='owner');}
   for(const prefix of ['/api/posts/','/api/opportunities/']){
    assert.equal((await req('PATCH',prefix+'old',{promoted:true})).status,200);
    assert.equal((await req('PATCH',prefix+'old',{promoted:false},'admin_larpable')).status,403);
