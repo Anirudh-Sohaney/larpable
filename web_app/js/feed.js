@@ -198,7 +198,7 @@ const Feed = {
       links ? Utils.meta('↗', 'Contact', links + (links === 1 ? ' link' : ' links')) : ''
     ].filter(Boolean).join('');
 
-    return `<article class="d-opp-card d-opportunity-card" tabindex="0" role="link" data-pane-href="/opportunity?id=${encodeURIComponent(o.id)}${o.has_unread_applications && o.latest_unread_application_at >= (o.latest_unread_comment_at || '') ? '#applied' : (o.unread_reply_comment_id ? '#comment-' + o.unread_reply_comment_id : (o.has_unread_comments ? '#comments' : ''))}" style="${o.has_unread_comments || o.has_unread_applications || o.unread_reply_comment_id ? 'border-color: #dc3545;' : ''}">
+    return `<article class="d-opp-card d-opportunity-card${o.promoted===true ? ' is-promoted' : ''}" tabindex="0" role="link" data-pane-href="/opportunity?id=${encodeURIComponent(o.id)}${o.has_unread_applications && o.latest_unread_application_at >= (o.latest_unread_comment_at || '') ? '#applied' : (o.unread_reply_comment_id ? '#comment-' + o.unread_reply_comment_id : (o.has_unread_comments ? '#comments' : ''))}" style="${o.has_unread_comments || o.has_unread_applications || o.unread_reply_comment_id ? 'border-color: #dc3545;' : ''}">
       <div class="d-opp-top">
         <div class="d-opp-title">
           ${(o.has_unread_comments || o.has_unread_applications || o.unread_reply_comment_id) ? `<span style="display:inline-block; margin-right:4px; background:#dc3545; color:white; font-size:0.65rem; font-weight:bold; border-radius:50%; width:16px; height:16px; text-align:center; line-height:16px;">!</span>` : ''}
@@ -238,7 +238,7 @@ const Feed = {
     const mine=this.showingYours && post.created_by===this.currentUser?.id;
     const asset=post.media;
     const preview=asset ? (asset.kind==='video' ? `<video class="d-post-media" controls playsinline loop preload="metadata" src="${esc(asset.url)}"></video>` : `<img class="d-post-media" loading="lazy" src="${esc(asset.url)}" alt="${esc(post.title)}">`) : '';
-    return `<article class="d-opp-card d-regular-post" data-pane-href="${esc(href)}" tabindex="0" role="link">
+    return `<article class="d-opp-card d-regular-post${post.promoted===true ? ' is-promoted' : ''}" data-pane-href="${esc(href)}" tabindex="0" role="link">
       <div class="d-opp-top"><a class="d-post-open d-opp-title" href="${href}">${esc(post.title)}</a><span class="d-badge">Post</span></div>
       <div class="d-opp-issuer">${esc(post.project_name)} · Posted by <strong>${Utils.userLink(post.created_by,post.issuer_name)}</strong></div>
       <p class="d-opp-desc">${esc(post.content)}</p>${preview}

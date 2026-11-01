@@ -34,6 +34,7 @@ const Filters = {
     if(order==='foryou'){
       rows.sort((a,b)=>(scores[b.id] || 0)-(scores[a.id] || 0));
       rows.sort((a,b)=>(b.unread_reply_comment_id ? 1 : 0)-(a.unread_reply_comment_id ? 1 : 0));
+      rows.sort((a,b)=>Number(b.promoted===true)-Number(a.promoted===true));
     }
     return rows;
   },

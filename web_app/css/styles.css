@@ -264,3 +264,5 @@ html.d-embed #back-to-post{display:block}
  .d-opportunity-card .d-opp-issuer,.d-opportunity-card .d-opp-desc,.d-opportunity-card .d-opp-meta,.d-opportunity-card .d-opp-looking,.d-opportunity-card .d-opp-footer,.d-opportunity-card .d-opportunity-label{display:none}
  .d-opportunity-card .d-phone-looking{display:block;margin:10px 0 0;font-size:.85rem;color:var(--fg-secondary)}
 }
+
+.d-opp-card.is-promoted{border:1px solid #b99435!important}

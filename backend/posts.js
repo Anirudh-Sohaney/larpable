@@ -24,7 +24,8 @@ async function create(user,input) {
     contact_links:Array.isArray(clean.contact_links) ? clean.contact_links.filter(l=>typeof l==='string' && l.trim()) : (typeof clean.contact==='string' ? [clean.contact] : []),
     skills:normalizeSkills(clean.skills),details:clean.details || '',opportunity_preference:preference
   };
-  const record={project_id:project.id,type:project.type,created_by:user.id,created_at:new Date().toISOString()};
+  const promoted=await require('./promotion').value(input.promoted,user.id,user.id);
+  const record={promoted,project_id:project.id,type:project.type,created_by:user.id,created_at:new Date().toISOString()};
   const scan=scanFields(fields);applyFlag(record,scan,record.created_at);
   record.encrypted_fields=encryptObject(fields);
   const id='opp_'+randomBytes(12).toString('hex');

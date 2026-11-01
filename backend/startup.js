@@ -24,6 +24,7 @@ async function checkFormat(){
 async function run(){
   await checkFormat();
   await require('./migrations/project-field-v7').run();
+  await require('./migrations/promoted-v8').run();
   await fs.mkdir(store.DATA_DIR,{recursive:true});
   for(const file of COLLECTIONS){
     try{await fs.writeFile(store.filePath(file),'{}\n',{flag:'wx'});}catch(error){if(error.code!=='EEXIST')throw error;}

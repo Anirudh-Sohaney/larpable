@@ -258,8 +258,9 @@ document.getElementById('create-project-btn').addEventListener('click',async()=>
   finally{button.disabled=false;}
 });
 function collectPostFields() {
-  if(postKind()==='post')return {kind:'post',project_id:projectSelect.value,title:document.getElementById('post-title').value.trim(),content:document.getElementById('post-content').value.trim()};
-  return {kind:'opportunity',project_id:projectSelect.value,looking_for:document.getElementById('looking-for').value.trim(),
+  const promotion=document.getElementById('promote-option').hidden ? {} : {promoted:document.getElementById('post-promoted').checked};
+  if(postKind()==='post')return {...promotion,kind:'post',project_id:projectSelect.value,title:document.getElementById('post-title').value.trim(),content:document.getElementById('post-content').value.trim()};
+  return {...promotion,kind:'opportunity',project_id:projectSelect.value,looking_for:document.getElementById('looking-for').value.trim(),
     skills:selectedSkills,description:document.getElementById('description').value.trim(),
     details:document.getElementById('details').value.trim(),opportunity_preference:selectedOpportunityPreference,
     remote:remoteCheck.checked,location:remoteCheck.checked ? 'Remote' : (selectedLocation?.display || ''),
@@ -294,6 +295,7 @@ postForm.addEventListener('input',scheduleDraftSave);
 postForm.addEventListener('change',scheduleDraftSave);
 async function loadFields(fields,projectId,kind='opportunity',asset=null) {
   suppressAutoSave=true;
+  document.getElementById('post-promoted').checked=fields.promoted===true;
   opportunityToggle.checked=kind==='opportunity';updatePostKind();
   projectSelect.value=projectId || '';
   selectProject(false);
@@ -357,6 +359,7 @@ postForm.addEventListener('submit',async event=>{
 (async()=>{
   try{
     const auth=await editorRequest('/api/auth/me');
+    document.getElementById('promote-option').hidden=auth.user?.username!=='anisohaney';
     if(auth.user?.role!=='admin'){
       const legal=await editorRequest('/api/legal/status');
       if(!legal.all_agreed){Panels.navigate('/agreement');return;}
@@ -395,7 +398,7 @@ postForm.addEventListener('submit',async event=>{
       const post=await editorRequest((kind==='post' ? '/api/posts/' : '/api/opportunities/')+encodeURIComponent(editId));
       if(post.created_by!==auth.user.id && auth.user.role!=='admin')throw new Error('You cannot edit this post');
       if(post.project && !ownedProjects.some(p=>p.id===post.project.id)){ownedProjects.push(post.project);renderProjectOptions();}
-      await loadFields(post.fields,post.project_id,kind,post.media);
+      await loadFields({...post.fields,promoted:post.promoted===true},post.project_id,kind,post.media);
       opportunityToggle.disabled=true;
       projectSelect.disabled=true;
       syncProjectPicker();

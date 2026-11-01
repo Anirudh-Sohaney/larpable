@@ -75,6 +75,8 @@ router.post('/', requireAuth, async (req, res) => {
     if(!['post','opportunity'].includes(kind))throw require('../projects').fail('Invalid post kind');
     const fields=kind==='post' ? {title:inputFields.title || '',content:inputFields.content || ''} : inputFields;
     if(kind==='opportunity')delete fields.title;
+    delete fields.promoted;
+    if(req.body.promoted!==undefined)fields.promoted=await require('../promotion').value(req.body.promoted,req.user.id,req.user.id);
     return await require('../projects').withOwned(project_id,req.user.id,async project=>{
     const type = project.type;
     const asset=kind==='post' ? await require('../media').validateRef(media_id,req.user.id,project.id) : null;

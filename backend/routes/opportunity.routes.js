@@ -199,6 +199,7 @@ router.get('/:id', optionalAuth, async (req, res) => {
     
     res.json({
       id: opp.id,
+      promoted:opp.promoted===true,
       type: opp.type,
       project_id: opp.project_id,
       project: opp.project,
@@ -375,6 +376,7 @@ router.patch('/:id', requireAuth, async (req, res) => {
       if (latest.created_by !== req.user.id && req.user.id !== 'admin_larpable') {
         throw Object.assign(new Error('Not authorized'), { status: 403, expectedStoreConflict: true });
       }
+      latest.promoted=await require('../promotion').value(req.body.promoted,req.user.id,latest.created_by,latest.promoted);
       const currentFields = decryptObject(latest.encrypted_fields || {});
       const nextType = (await require('../projects').get(latest.project_id))?.type || latest.type;
       const updatedFields = { ...currentFields, ...sanitizeObject(updates) };
@@ -457,6 +459,7 @@ function enrichOpp(opp, user) {
 
   return {
     id: opp.id,
+    promoted:opp.promoted===true,
     kind: 'opportunity',
     unread_reply_comment_id,
     type: opp.type,

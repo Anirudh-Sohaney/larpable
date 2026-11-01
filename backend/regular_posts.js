@@ -19,10 +19,11 @@ const pending=new Map();
 function withPost(id,operation){const result=(pending.get(id) || Promise.resolve()).catch(()=>{}).then(operation);pending.set(id,result);const done=()=>{if(pending.get(id)===result)pending.delete(id);};result.then(done,done);return result;}
 async function create(user,input) {
   const fields=validate(input);
+  const promoted=await require('./promotion').value(input.promoted,user.id,user.id);
   return projects.withOwned(input.project_id,user.id,async()=>{
     const asset=await media.validateRef(input.media_id,user.id,input.project_id);
     const id='post_'+randomBytes(12).toString('hex');
-    const raw={id,kind:'post',schema_version:1,project_id:input.project_id,created_by:user.id,created_at:new Date().toISOString(),media_id:asset?.id || null,
+    const raw={id,promoted,kind:'post',schema_version:1,project_id:input.project_id,created_by:user.id,created_at:new Date().toISOString(),media_id:asset?.id || null,
       encrypted_fields:encryptObject({...fields,issuer_name:author(user),issuer_context:user.encrypted_fields?.grade || '',comments:[]})};
     await require('./publication_limit').publish(user.id,'post',id,raw,()=>store.atomicUpdate(FILE,async data=>{
       await require('./deleted_users').requireActive(user.id);data[id]=raw;return data;
@@ -36,7 +37,7 @@ function present(id,raw,user,ctx,fields=decryptObject(raw.encrypted_fields)) {
   const comments=Array.isArray(fields.comments) ? fields.comments : [];
   const unread=comments.filter(c=>c.read_by_op===false);
   const reply=comments.find(c=>c.user_id===user?.id && (c.replies || []).some(r=>r.read_by_parent_author===false));
-  return {id,kind:'post',project_id:raw.project_id,project,project_name:project?.fields.name || 'Project unavailable',type:project?.type || 'project',created_by:raw.created_by,created_at:raw.created_at,
+  return {id,promoted:raw.promoted===true,kind:'post',project_id:raw.project_id,project,project_name:project?.fields.name || 'Project unavailable',type:project?.type || 'project',created_by:raw.created_by,created_at:raw.created_at,
     title:fields.title,content:fields.content,description:fields.content,issuer_name:fields.issuer_name || '',issuer_context:fields.issuer_context || '',
     skills:project?.fields.tags || [],remote:true,media:media.publicMedia(ctx.media[raw.media_id]),
     like_count:Object.keys(ctx.reactions[id] || {}).length,liked:!!ctx.reactions[id]?.[user?.id],comment_count:comments.length,
@@ -75,7 +76,7 @@ async function update(id,user,input) {
     return projects.withOwned(raw.project_id,raw.created_by,async()=>{
       const fields=validate({...decryptObject(raw.encrypted_fields),...input});
       const nextMedia=input.media_id===undefined ? raw.media_id : (await media.validateRef(input.media_id,raw.created_by,raw.project_id))?.id || null;
-      await store.atomicUpdate(FILE,data=>{if(!data[id])throw projects.fail('Post not found',404);const f=decryptObject(data[id].encrypted_fields);data[id].encrypted_fields=encryptObject({...f,...fields});data[id].media_id=nextMedia;data[id].updated_at=new Date().toISOString();return data;});
+      await store.atomicUpdate(FILE,async data=>{if(!data[id])throw projects.fail('Post not found',404);data[id].promoted=await require('./promotion').value(input.promoted,user.id,data[id].created_by,data[id].promoted);const f=decryptObject(data[id].encrypted_fields);data[id].encrypted_fields=encryptObject({...f,...fields});data[id].media_id=nextMedia;data[id].updated_at=new Date().toISOString();return data;});
       if(raw.media_id!==nextMedia)await media.releaseIfUnused(raw.media_id);
       return {ok:true};
     });
