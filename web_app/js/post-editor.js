@@ -251,7 +251,7 @@ document.getElementById('create-project-btn').addEventListener('click',async()=>
       field:projectType.value==='project' ? undefined : projectField.value,
       tags:[...projectTags]
     })});
-    if(editProjectId){Panels.navigate('/feed?mine=1');return;}
+    if(editProjectId){Panels.returnTo('/feed?mine=1');return;}
     ownedProjects.push(project);renderProjectOptions(project.id);selectProject();
     document.getElementById(postKind()==='post' ? 'post-title' : 'looking-for').focus();
   } catch(error){projectError.textContent=error.message;}
@@ -353,7 +353,7 @@ postForm.addEventListener('submit',async event=>{
     const result=await editorRequest(editId ? endpoint+'/'+encodeURIComponent(editId) : endpoint,{method:editId ? 'PATCH' : 'POST',...jsonOptions(body)});
     if(result.message)alert(result.message);
     if(!editId && currentDraftId)await editorRequest('/api/drafts/'+encodeURIComponent(currentDraftId),{method:'DELETE'});
-    Panels.navigate('/feed?mine=1&view=posts');
+    Panels.returnTo('/feed?mine=1&view=posts');
   }catch(error){projectError.textContent=error.message;button.disabled=false;suppressAutoSave=false;}
 });
 (async()=>{

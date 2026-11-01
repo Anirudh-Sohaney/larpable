@@ -35,4 +35,12 @@ panels.navigate('/profile?id=next');assert.equal(new URL(location.href).searchPa
 panels.navigate('/feed?mine=1');assert.equal(new URL(location.href).searchParams.get('embed'),'1','embedded return links preserve their pane');
 panels.embedded=false;wide=false;panels.navigate('/profile?id=narrow');assert.equal(location.href,'https://larpable.test/profile?id=narrow');
 panels.close();assert.ok(!classes.has('is-open'));
+const parent={Panels:{close:()=>classes.delete('is-open')},location:{href:''}};
+window.parent=parent;panels.embedded=true;classes.add('is-open');const frameBeforeSave=frame.src;
+panels.returnTo('/feed?mine=1&view=posts&embed=1');
+assert.equal(parent.location.href,'https://larpable.test/feed?mine=1&view=posts');
+assert.ok(!classes.has('is-open'),'successful embedded save closes the split');
+assert.equal(frame.src,frameBeforeSave,'Yours is never loaded inside the detail frame');
+window.parent=window;panels.embedded=false;panels.returnTo('/feed?mine=1');
+assert.equal(location.href,'https://larpable.test/feed?mine=1','standalone saves return to the full Yours page');
 console.log('Shared panes: desktop preservation, nested profile/post/editor navigation, navigation-bar and modifier exceptions, external links and narrow-screen takeover passed.');

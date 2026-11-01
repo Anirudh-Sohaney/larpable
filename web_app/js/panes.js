@@ -52,6 +52,14 @@ const Panels={
     document.getElementById('detail-pane').setAttribute('aria-hidden','false');
     if(typeof FeedVideos!=='undefined')FeedVideos.schedule();
   },
+  returnTo(href){
+    const url=new URL(href,location.href);
+    url.searchParams.delete('embed');
+    if(this.embedded && window.parent!==window){
+      window.parent.Panels.close();
+      window.parent.location.href=url.href;
+    }else location.href=url.href;
+  },
   close(){
     document.querySelectorAll('.d-opp-card.is-active').forEach(card=>card.classList.remove('is-active'));
     document.getElementById('split')?.classList.remove('is-open');
