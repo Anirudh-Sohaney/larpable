@@ -198,19 +198,20 @@ const Feed = {
       links ? Utils.meta('↗', 'Contact', links + (links === 1 ? ' link' : ' links')) : ''
     ].filter(Boolean).join('');
 
-    return `<article class="d-opp-card" data-pane-href="/opportunity?id=${encodeURIComponent(o.id)}${o.has_unread_applications && o.latest_unread_application_at >= (o.latest_unread_comment_at || '') ? '#applied' : (o.unread_reply_comment_id ? '#comment-' + o.unread_reply_comment_id : (o.has_unread_comments ? '#comments' : ''))}" style="${o.has_unread_comments || o.has_unread_applications || o.unread_reply_comment_id ? 'border-color: #dc3545;' : ''}">
+    return `<article class="d-opp-card d-opportunity-card" tabindex="0" role="link" data-pane-href="/opportunity?id=${encodeURIComponent(o.id)}${o.has_unread_applications && o.latest_unread_application_at >= (o.latest_unread_comment_at || '') ? '#applied' : (o.unread_reply_comment_id ? '#comment-' + o.unread_reply_comment_id : (o.has_unread_comments ? '#comments' : ''))}" style="${o.has_unread_comments || o.has_unread_applications || o.unread_reply_comment_id ? 'border-color: #dc3545;' : ''}">
       <div class="d-opp-top">
         <div class="d-opp-title">
           ${(o.has_unread_comments || o.has_unread_applications || o.unread_reply_comment_id) ? `<span style="display:inline-block; margin-right:4px; background:#dc3545; color:white; font-size:0.65rem; font-weight:bold; border-radius:50%; width:16px; height:16px; text-align:center; line-height:16px;">!</span>` : ''}
           <a class="d-post-open" href="/opportunity?id=${encodeURIComponent(o.id)}${o.has_unread_applications && o.latest_unread_application_at >= (o.latest_unread_comment_at || '') ? '#applied' : (o.unread_reply_comment_id ? '#comment-' + o.unread_reply_comment_id : (o.has_unread_comments ? '#comments' : ''))}">${Utils.escapeHtml(o.project_name || 'Untitled')}</a>
         </div>
-        <div style="display:flex;gap:0.35rem;align-items:center;">
+        <div class="d-opportunity-badges" style="display:flex;gap:0.35rem;align-items:center;">
           ${o.flagged ? '<span class="d-badge d-badge--draft">Under review</span>' : ''}
-          <span class="d-badge">Opportunity</span>
+          <span class="d-badge d-opportunity-label">Opportunity</span>
           ${preferenceBadge}
           <span class="d-badge d-badge--${o.type || 'project'}">${TYPE[o.type] || 'Project'}</span>
         </div>
       </div>
+      ${o.looking_for ? `<p class="d-phone-looking">Looking for: ${Utils.escapeHtml(o.looking_for)}</p>` : ''}
       <div class="d-opp-issuer">Posted by <strong>${Utils.userLink(o.created_by,o.issuer_name || 'Unknown')}</strong>${o.issuer_context ? ' · ' + Utils.escapeHtml(o.issuer_context) : ''}</div>
       ${o.description ? `<div class="d-opp-desc">${Utils.escapeHtml(Utils.truncate(o.description, 30))}</div>` : ''}
       ${bits ? `<div class="d-opp-meta">${bits}</div>` : ''}

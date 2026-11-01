@@ -61,6 +61,20 @@ const App = {
       this.applyGuestHeader();
     }
 
+    if(!this.navScrollReady){
+      this.navScrollReady=true;
+      const positions=new WeakMap();
+      document.addEventListener('focusin',event=>event.target.closest('.d-bottom-nav')?.classList.remove('is-scroll-hidden'));
+      document.addEventListener('scroll',event=>{
+        const target=event.target===document ? document.scrollingElement : event.target;
+        if(!target || target.closest?.('.d-bottom-nav'))return;
+        const y=Math.max(0,target.scrollTop),previous=positions.get(target) || 0;
+        if(Math.abs(y-previous)<6 && y>0)return;
+        positions.set(target,y);
+        const nav=document.querySelector('.d-bottom-nav');
+        if(nav && !(nav.contains(document.activeElement) && document.activeElement.matches(':focus-visible')))nav.classList.toggle('is-scroll-hidden',y>previous && y>60);
+      },{capture:true,passive:true});
+    }
     // Inject bottom nav globally if not present
     if (!document.querySelector('.d-bottom-nav')) {
        const nav = document.createElement('nav');

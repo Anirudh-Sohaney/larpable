@@ -18,6 +18,11 @@ const Panels={
       event.target.closest('.d-opp-card')?.classList.add('is-active');
       event.preventDefault();event.stopImmediatePropagation();this.navigate(url.href);
     },true);
+    document.addEventListener('keydown',event=>{
+      if(event.target.matches?.('.d-opportunity-card') && (event.key==='Enter' || event.key===' ')){
+        event.preventDefault();this.navigate(event.target.dataset.paneHref);
+      }
+    });
     if(this.embedded)return;
     this.ensureHost();
     document.getElementById('detail-close')?.addEventListener('click',()=>this.close());

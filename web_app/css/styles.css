@@ -250,3 +250,17 @@ html.d-embed #back-to-post{display:block}
 .d-project-more[open]>summary .d-project-more-close{display:inline}
 .d-project-more-content{display:grid;gap:14px;padding-top:16px}
 .d-project-more-content .d-detail-desc{margin:0;white-space:pre-wrap;overflow-wrap:anywhere}
+
+.d-project-divider{display:flex;align-items:center;gap:12px;color:var(--border);font-size:.75rem;text-align:center}
+.d-project-divider::before,.d-project-divider::after{content:"";height:1px;background:currentColor;flex:1}
+.d-project-pitch{border-top:0!important}
+.d-bottom-nav{transition:translate .22s ease,opacity .22s ease}
+.d-bottom-nav.is-scroll-hidden{translate:0 calc(100% + 56px);opacity:0;pointer-events:none}
+.d-phone-looking{display:none}
+@media(prefers-reduced-motion:reduce){.d-bottom-nav{transition:none}}
+@media(max-width:600px){
+ .d-opportunity-card .d-opp-top{display:flex;flex-direction:column;gap:10px}
+ .d-opportunity-card .d-opportunity-badges{flex-wrap:wrap}
+ .d-opportunity-card .d-opp-issuer,.d-opportunity-card .d-opp-desc,.d-opportunity-card .d-opp-meta,.d-opportunity-card .d-opp-looking,.d-opportunity-card .d-opp-footer,.d-opportunity-card .d-opportunity-label{display:none}
+ .d-opportunity-card .d-phone-looking{display:block;margin:10px 0 0;font-size:.85rem;color:var(--fg-secondary)}
+}

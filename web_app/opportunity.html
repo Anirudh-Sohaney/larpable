@@ -4,9 +4,9 @@
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>LARPABLE. — Opportunity</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="/css/styles.css?v=1505dbaf9acb">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="/css/styles.css?v=2439c05754cf">
   <style>
-    .d-detail-header{padding-bottom:30px;border-bottom:1px solid var(--border)}
+    .d-detail-header{padding-bottom:20px}
     .d-detail-kicker{display:flex;align-items:center;gap:8px;margin-bottom:14px;color:var(--fg-tertiary);font-size:.72rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
     .d-detail-kicker .d-detail-type{margin:0}.d-detail-dot{color:var(--accent)}
     .d-detail-issuer{display:flex;align-items:center;gap:9px;margin:0}.d-detail-issuer-mark{display:grid;place-items:center;width:30px;height:30px;border-radius:50%;background:var(--fg-primary);color:var(--bg-secondary);font-size:.64rem;font-weight:700}
@@ -25,7 +25,7 @@
   <main class="d-detail">
     <div id="detail"><div class="d-empty">Loading post...</div></div>
   </main>
-  <script src="/js/utils.js?v=2c88deb1c2fc"></script><script src="/js/data.js?v=d4852fb31c4b"></script><script src="/js/panes.js?v=e35447ed08a2"></script><script src="/js/app.js?v=6764190cfc2d"></script>
+  <script src="/js/utils.js?v=2c88deb1c2fc"></script><script src="/js/data.js?v=d4852fb31c4b"></script><script src="/js/panes.js?v=87e02ed657a4"></script><script src="/js/app.js?v=c24cdf534b34"></script>
   <script>
     const esc = value => { const d = document.createElement('div'); d.textContent = value == null ? '' : String(value); return d.innerHTML; };
     const text = value => value == null ? '' : String(value);
@@ -118,8 +118,9 @@
             <h1 class="d-detail-title">${esc(isRegular ? fields.title : projectName)}</h1>
             <div class="d-detail-issuer"><span class="d-detail-issuer-mark">${esc(initials(name))}</span><span>Posted by <strong>${Utils.userLink(data.created_by,name)}</strong>${fields.issuer_context ? ' · ' + esc(fields.issuer_context) : ''}</span></div>
           </section>
-          ${projectPitch ? `<section class="d-detail-story" aria-label="Project elevator pitch"><p class="d-detail-desc">${esc(projectPitch)}</p></section>` : ''}
-          ${!isRegular && data.project ? `<details class="d-project-more"><summary><span class="d-project-more-open">View more</span><span class="d-project-more-close">Show less</span></summary><div class="d-project-more-content">${data.project.fields.description ? `<p class="d-detail-desc">${esc(data.project.fields.description)}</p>` : ''}${data.project.fields.tags?.length ? `<div class="d-detail-skills">${data.project.fields.tags.map(tag=>`<span class="d-chip">${esc(tag)}</span>`).join('')}</div>` : ''}${data.project.fields.field ? `<p class="d-detail-desc">Field: ${esc(data.project.fields.field)}</p>` : ''}</div></details>` : ''}
+          <div class="d-project-divider">About project</div>
+          ${projectPitch ? `<section class="d-detail-story d-project-pitch" aria-label="Project elevator pitch"><p class="d-detail-desc">${esc(projectPitch)}</p></section>` : ''}
+          ${data.project ? `<details class="d-project-more"><summary><span class="d-project-more-open">View more</span><span class="d-project-more-close">Show less</span></summary><div class="d-project-more-content">${data.project.fields.description ? `<p class="d-detail-desc">${esc(data.project.fields.description)}</p>` : ''}${data.project.fields.tags?.length ? `<div class="d-detail-skills">${data.project.fields.tags.map(tag=>`<span class="d-chip">${esc(tag)}</span>`).join('')}</div>` : ''}${data.project.fields.field ? `<p class="d-detail-desc">Field: ${esc(data.project.fields.field)}</p>` : ''}</div></details>` : ''}
           ${isRegular ? `<section class="d-detail-story"><p class="d-detail-desc" style="white-space:pre-wrap;">${esc(fields.content)}</p>${data.media ? (data.media.kind==='video' ? `<video class="d-post-media" controls preload="metadata" src="${esc(data.media.url)}"></video>` : `<img class="d-post-media" src="${esc(data.media.url)}" alt="Post image">`) : ''}<p class="d-detail-eyebrow">${esc(projectName)} · ${esc(posted(data.created_at))}</p><button id="detail-like-btn" class="d-btn d-btn-sm" type="button" aria-pressed="${!!data.liked}">${data.liked ? 'Liked' : 'Like'} (${data.like_count || 0})</button><p id="like-error" role="alert"></p></section>` : opportunityBody}
           <section class="d-detail-story">
             <div class="d-detail-section-heading">
