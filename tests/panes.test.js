@@ -35,7 +35,7 @@ panels.navigate('/profile?id=next');assert.equal(new URL(location.href).searchPa
 panels.navigate('/feed?mine=1');assert.equal(new URL(location.href).searchParams.get('embed'),'1','embedded return links preserve their pane');
 panels.embedded=false;wide=false;panels.navigate('/profile?id=narrow');assert.equal(location.href,'https://larpable.test/profile?id=narrow');
 panels.close();assert.ok(!classes.has('is-open'));
-const parent={Panels:{close:()=>classes.delete('is-open')},location:{href:''}};
+const parent={document,location:{href:''}}; // Top-level const Panels is not a window property.
 window.parent=parent;panels.embedded=true;classes.add('is-open');const frameBeforeSave=frame.src;
 panels.returnTo('/feed?mine=1&view=posts&embed=1');
 assert.equal(parent.location.href,'https://larpable.test/feed?mine=1&view=posts');

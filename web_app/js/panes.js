@@ -56,7 +56,8 @@ const Panels={
     const url=new URL(href,location.href);
     url.searchParams.delete('embed');
     if(this.embedded && window.parent!==window){
-      window.parent.Panels.close();
+      window.parent.document.getElementById('split')?.classList.remove('is-open');
+      window.parent.document.getElementById('detail-pane')?.setAttribute('aria-hidden','true');
       window.parent.location.href=url.href;
     }else location.href=url.href;
   },
