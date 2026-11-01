@@ -1,0 +1,15 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
+const listeners={},classes=new Set();
+const bar={classList:{toggle:(name,on)=>on?classes.add(name):classes.delete(name),remove:name=>classes.delete(name)}};
+const document={querySelector:()=>bar,addEventListener:(name,fn)=>listeners[name]=fn};
+const window={scrollY:0};window.parent=window;
+const app=vm.runInNewContext(fs.readFileSync('web_app/js/app.js','utf8')+';App;',{document,window});
+app.setupNavScroll();
+window.scrollY=120;listeners.scroll({target:document});assert.ok(classes.has('is-scroll-hidden'));
+window.scrollY=100;listeners.scroll({target:document});assert.ok(!classes.has('is-scroll-hidden'));
+const nested={scrollHeight:1000,clientHeight:200,scrollTop:150};listeners.scroll({target:nested});assert.ok(classes.has('is-scroll-hidden'));
+nested.scrollTop=120;listeners.scroll({target:nested});assert.ok(!classes.has('is-scroll-hidden'));
+window.parent={document:{querySelector:()=>bar}};document.querySelector=()=>null;
+window.scrollY=200;listeners.scroll({target:document});assert.ok(classes.has('is-scroll-hidden'),'detail iframe controls parent navigation');
+window.scrollY=0;listeners.scroll({target:document});assert.ok(!classes.has('is-scroll-hidden'));
+console.log('Navigation scrolling: document/window coordinates, both directions, nested scrollers and parent iframe navigation passed.');

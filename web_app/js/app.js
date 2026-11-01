@@ -61,20 +61,7 @@ const App = {
       this.applyGuestHeader();
     }
 
-    if(!this.navScrollReady){
-      this.navScrollReady=true;
-      const positions=new WeakMap();
-      document.addEventListener('focusin',event=>event.target.closest('.d-bottom-nav')?.classList.remove('is-scroll-hidden'));
-      document.addEventListener('scroll',event=>{
-        const target=event.target===document ? document.scrollingElement : event.target;
-        if(!target || target.closest?.('.d-bottom-nav'))return;
-        const y=Math.max(0,target.scrollTop),previous=positions.get(target) || 0;
-        if(Math.abs(y-previous)<6 && y>0)return;
-        positions.set(target,y);
-        const nav=document.querySelector('.d-bottom-nav');
-        if(nav && !(nav.contains(document.activeElement) && document.activeElement.matches(':focus-visible')))nav.classList.toggle('is-scroll-hidden',y>previous && y>60);
-      },{capture:true,passive:true});
-    }
+    this.setupNavScroll();
     // Inject bottom nav globally if not present
     if (!document.querySelector('.d-bottom-nav')) {
        const nav = document.createElement('nav');
@@ -119,6 +106,26 @@ const App = {
          }
        }
     }
+  },
+
+  setupNavScroll(){
+    if(this.navScrollReady)return;
+    this.navScrollReady=true;
+    const positions=new WeakMap();
+    positions.set(document,window.scrollY);
+    const nav=()=>window.parent!==window ? window.parent.document.querySelector('.d-bottom-nav') : document.querySelector('.d-bottom-nav');
+    document.addEventListener('focusin',event=>event.target.closest('.d-bottom-nav')?.classList.remove('is-scroll-hidden'));
+    document.addEventListener('scroll',event=>{
+      const surface=event.target===document || event.target===window ? document : event.target;
+      if(surface!==document && (!surface.scrollHeight || surface.scrollHeight<=surface.clientHeight))return;
+      if(surface.closest?.('.d-bottom-nav'))return;
+      const y=Math.max(0,surface===document ? window.scrollY : surface.scrollTop);
+      const previous=positions.get(surface) ?? 0;
+      if(Math.abs(y-previous)<6 && y>0)return;
+      positions.set(surface,y);
+      const bar=nav();
+      if(bar)bar.classList.toggle('is-scroll-hidden',y>previous && y>60);
+    },{capture:true,passive:true});
   },
 
   renderBottomNav(guest) {

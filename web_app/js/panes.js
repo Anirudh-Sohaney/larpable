@@ -10,7 +10,7 @@ const Panels={
       const link=event.target.closest('a[href]');
       if(link?.closest('.d-bottom-nav') || link?.target==='_blank' || link?.hasAttribute('download'))return;
       let href=link?.getAttribute('href');
-      if(!link && !event.target.closest('button,input,textarea,video'))href=event.target.closest('[data-pane-href]')?.dataset.paneHref;
+      if(!link && !event.target.closest('button,input,textarea,select,label,video,audio,summary,[contenteditable]'))href=event.target.closest('[data-pane-href]')?.dataset.paneHref;
       if(!href || href.startsWith('#'))return;
       const url=new URL(href,location.href);
       if(url.origin!==location.origin || (!this.embedded && !['/profile','/post','/opportunity','/edit_profile','/create_student','/feed','/feedback'].includes(url.pathname)))return;
@@ -19,7 +19,7 @@ const Panels={
       event.preventDefault();event.stopImmediatePropagation();this.navigate(url.href);
     },true);
     document.addEventListener('keydown',event=>{
-      if(event.target.matches?.('.d-opportunity-card') && (event.key==='Enter' || event.key===' ')){
+      if(event.target.matches?.('[data-pane-href]') && (event.key==='Enter' || event.key===' ')){
         event.preventDefault();this.navigate(event.target.dataset.paneHref);
       }
     });

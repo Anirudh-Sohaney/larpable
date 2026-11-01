@@ -238,7 +238,7 @@ const Feed = {
     const mine=this.showingYours && post.created_by===this.currentUser?.id;
     const asset=post.media;
     const preview=asset ? (asset.kind==='video' ? `<video class="d-post-media" controls playsinline loop preload="metadata" src="${esc(asset.url)}"></video>` : `<img class="d-post-media" loading="lazy" src="${esc(asset.url)}" alt="${esc(post.title)}">`) : '';
-    return `<article class="d-opp-card d-regular-post">
+    return `<article class="d-opp-card d-regular-post" data-pane-href="${esc(href)}" tabindex="0" role="link">
       <div class="d-opp-top"><a class="d-post-open d-opp-title" href="${href}">${esc(post.title)}</a><span class="d-badge">Post</span></div>
       <div class="d-opp-issuer">${esc(post.project_name)} · Posted by <strong>${Utils.userLink(post.created_by,post.issuer_name)}</strong></div>
       <p class="d-opp-desc">${esc(post.content)}</p>${preview}
