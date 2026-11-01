@@ -16,7 +16,9 @@ const Panels={
       if(url.origin!==location.origin || (!this.embedded && !['/profile','/post','/opportunity','/edit_profile','/create_student','/feed','/feedback'].includes(url.pathname)))return;
       document.querySelectorAll('.d-opp-card.is-active').forEach(card=>card.classList.remove('is-active'));
       event.target.closest('.d-opp-card')?.classList.add('is-active');
-      event.preventDefault();event.stopImmediatePropagation();this.navigate(url.href);
+      event.preventDefault();event.stopImmediatePropagation();
+      if(link?.hasAttribute('data-pane-return'))this.returnTo(url.href);
+      else this.navigate(url.href);
     },true);
     document.addEventListener('keydown',event=>{
       if(event.target.matches?.('[data-pane-href]') && (event.key==='Enter' || event.key===' ')){

@@ -11,8 +11,8 @@ const panels=vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../web_app/
 const embedded=vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../web_app/js/panes.js'),'utf8')+'\nPanels;',{window:{top:{}},location,URLSearchParams});
 assert.equal(embedded.embedded,true,'iframe navigation stays embedded even if a legacy redirect omits the query flag');
 panels.init();
-function click(href,{nav=false,ctrl=false,target=''}={}){
-  const link={target,closest:()=>nav ? {} : null,getAttribute:()=>href,hasAttribute:()=>false};
+function click(href,{nav=false,ctrl=false,target='',returnLink=false}={}){
+  const link={target,closest:()=>nav ? {} : null,getAttribute:()=>href,hasAttribute:name=>name==='data-pane-return' && returnLink};
   const event={button:0,ctrlKey:ctrl,target:{closest:selector=>selector==='a[href]' ? link : null},preventDefault(){this.defaultPrevented=true;},stopImmediatePropagation(){this.stopped=true;}};
   listeners.click(event);return event;
 }
@@ -41,6 +41,9 @@ panels.returnTo('/feed?mine=1&view=posts&embed=1');
 assert.equal(parent.location.href,'https://larpable.test/feed?mine=1&view=posts');
 assert.ok(!classes.has('is-open'),'successful embedded save closes the split');
 assert.equal(frame.src,frameBeforeSave,'Yours is never loaded inside the detail frame');
+classes.add('is-open');parent.location.href='';
+click('/feed?mine=1',{returnLink:true});
+assert.equal(parent.location.href,'https://larpable.test/feed?mine=1');assert.ok(!classes.has('is-open'),'Cancel closes the parent split instead of navigating its iframe');
 window.parent=window;panels.embedded=false;panels.returnTo('/feed?mine=1');
 assert.equal(location.href,'https://larpable.test/feed?mine=1','standalone saves return to the full Yours page');
 console.log('Shared panes: desktop preservation, nested profile/post/editor navigation, navigation-bar and modifier exceptions, external links and narrow-screen takeover passed.');
