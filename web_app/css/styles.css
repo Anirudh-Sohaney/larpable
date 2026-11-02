@@ -266,3 +266,8 @@ html.d-embed #back-to-post{display:block}
 }
 
 .d-opp-card.is-promoted{border:1px solid #b99435!important}
+
+.d-detail-pane.is-loading::after{content:"Loading?";position:absolute;inset:70px 24px auto;text-align:center;color:var(--fg-tertiary);font-size:.85rem}
+.d-detail-frame{transition:opacity .15s ease}
+.d-detail-pane.is-loading .d-detail-frame{opacity:0;pointer-events:none}
+@media(prefers-reduced-motion:reduce){.d-detail-frame{transition:none}}

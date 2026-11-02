@@ -11,7 +11,7 @@ const Feed = {
     // read-only feed. Anyone else without a session is sent to login.
     if (!this.currentUser) {
       const hasGuestPass = typeof App !== 'undefined' && App.isGuest();
-      if (!hasGuestPass) { window.location.href = '/login'; return; }
+      if (!hasGuestPass) { App.navigate('/login'); return; }
       this.guest = true;
       this.opportunities = await DataStore.getOpportunities();
       this.currentSort = 'newest';
@@ -84,7 +84,7 @@ const Feed = {
     const redirect = event => {
       event.preventDefault();
       event.stopPropagation();
-      window.location.href = '/login';
+      App.navigate('/login');
     };
     for (const selector of ['.d-search-wrap', '.d-filter-row']) {
       const zone = document.querySelector(selector);

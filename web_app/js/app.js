@@ -167,12 +167,12 @@ const App = {
   },
 
   navigate(page) {
-    window.location.href = page;
+    if(typeof Panels!=='undefined')Panels.returnTo(page);else window.location.href=page;
   },
 
   async logout() {
     await DataStore.logout();
     this.currentUser = null;
-    window.location.href = '/';
+    this.navigate('/');
   }
 };

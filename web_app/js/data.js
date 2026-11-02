@@ -67,7 +67,7 @@ const DataStore = {
 
   requireAuth() {
     if (this.currentUser) return true;
-    window.location.href = '/login';
+    if(typeof Panels!=='undefined')Panels.returnTo('/login');else window.location.href='/login';
     return false;
   },
 
