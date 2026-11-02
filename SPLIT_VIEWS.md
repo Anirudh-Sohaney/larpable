@@ -4,6 +4,6 @@ The shared router keeps only post details, profiles with an ID, profile editing 
 
 Temporary views reuse one iframe; internal view replacements do not add iframe history entries. Tab returns strip the embed parameter and navigate the parent page without requiring a parent-window Panels global. Cancel and successful save retain explicit return semantics. Closing unloads iframe content, hides the pane, clears selection and returns focus to its opener. Escape works inside either document; resizing to narrow view closes the split. On narrow screens content opens as a normal full-page view.
 
-A loading state hides stale iframe content during switching and fades in the new view; reduced-motion settings disable the fade. Modified/new-window links, downloads, media controls, form controls and external links preserve their normal behavior. No database or backend routes change.
+Iframe content renders normally without an overlay or a full-load-event visibility gate, so delayed media or fonts cannot leave a usable view hidden. Modified/new-window links, downloads, media controls, form controls and external links preserve their normal behavior. No database or backend routes change.
 
 Regression coverage: tests/panes.test.js covers temporary route classification, top-level tab changes from either document, card/control behavior, modified links, return/cancel behavior, narrow layouts, focus restoration and unloading. tests/nav-scroll.test.js covers navigation visibility from parent/iframe scroll surfaces.

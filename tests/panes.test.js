@@ -13,7 +13,7 @@ function click(href,{nav=false,ctrl=false,target='',returnLink=false}={}){
  const link={target,closest:()=>nav?{}:null,getAttribute:()=>href,hasAttribute:n=>n==='data-pane-return' && returnLink};
  const e={button:0,ctrlKey:ctrl,target:{closest:s=>s==='a[href]'?link:null},preventDefault(){this.defaultPrevented=true;},stopImmediatePropagation(){}};listeners.click(e);return e;
 }
-click('/post?id=p');assert.ok(classes.has('is-open'));assert.equal(new URL(frame.src).pathname,'/post');assert.equal(location.href,'https://larpable.test/feed');assert.ok(paneClasses.has('is-loading'));
+click('/post?id=p');assert.ok(classes.has('is-open'));assert.equal(new URL(frame.src).pathname,'/post');assert.equal(location.href,'https://larpable.test/feed');assert.ok(!paneClasses.has('is-loading'),'content never depends on a full iframe load event to become visible');
 const oldFrame=frame.src;panels.navigate('/profile?id=u');assert.equal(new URL(frame.src).pathname,'/profile');
 click('/feed?mine=1',{nav:true});assert.equal(location.href,'https://larpable.test/feed?mine=1','main tabs replace the entire screen');
 assert.ok(!click('/profile?id=u',{ctrl:true}).defaultPrevented);assert.ok(!click('/profile?id=u',{target:'_blank'}).defaultPrevented);assert.ok(!click('https://external.test/profile').defaultPrevented);

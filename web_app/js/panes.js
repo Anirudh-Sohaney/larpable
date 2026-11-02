@@ -53,9 +53,6 @@ const Panels={
     const pane=document.createElement('aside');pane.id='detail-pane';pane.className='d-detail-pane';pane.setAttribute('aria-hidden','true');
     pane.innerHTML='<button class="d-detail-close" id="detail-close" type="button" aria-label="Close details">×</button><iframe class="d-detail-frame" id="detail-frame" title="Details"></iframe>';
     host.append(pane);
-    document.getElementById('detail-frame').addEventListener('load',()=>{
-      pane.classList.remove('is-loading');pane.setAttribute('aria-busy','false');
-    });
     return host;
   },
   navigate(href){
@@ -70,8 +67,6 @@ const Panels={
     let current=frame.src;
     try{current=frame.contentWindow?.location.href || current;}catch{}
     if(current===url.href && document.getElementById('split').classList.contains('is-open'))return;
-    const pane=document.getElementById('detail-pane');
-    pane.classList.add('is-loading');pane.setAttribute('aria-busy','true');
     if(frame.contentWindow)frame.contentWindow.location.replace(url.href);
     else frame.src=url.href;
     document.getElementById('split').classList.add('is-open');
