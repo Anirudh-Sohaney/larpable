@@ -82,7 +82,7 @@ const FeedVideos = {
     const rect=video.getBoundingClientRect(), doc=video.ownerDocument, view=doc.defaultView;
     if(!video.isConnected || !rect.width || !rect.height || view.getComputedStyle(video).visibility!=='visible')return false;
     const fullscreen=this.frameDocument?.fullscreenElement || document.fullscreenElement;
-    if(fullscreen)return fullscreen===video;
+    if(fullscreen)return fullscreen===video || fullscreen===video.parentElement;
     const fits=(box,clip)=>box.top>=clip.top-.5 && box.left>=clip.left-.5 && box.bottom<=clip.bottom+.5 && box.right<=clip.right+.5;
     if(!fits(rect,{top:0,left:0,bottom:view.innerHeight,right:doc.documentElement.clientWidth}))return false;
     // Account for scroll containers as well as the browser viewport.

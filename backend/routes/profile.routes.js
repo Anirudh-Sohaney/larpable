@@ -2,6 +2,22 @@ const router=require('express').Router();
 const store=require('../store');const projects=require('../projects');const auth=require('../auth');
 const {decryptObject}=require('../crypto');
 const strings=value=>Array.isArray(value) ? value.filter(item=>typeof item==='string') : [];
+// Images are served independently so profile/feed JSON never carries image bytes.
+router.get('/:id/picture',async(req,res)=>{
+  try {
+    const user=await store.getRawUser(req.params.id);
+    if(!user || user.deletion_pending)return res.status(404).end();
+    const picture=decryptObject(user.encrypted_fields?.profile_picture || null);
+    res.set('Cache-Control','public, max-age=0, must-revalidate');
+    res.set('X-Content-Type-Options','nosniff');
+    if(picture)return res.type('webp').send(Buffer.from(picture,'base64'));
+    const fields=user.encrypted_fields || {};
+    const username=decryptObject(fields.username || '').trim();
+    const firstName=decryptObject(fields.first_name || fields.firstName || '').trim();
+    res.set('Content-Security-Policy',"default-src 'none'; style-src 'unsafe-inline'");
+    return res.type('svg').send(require('../profile_picture').fallback(username || firstName || '?'));
+  }catch(error){res.status(500).end();}
+});
 // Public profiles are a projection of existing records, never a second user database.
 router.get('/:id',async(req,res)=>{
   try{

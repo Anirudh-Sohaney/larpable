@@ -7,7 +7,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/styles.css?v=32b7a4f391c0">
+  <link rel="stylesheet" href="/css/styles.css?v=f89a067772fc">
+<link rel="stylesheet" href="/css/profile-picture.css?v=6c78a5022ae0">
 </head>
 <body>
 
@@ -35,7 +36,7 @@
   <div class="d-profile">
     <div id="profile-content">
 
-      <div class="d-profile-avatar" id="profile-avatar"></div>
+      <img class="d-profile-picture" id="profile-avatar" width="96" height="96" alt="Profile picture">
       <h1 style="font-size:1.3rem; font-weight:700; margin-bottom:4px;" id="profile-name"></h1>
       <p style="color:var(--fg-secondary); margin-bottom:24px;" id="profile-handle"></p>
 
@@ -108,6 +109,7 @@
         <div id="profile-experiences"></div>
       </div>
 
+      <div id="edit-picture" class="d-picture-editor"></div>
       <!-- Actions -->
       <div style="display:flex; gap:8px; margin-top:20px; align-items:center;">
         <button class="d-btn d-btn-accent" id="save-btn" disabled>Save changes</button>
@@ -142,12 +144,13 @@
     </div>
   </div>
 
-  <script src="/js/utils.js?v=2c88deb1c2fc"></script><script src="/js/data.js?v=c161cd3d7823"></script><script src="/js/panes.js?v=03e138704771"></script><script src="/js/app.js?v=c12269c28a4b"></script><script src="/js/experience-editor.js?v=6307a06e40fb"></script>
+  <script src="/js/utils.js?v=2c88deb1c2fc"></script><script src="/js/data.js?v=c161cd3d7823"></script><script src="/js/panes.js?v=03e138704771"></script><script src="/js/app.js?v=c12269c28a4b"></script><script src="/js/profile-picture.js?v=60d506669968"></script><script src="/js/experience-editor.js?v=6307a06e40fb"></script>
   <script>
     const SKILL_MAX = 15, SKILL_MIN = 3;
     const INTEREST_MAX = 5, INTEREST_MIN = 3;
     const profilePickers = {};
     let profileUser = null;
+    let pictureEditor;
 
     (async () => {
       await App.init();
@@ -157,10 +160,11 @@
       const user = App.currentUser;
       if (!user) return;
       profileUser = user;
+      pictureEditor=ProfilePicture.mount(document.getElementById('edit-picture'),user.id);
 
       // Profile header
       const fullName = (user.firstName || '') + ' ' + (user.lastName || '');
-      document.getElementById('profile-avatar').textContent = Utils.initials(fullName.trim());
+      document.getElementById('profile-avatar').src = '/api/profiles/'+encodeURIComponent(user.id)+'/picture';
       document.getElementById('profile-name').textContent = fullName.trim() || user.username;
       document.getElementById('profile-handle').textContent = '@' + user.username;
 
@@ -299,7 +303,8 @@
       btn.textContent = 'Saving...';
 
       let experiences;
-      try { experiences = ExperienceEditor.get('profile-experiences'); }
+      let picture;
+      try { picture=pictureEditor.value(); experiences = ExperienceEditor.get('profile-experiences'); }
       catch (error) {
         alert(error.message);
         btn.disabled = false;
@@ -307,6 +312,7 @@
         return;
       }
       const body = {
+        ...picture,
         first_name: document.getElementById('p-first').value.trim(),
         last_name: document.getElementById('p-last').value.trim(),
         location: document.getElementById('p-location').value.trim(),
@@ -329,6 +335,11 @@
           profileUser.skills = [...body.skills];
           profileUser.experiences = experiences;
           profileUser.email_opt_in = body.email_opt_in;
+          if(body.profile_picture!==undefined){
+            const url='/api/profiles/'+encodeURIComponent(profileUser.id)+'/picture?t='+Date.now();
+            document.getElementById('profile-avatar').src=url;
+            document.querySelector('#edit-picture img').src=url;
+          }
           const msg = document.getElementById('save-msg');
           msg.style.display = 'block';
           setTimeout(() => { msg.style.display = 'none'; }, 2500);

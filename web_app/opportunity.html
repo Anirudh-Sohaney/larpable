@@ -4,12 +4,12 @@
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>LARPABLE. — Opportunity</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="/css/styles.css?v=32b7a4f391c0">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="/css/styles.css?v=f89a067772fc">
   <style>
     .d-detail-header{padding-bottom:20px}
     .d-detail-kicker{display:flex;align-items:center;gap:8px;margin-bottom:14px;color:var(--fg-tertiary);font-size:.72rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
     .d-detail-kicker .d-detail-type{margin:0}.d-detail-dot{color:var(--accent)}
-    .d-detail-issuer{display:flex;align-items:center;gap:9px;margin:0}.d-detail-issuer-mark{display:grid;place-items:center;width:30px;height:30px;border-radius:50%;background:var(--fg-primary);color:var(--bg-secondary);font-size:.64rem;font-weight:700}
+    .d-detail-issuer{display:flex;align-items:center;gap:9px;margin:0}.d-detail-issuer-mark{display:grid;place-items:center;width:30px;height:30px;border-radius:50%;background:var(--fg-primary);color:var(--bg-secondary);font-size:.64rem;font-weight:700;object-fit:cover;flex-shrink:0}
     .d-detail-story{padding:25px 0;border-top:1px solid var(--border)}.d-detail-story:first-child{border-top:0;padding-top:0}
     .d-detail-section-heading{display:flex;align-items:center;gap:12px;margin-bottom:15px}.d-detail-eyebrow{color:var(--fg-tertiary);font-size:.68rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase}.d-detail-rule{width:40px;height:1px;background:var(--accent)}
     .d-detail-facts{display:grid;grid-template-columns:repeat(2,1fr);border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
@@ -25,7 +25,7 @@
   <main class="d-detail">
     <div id="detail"><div class="d-empty">Loading post...</div></div>
   </main>
-  <script src="/js/utils.js?v=2c88deb1c2fc"></script><script src="/js/data.js?v=c161cd3d7823"></script><script src="/js/panes.js?v=03e138704771"></script><script src="/js/app.js?v=c12269c28a4b"></script>
+  <script src="/js/utils.js?v=2c88deb1c2fc"></script><script src="/js/data.js?v=c161cd3d7823"></script><script src="/js/post-interactions.js?v=c48b9818455c"></script><script src="/js/panes.js?v=03e138704771"></script><script src="/js/app.js?v=c12269c28a4b"></script>
   <script>
     const esc = value => { const d = document.createElement('div'); d.textContent = value == null ? '' : String(value); return d.innerHTML; };
     const text = value => value == null ? '' : String(value);
@@ -74,6 +74,7 @@
         const response = await fetch(apiBase + '/' + encodeURIComponent(id) + (location.hash === '#applied' ? '?view=applications' : ''), { credentials: 'same-origin' });
         if (!response.ok) { root.innerHTML = '<div class="d-empty">Post not found.</div>'; return; }
         const data = await response.json();
+        if(isRegular){root.dataset.likeId=id;root.classList.add('d-like-surface');}
         const fields = data.fields || {};
         const issuer = data.issuer || {};
         const projectName = data.project?.fields?.name || 'Project unavailable';
@@ -90,6 +91,10 @@
         const currentUser = DataStore.getCurrentUser();
         const isSaved = currentUser?.saved_posts?.includes(id);
         const ownsPost = !!currentUser && currentUser.id === data.created_by;
+        const acknowledge=(kind,posts=null)=>{
+          if(window.parent!==window)window.parent.dispatchEvent(new window.parent.CustomEvent('post-acknowledged',{detail:{id,kind,posts}}));
+        };
+        if(ownsPost && location.hash!=='#applied')acknowledge('comments');
         const canDeleteAnyComment = currentUser?.username === 'anisohaney';
         const canEdit = item => typeof item.can_edit === 'boolean' ? item.can_edit : currentUser?.id === item.user_id;
         const canDelete = item => typeof item.can_delete === 'boolean' ? item.can_delete : (currentUser?.id === item.user_id || canDeleteAnyComment);
@@ -116,12 +121,12 @@
           <section class="d-detail-header">
             <div class="d-detail-kicker"><span class="d-detail-type d-badge d-badge--${esc(kind)}">${esc(typeLabel)}</span><span class="d-detail-dot">·</span><span>${esc(data.project?.fields.field || 'Student-led')}</span></div>
             <h1 class="d-detail-title">${esc(isRegular ? fields.title : projectName)}</h1>
-            <div class="d-detail-issuer"><span class="d-detail-issuer-mark">${esc(initials(name))}</span><span>Posted by <strong>${Utils.userLink(data.created_by,name)}</strong>${fields.issuer_context ? ' · ' + esc(fields.issuer_context) : ''}</span></div>
+            <div class="d-detail-issuer"><img class="d-detail-issuer-mark" width="30" height="30" src="/api/profiles/${encodeURIComponent(data.created_by)}/picture" alt="Profile picture"><span>Posted by <strong>${Utils.userLink(data.created_by,name)}</strong>${fields.issuer_context ? ' · ' + esc(fields.issuer_context) : ''}</span></div>
           </section>
           <div class="d-project-divider">About project</div>
           ${projectPitch ? `<section class="d-detail-story d-project-pitch" aria-label="Project elevator pitch"><p class="d-detail-desc">${esc(projectPitch)}</p></section>` : ''}
           ${data.project ? `<details class="d-project-more"><summary><span class="d-project-more-open">View more</span><span class="d-project-more-close">Show less</span></summary><div class="d-project-more-content">${data.project.fields.description ? `<p class="d-detail-desc">${esc(data.project.fields.description)}</p>` : ''}${data.project.fields.tags?.length ? `<div class="d-detail-skills">${data.project.fields.tags.map(tag=>`<span class="d-chip">${esc(tag)}</span>`).join('')}</div>` : ''}${data.project.fields.field ? `<p class="d-detail-desc">Field: ${esc(data.project.fields.field)}</p>` : ''}</div></details>` : ''}
-          ${isRegular ? `<section class="d-detail-story"><p class="d-detail-desc" style="white-space:pre-wrap;">${esc(fields.content)}</p>${data.media ? (data.media.kind==='video' ? `<video class="d-post-media" controls preload="metadata" src="${esc(data.media.url)}"></video>` : `<img class="d-post-media" src="${esc(data.media.url)}" alt="Post image">`) : ''}<p class="d-detail-eyebrow">${esc(projectName)} · ${esc(posted(data.created_at))}</p><button id="detail-like-btn" class="d-btn d-btn-sm" type="button" aria-pressed="${!!data.liked}">${data.liked ? 'Liked' : 'Like'} (${data.like_count || 0})</button><p id="like-error" role="alert"></p></section>` : opportunityBody}
+          ${isRegular ? `<section class="d-detail-story"><p class="d-detail-desc" style="white-space:pre-wrap;">${esc(fields.content)}</p>${data.media ? (data.media.kind==='video' ? PostInteractions.video(data.media.url) : `<img class="d-post-media" src="${esc(data.media.url)}" alt="Post image">`) : ''}<p class="d-detail-eyebrow">${esc(projectName)} · ${esc(posted(data.created_at))}</p>${PostInteractions.button(data)}<p id="like-error" role="alert"></p></section>` : opportunityBody}
           <section class="d-detail-story">
             <div class="d-detail-section-heading">
               <span class="d-detail-eyebrow">Comments</span>
@@ -185,18 +190,6 @@
           </section>
           <section class="d-admin" id="admin-controls"><h2 id="admin-title">Admin controls</h2><p id="admin-desc">This opportunity can be managed from here.</p><div class="d-admin-row"><button id="admin-edit">Edit</button><button class="danger" id="admin-delete">Delete</button><button id="admin-user">View user</button></div></section>`;
 
-        const likeBtn=document.getElementById('detail-like-btn');
-        if(likeBtn)likeBtn.onclick=async()=>{
-          if(!currentUser){goTo('/login');return;}
-          likeBtn.disabled=true;
-          try{
-            const response=await fetch(`${apiBase}/${encodeURIComponent(id)}/like`,{method:data.liked ? 'DELETE' : 'POST'});
-            const result=await response.json();if(!response.ok)throw new Error(result.error || 'Could not update like');
-            data.liked=result.liked;data.like_count=result.like_count;
-            likeBtn.setAttribute('aria-pressed',String(data.liked));likeBtn.textContent=`${data.liked ? 'Liked' : 'Like'} (${data.like_count})`;
-          }catch(error){document.getElementById('like-error').textContent=error.message;}
-          finally{likeBtn.disabled=false;}
-        };
         const applyBtn = document.getElementById('apply-now-btn');
         if (applyBtn) applyBtn.onclick = async () => {
           applyBtn.disabled = true;
@@ -225,6 +218,7 @@
             // comments read only when the owner actually returns to the post.
             fetch(`${apiBase}/${encodeURIComponent(id)}`, { credentials: 'same-origin' }).then(() =>
               fetch('/api/feed/mine', { credentials: 'same-origin' })).then(r => r.json()).then(mine => {
+              acknowledge('comments',mine.posts);
               if (!mine.posts?.some(post => post.has_unread_comments || post.has_unread_applications)) document.querySelector('.nav-yours-badge')?.remove();
             }).catch(console.error);
           };
@@ -247,8 +241,10 @@
             window.scrollTo(0, 0);
             const seen = await fetch(`${apiBase}/${encodeURIComponent(id)}/applications/seen`, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ applicant_ids: applicants.map(person => person.id) }) });
             if (seen.ok) {
+              acknowledge('applied');
               appliedBtn.textContent = `Applied (${applicants.length})`;
               const mine = await fetch('/api/feed/mine', { credentials: 'same-origin' }).then(r => r.json());
+              acknowledge('applied',mine.posts);
               if (!mine.posts?.some(post => post.has_unread_comments || post.has_unread_applications)) document.querySelector('.nav-yours-badge')?.remove();
             }
           };

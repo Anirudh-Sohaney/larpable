@@ -1,7 +1,7 @@
 {
   "name": "larpable",
   "version": "1.0.0",
-  "description": "LARPABLE \u2014 Student opportunity platform",
+  "description": "LARPABLE — Student opportunity platform",
   "main": "server.js",
   "engines": {
     "node": ">=18.17"
@@ -13,7 +13,7 @@
     "start": "node server.js",
     "dev": "node --watch server.js",
     "version:assets": "node backend/scripts/version-assets.js",
-    "test": "node tests/application_feed.test.js && node tests/feed-filters.test.js && node tests/feed-videos.test.js && node tests/panes.test.js && node tests/nav-scroll.test.js && node tests/notifications.test.js && node tests/comments.integration.js && node tests/applications.integration.js && node tests/experiences.integration.js && node tests/feedback.integration.js && node tests/guest.integration.js && node tests/security.integration.js && node tests/cleanup.test.js && node tests/promotion.integration.js && node tests/project-field.test.js && node tests/startup.test.js && node tests/post-projects.integration.js && node tests/projects-management.integration.js && node tests/regular-posts.integration.js && node tests/profiles.integration.js && node tests/larpscore.integration.js && node tests/deleted-users.integration.js && node tests/store-efficiency.test.js && node backend/scripts/version-assets.js --check",
+    "test": "node tests/profile-picture.test.js && node tests/profile-picture.integration.js && node tests/application_feed.test.js && node tests/feed-filters.test.js && node tests/feed-videos.test.js && node tests/panes.test.js && node tests/nav-scroll.test.js && node tests/notifications.test.js && node tests/comments.integration.js && node tests/applications.integration.js && node tests/experiences.integration.js && node tests/feedback.integration.js && node tests/guest.integration.js && node tests/security.integration.js && node tests/cleanup.test.js && node tests/promotion.integration.js && node tests/project-field.test.js && node tests/startup.test.js && node tests/post-projects.integration.js && node tests/projects-management.integration.js && node tests/regular-posts.integration.js && node tests/profiles.integration.js && node tests/larpscore.integration.js && node tests/deleted-users.integration.js && node tests/store-efficiency.test.js && node backend/scripts/version-assets.js --check",
     "test:feedback": "node tests/feedback.integration.js",
     "test:matching-audit": "node backend/matching/test_accuracy.js",
     "test:projects": "node tests/post-projects.integration.js && node tests/projects-management.integration.js && node tests/startup.test.js"
@@ -22,7 +22,8 @@
     "cookie-parser": "^1.4.6",
     "dotenv": "^17.4.2",
     "express": "^4.21.0",
+    "mediabunny": "^1.63.0",
     "obscenity": "^0.4.6",
-    "mediabunny": "^1.63.0"
+    "sharp": "^0.34.5"
   }
 }

@@ -101,6 +101,7 @@ router.patch('/me', requireAuth, async (req, res) => {
     for (const key of allowed) {
       if (req.body[key] !== undefined) updates[key] = req.body[key];
     }
+    if (req.body.profile_picture !== undefined) updates.profile_picture = await require('../profile_picture').normalize(req.body.profile_picture);
     if (req.body.experiences !== undefined) updates.experiences = validateExperiences(req.body.experiences);
     if (updates.opportunity_preference !== undefined && !OPPORTUNITY_PREFERENCES.has(updates.opportunity_preference)) {
       return res.status(400).json({ error: 'Invalid opportunity preference' });

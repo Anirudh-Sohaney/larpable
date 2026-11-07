@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/styles.css?v=32b7a4f391c0">
+  <link rel="stylesheet" href="css/styles.css?v=f89a067772fc">
   <style>
     .d-steps {
       display: flex;
@@ -288,6 +288,7 @@
     .d-legal-modal-body hr { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
     .d-legal-modal-body em { color: var(--fg-tertiary); }
   </style>
+<link rel="stylesheet" href="/css/profile-picture.css?v=6c78a5022ae0">
 </head>
 <body>
   <div class="d-auth">
@@ -296,7 +297,7 @@
         <div class="d-step-dot active" data-step="0">1</div>
         <div class="d-step-dot" data-step="1">2</div>
         <div class="d-step-dot" data-step="2">3</div>
-        <div class="d-step-dot" data-step="3">4</div>
+        <div class="d-step-dot" data-step="3">4</div><div class="d-step-dot" data-step="4">5</div>
       </div>
 
       <div class="d-auth-title">Create account</div>
@@ -426,18 +427,22 @@
             <div id="signup-experiences"></div>
           </div>
 
+          <div class="d-btn-row"><button type="button" class="d-btn" id="back-btn-step3">Back</button><button type="button" class="d-btn d-btn-accent" id="picture-next">Next</button></div>
+        </div>
+        <div class="d-step-panel" data-step="4">
+          <div id="signup-picture" class="d-picture-editor"></div>
           <div class="d-legal-check">
             <input type="checkbox" id="su-legal">
             <label for="su-legal">I agree to the <a onclick="openLegal('terms')">Terms of Service</a> and acknowledge the <a onclick="openLegal('privacy')">Privacy Policy</a>.</label>
           </div>
-          <div class="d-legal-error" id="su-legal-error">You must agree to the Terms of Service and Privacy Policy to sign up.</div>
           <div class="d-legal-check">
             <input type="checkbox" id="su-email-opt" checked>
             <label for="su-email-opt">Email me about new opportunities and applications. You can turn this off anytime in your profile.</label>
           </div>
 
+          <div class="d-legal-error" id="su-legal-error">You must agree to the Terms of Service and Privacy Policy to sign up.</div>
           <div class="d-btn-row">
-            <button type="button" class="d-btn d-btn-secondary" id="back-btn-step3">Back</button>
+            <button type="button" class="d-btn d-btn-secondary" id="back-btn-step4">Back</button>
             <button type="submit" class="d-btn d-btn-accent d-btn--full">Sign up</button>
           </div>
         </div>
@@ -471,7 +476,7 @@
 
   <script src="/legal-filter.js?v=f53e772d0a27"></script>
   <script src="/synonyms.js?v=11ab415043a2"></script>
-  <script src="/js/experience-editor.js?v=6307a06e40fb"></script>
+  <script src="/js/profile-picture.js?v=60d506669968"></script><script src="/js/experience-editor.js?v=6307a06e40fb"></script>
   <script>
     // Already logged in → straight to the feed
     (async () => {
@@ -489,11 +494,15 @@
     const selectedSkills = new Set();
     let opportunityPreference = 'all';
     ExperienceEditor.mount('signup-experiences');
+    const pictureEditor=ProfilePicture.mount(document.getElementById('signup-picture'));
+    document.getElementById('picture-next').onclick=()=>{if(selectedInterests.size<3 || selectedSkills.size<3){showError('Select at least 3 interests and 3 skills.',()=>selectedInterests.size>=3 && selectedSkills.size>=3);return;}try{ExperienceEditor.get('signup-experiences');}catch(e){showError(e.message,()=>{try{ExperienceEditor.get('signup-experiences');return true;}catch{return false;}});return;}currentStep=4;updateSteps();};
+    document.getElementById('back-btn-step4').onclick=()=>{currentStep=3;updateSteps();};
 
     const stepDots = document.querySelectorAll('.d-step-dot');
     const panels = document.querySelectorAll('.d-step-panel');
 
     function updateSteps() {
+      document.getElementById('signup-error').style.display='none';
       stepDots.forEach(dot => {
         const step = parseInt(dot.dataset.step, 10);
         dot.classList.toggle('active', step === currentStep);
@@ -695,19 +704,19 @@
       const location = document.getElementById('su-location-value').value;
 
       if (!username || !password || !firstName || !lastName || !age || !grade) {
-        showError('Please fill in all fields.');
+        showError('Please fill in all fields.',()=>['su-username','su-password','su-first','su-last','su-age','su-grade'].every(id=>document.getElementById(id).value.trim()));
         return;
       }
       if (username.length < 3) {
-        showError('Username must be at least 3 characters.');
+        showError('Username must be at least 3 characters.',()=>document.getElementById('su-username').value.trim().length>=3);
         return;
       }
       if (password.length < 6) {
-        showError('Password must be at least 6 characters.');
+        showError('Password must be at least 6 characters.',()=>document.getElementById('su-password').value.length>=6);
         return;
       }
       if (!location) {
-        showError('Please select a location from the list.');
+        showError('Please select a location from the list.',()=>!!document.getElementById('su-location-value').value);
         document.getElementById('su-location-hint').classList.add('show');
         return;
       }
@@ -717,7 +726,7 @@
         const resp = await fetch(`/api/validate/username/${encodeURIComponent(username)}`);
         const data = await resp.json();
         if (!data.available) {
-          showError('Username is already taken.');
+          showError('Username is already taken.',()=>document.getElementById('su-username').value.trim()!==username);
           return;
         }
       } catch (err) {
@@ -743,6 +752,7 @@
     // ── Step 3: Submit ──
     document.getElementById('signup-form').addEventListener('submit', async (e) => {
       e.preventDefault();
+      if(currentStep!==4)return;
       const legal = document.getElementById('su-legal').checked;
       if (!legal) {
         document.getElementById('su-legal-error').classList.add('show');
@@ -751,16 +761,16 @@
       document.getElementById('su-legal-error').classList.remove('show');
 
       if (selectedInterests.size < 3 || selectedInterests.size > 5) {
-        showError('Please select between 3 and 5 interests.');
+        showError('Please select between 3 and 5 interests.',()=>selectedInterests.size>=3 && selectedInterests.size<=5);
         return;
       }
       if (selectedSkills.size < 3 || selectedSkills.size > 15) {
-        showError('Please select between 3 and 15 skills.');
+        showError('Please select between 3 and 15 skills.',()=>selectedSkills.size>=3 && selectedSkills.size<=15);
         return;
       }
       let experiences;
       try { experiences = ExperienceEditor.get('signup-experiences'); }
-      catch (error) { showError(error.message); return; }
+      catch (error) { showError(error.message,()=>{try{ExperienceEditor.get('signup-experiences');return true;}catch{return false;}}); return; }
 
       const username = document.getElementById('su-username').value.trim();
       const password = document.getElementById('su-password').value;
@@ -781,6 +791,7 @@
           headers: { 'Content-Type': 'application/json' },
           credentials: 'same-origin',
           body: JSON.stringify({
+            ...pictureEditor.value(),
             type: 'student',
             username,
             password,
@@ -828,8 +839,24 @@
       });
     });
 
-    function showError(msg) {
+    let warningResolved=null;
+    function clearResolvedWarning(){
+      if(warningResolved && warningResolved()){
+        document.getElementById('signup-error').style.display='none';warningResolved=null;
+      }
+    }
+    document.getElementById('signup-form').addEventListener('input',clearResolvedWarning);
+    document.getElementById('signup-form').addEventListener('change',clearResolvedWarning);
+    document.getElementById('signup-experiences').addEventListener('click',()=>queueMicrotask(clearResolvedWarning));
+    document.getElementById('su-legal').addEventListener('change',event=>{
+      if(event.target.checked)document.getElementById('su-legal-error').classList.remove('show');
+    });
+    function showError(msg, resolved=()=>true) {
+      warningResolved=resolved;
       const el = document.getElementById('signup-error');
+      const actions=document.querySelector('.d-step-panel.active .d-btn-row');
+      if(actions)actions.before(el);
+      el.setAttribute('role','alert');
       el.textContent = msg;
       el.style.display = 'block';
     }
@@ -893,6 +920,7 @@
               });
               locDropdown.style.display = 'none';
               locHint.classList.remove('show');
+              clearResolvedWarning();
             });
           });
         } catch (err) {
@@ -959,6 +987,7 @@
           selectedEl.appendChild(chip);
         });
         countEl.textContent = selected.size;
+        clearResolvedWarning();
       }
 
       function renderOptions(filter, showAll = false) {

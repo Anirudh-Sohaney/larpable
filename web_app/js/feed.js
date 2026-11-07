@@ -30,6 +30,7 @@ const Feed = {
     this.matchScores = await DataStore.computeMatchScores(this.opportunities);
     this.scored = this.currentUser && ((this.currentUser.skills || []).length || (this.currentUser.interests || []).length);
     this.setupControls();
+    this.renderSummary();
     // Deep-link: /feed?mine=1 (used after delete) opens the Your projects tab
     try {
       const params = new URLSearchParams(window.location.search);
@@ -44,7 +45,45 @@ const Feed = {
     // Avoid a background full-feed request every few seconds per open tab.
   },
 
+  async renderSummary() {
+    const box=document.getElementById('feed-summary');
+    if(!box || !this.currentUser)return;
+    const user=this.currentUser,esc=Utils.escapeHtml;
+    const notices=this.myPosts.flatMap(post=>[
+      ...(post.has_unread_applications ? [{id:post.id,path:'opportunity',at:post.latest_unread_application_at,text:'new application',hash:'applied'}] : []),
+      ...(post.has_unread_comments ? [{id:post.id,path:post.kind==='post' ? 'post' : 'opportunity',at:post.latest_unread_comment_at || post.latest_notification_at,text:'new comment',hash:'comments'}] : [])
+    ]).sort((a,b)=>(b.at || '').localeCompare(a.at || ''));
+    box.hidden=false;
+    box.innerHTML=`<a class="d-summary-profile" href="/profile"><img width="64" height="64" src="/api/profiles/${encodeURIComponent(user.id)}/picture" alt="Your profile picture"><strong>@${esc(user.username)}</strong></a><div class="d-summary-score-row"><span id="summary-score">LarpScore <span aria-hidden="true">...</span></span>${LarpScoreInfo.button}</div><section class="d-summary-notifications"><div><h2>Notifications</h2>${notices.length ? notices.map(notice=>`<a class="d-applicant-notice" data-notice-id="${esc(notice.id)}" data-notice-kind="${notice.hash}" href="/${notice.path}?id=${encodeURIComponent(notice.id)}#${notice.hash}">${notice.text}</a>`).join('') : '<p>No new notifications</p>'}</div></section>`;
+    const divider=document.getElementById('feed-divider');
+    if(divider && !this.summaryObserver){
+      this.summaryObserver=new IntersectionObserver(([entry])=>box.classList.toggle('is-compact',!entry.isIntersecting && entry.boundingClientRect.top<0));
+      this.summaryObserver.observe(divider);
+    }
+    try {
+      const {profile}=await DataStore.request('/api/profiles/'+encodeURIComponent(user.id));
+      document.getElementById('summary-score').textContent=(profile.larpscore ?? 0)+' LarpScore';
+    }catch {document.getElementById('summary-score').textContent='LarpScore unavailable';}
+  },
+
+  acknowledge({id,kind,posts}) {
+    if(posts)for(const row of [...this.myPosts,...this.opportunities]){
+      const latest=posts.find(post=>post.id===row.id);if(latest)Object.assign(row,latest);
+    }
+    const key=kind==='applied' ? 'has_unread_applications' : 'has_unread_comments';
+    if(!posts)for(const row of [...this.myPosts,...this.opportunities])if(row.id===id)row[key]=false;
+    const post=this.myPosts.find(row=>row.id===id);
+    document.querySelectorAll('[data-notice-id]').forEach(link=>{
+      if(link.dataset.noticeId!==id || link.dataset.noticeKind!==kind)return;
+      if(!post?.[key])link.remove();
+    });
+    const notifications=document.querySelector('.d-summary-notifications>div');
+    if(notifications && !notifications.querySelector('a') && !notifications.querySelector('p'))notifications.insertAdjacentHTML('beforeend','<p>No new notifications</p>');
+    if(!this.myPosts.some(post=>post.has_unread_comments || post.has_unread_applications))document.querySelectorAll('.nav-yours-badge').forEach(badge=>badge.remove());
+  },
+
   setupControls() {
+    window.addEventListener('post-acknowledged',event=>this.acknowledge(event.detail));
     document.getElementById('q')?.addEventListener('input', () => this.render());
     document.getElementById('yours-btn')?.addEventListener('click', e => {
       this.showingYours = !this.showingYours;
@@ -124,7 +163,7 @@ const Feed = {
 
     const activeFilters=Filters.updateControls();
     const clear = document.getElementById('clear');
-    if (clear) clear.hidden=!(q || activeFilters);
+    if (clear) clear.hidden=!activeFilters;
 
     const n = rows.length;
     if (count) {
@@ -237,27 +276,14 @@ const Feed = {
     const href='/post?id='+encodeURIComponent(post.id)+(post.unread_reply_comment_id ? '#comment-'+encodeURIComponent(post.unread_reply_comment_id) : (post.has_unread_comments ? '#comments' : ''));
     const mine=this.showingYours && post.created_by===this.currentUser?.id;
     const asset=post.media;
-    const preview=asset ? (asset.kind==='video' ? `<video class="d-post-media" controls playsinline loop preload="metadata" src="${esc(asset.url)}"></video>` : `<img class="d-post-media" loading="lazy" src="${esc(asset.url)}" alt="${esc(post.title)}">`) : '';
-    return `<article class="d-opp-card d-regular-post${post.promoted===true ? ' is-promoted' : ''}" data-pane-href="${esc(href)}" tabindex="0" role="link">
+    const preview=asset ? (asset.kind==='video' ? PostInteractions.video(asset.url) : `<img class="d-post-media" loading="lazy" src="${esc(asset.url)}" alt="${esc(post.title)}">`) : '';
+    return `<article data-like-id="${esc(post.id)}" class="d-opp-card d-regular-post${post.promoted===true ? ' is-promoted' : ''}" data-pane-href="${esc(href)}" tabindex="0" role="link">
       <div class="d-opp-top"><a class="d-post-open d-opp-title" href="${href}">${esc(post.title)}</a><span class="d-badge">Post</span></div>
       <div class="d-opp-issuer">${esc(post.project_name)} · Posted by <strong>${Utils.userLink(post.created_by,post.issuer_name)}</strong></div>
       <p class="d-opp-desc">${esc(post.content)}</p>${preview}
       ${mine ? `<div class="d-own-actions"><button class="d-btn d-btn-sm" type="button" onclick="Feed.editOpportunity('${post.id}','${post.type}','post')">Edit</button><button class="d-btn d-btn-sm d-btn-danger" type="button" onclick="Feed.deleteOpportunity('${post.id}','post')">Delete</button></div>` : ''}
-      <div class="d-opp-footer"><button class="d-btn d-btn-sm" type="button" aria-pressed="${post.liked}" onclick="Feed.toggleLike('${post.id}',this)">${post.liked ? '♥ Liked' : '♡ Like'} · ${post.like_count}</button><a class="d-post-open" href="${href}">${post.comment_count} comments →</a><span class="d-opp-posted">${Utils.postedAgo(post.created_at)}</span></div>
+      <div class="d-opp-footer">${PostInteractions.button(post)}<a class="d-post-open" href="${href}">${post.comment_count} comments →</a><span class="d-opp-posted">${Utils.postedAgo(post.created_at)}</span></div>
     </article>`;
-  },
-
-  async toggleLike(id,button) {
-    if(!this.currentUser){if(typeof Panels!=='undefined')Panels.navigate('/login');else location.href='/login';return;}
-    const post=[...this.opportunities,...this.myPosts].find(p=>p.id===id);
-    if(!post)return;
-    button.disabled=true;
-    try{
-      const result=await DataStore.request('/api/posts/'+encodeURIComponent(id)+'/like',{method:post.liked ? 'DELETE' : 'POST'});
-      for(const row of [...this.opportunities,...this.myPosts])if(row.id===id)Object.assign(row,result);
-      button.textContent=(result.liked ? '♥ Liked' : '♡ Like')+' · '+result.like_count;
-      button.setAttribute('aria-pressed',String(result.liked));
-    }catch(error){alert(error.message);}finally{button.disabled=false;}
   },
 
   editOpportunity(id, type,kind='opportunity') {

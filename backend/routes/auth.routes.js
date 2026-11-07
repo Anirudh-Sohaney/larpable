@@ -46,7 +46,7 @@ router.post('/signup', async (req, res) => {
     if (!req.body || typeof req.body !== 'object' || Array.isArray(req.body)) {
       return res.status(400).json({ error: 'A JSON object is required' });
     }
-    const { username, password, type, legal_agreed, email_opt_in, ...profile } = req.body;
+    const { username, password, type, legal_agreed, email_opt_in, profile_picture, ...profile } = req.body;
     
     // Validate required fields
     if (typeof username !== 'string' || typeof password !== 'string' || !type) {
@@ -124,6 +124,7 @@ router.post('/signup', async (req, res) => {
       privacy_version: legalVersions.privacy.version,
       agreed_at: new Date().toISOString()
     };
+    if (profile_picture !== undefined) profile.profile_picture = await require('../profile_picture').normalize(profile_picture);
     const result = await auth.signup({ username, password, type, profile, legalAgreement, emailOptIn: email_opt_in, signal: requestAbortSignal(req, res) });
     if (signupEmail) {
       consumeVerifiedEmail(signupEmail, req);

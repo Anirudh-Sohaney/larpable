@@ -5,7 +5,7 @@
   <title>LARPABLE. — Feed</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/styles.css?v=32b7a4f391c0">
+  <link rel="stylesheet" href="/css/styles.css?v=f89a067772fc">
 </head>
 <body>
   <figure class="d-feed-art" aria-hidden="true" data-dot-src="/assets/hero-dots.png"><canvas width="1375" height="1144"></canvas></figure>
@@ -31,13 +31,8 @@
   <div class="d-split" id="split">
     <main class="d-feed">
       <div class="d-search-wrap"><input class="d-search" id="q" placeholder="Search projects, organizations, skills" autocomplete="off"></div>
-      <div class="d-filter-row d-feed-filters" role="group" aria-label="Feed filters">
-        <label class="d-feed-filter"><span>Sort</span><select class="d-select-pill" id="f-sort"><option value="foryou">For you</option><option value="newest">Newest</option><option value="oldest">Oldest</option></select></label>
-        <label class="d-feed-filter"><span>Pay</span><select class="d-select-pill" id="f-pay"><option value="">All</option><option value="unpaid">Unpaid</option><option value="paid">Paid</option></select></label>
-        <label class="d-feed-filter"><span>Posts</span><select class="d-select-pill" id="f-kind"><option value="">All</option><option value="opportunity">Opportunities</option></select></label>
-        <label class="d-feed-filter"><span>Location</span><select class="d-select-pill" id="f-location"><option value="">All</option><option value="inperson">In person</option><option value="remote">Remote</option></select></label>
-        <button class="d-filter-clear" id="clear" type="button" hidden>Clear filters</button>
-      </div>
+      <div class="d-filter-row d-feed-filter-bar"><button id="filters-open" class="d-btn" type="button" aria-haspopup="dialog" aria-controls="feed-filter-dialog">Filters</button><button class="d-filter-clear" id="clear" type="button" hidden>Clear</button></div>
+      <dialog id="feed-filter-dialog" class="d-feed-filter-dialog" aria-labelledby="feed-filter-title"><div class="d-filter-dialog-heading"><h2 id="feed-filter-title">Filters</h2><button id="filters-close" class="d-btn d-btn-sm" type="button" aria-label="Close filters">Close</button></div><div class="d-filter-browser"><nav class="d-filter-categories" aria-label="Filter categories"><button type="button" data-filter-category="f-sort" aria-pressed="true">Sort</button><button type="button" data-filter-category="f-pay" aria-pressed="false">Pay</button><button type="button" data-filter-category="f-kind" aria-pressed="false">Posts</button><button type="button" data-filter-category="f-location" aria-pressed="false">Location</button></nav><div class="d-filter-options" id="filter-options" aria-label="Filter options" tabindex="0"></div></div><input type="hidden" id="f-sort" value="foryou"><input type="hidden" id="f-pay"><input type="hidden" id="f-kind"><input type="hidden" id="f-location"><button id="filters-apply" class="d-btn d-btn-accent" type="button">Apply filters</button></dialog>
       <div class="d-yours-toolbar" id="yours-controls" hidden>
         <div class="d-yours-tabs" role="tablist" aria-label="Your content">
           <button id="yours-projects" type="button" role="tab" aria-controls="list" aria-selected="true" data-yours-tab="projects">Projects</button>
@@ -46,7 +41,7 @@
         <a id="yours-create" class="d-btn d-btn-sm" href="/create_student?new_project=1">+ Create project</a>
       </div>
       <p id="yours-error" class="d-yours-error" role="alert"></p>
-      <p class="d-count" id="count">Loading</p><div id="list"></div>
+      <div id="feed-divider" aria-hidden="true"></div><p class="d-count" id="count">Loading</p><div class="d-feed-columns"><div id="list"></div><aside id="feed-summary" class="d-feed-summary" aria-label="Your profile and notifications" hidden></aside></div>
     </main>
     <aside class="d-detail-pane" id="detail-pane" aria-hidden="true">
       <button class="d-detail-close" id="detail-close" type="button" aria-label="Close opportunity">&times;</button>
@@ -54,7 +49,7 @@
     </aside>
   </div>
   <footer class="d-page-footer">LARPABLE. — made for students, by students.</footer>
-  <script src="/synonyms.js?v=11ab415043a2"></script><script src="/js/utils.js?v=2c88deb1c2fc"></script><script src="/js/data.js?v=c161cd3d7823"></script><script src="/js/panes.js?v=03e138704771"></script><script src="/js/app.js?v=c12269c28a4b"></script><script src="/js/filters.js?v=8f2d41ccd8b6"></script><script src="/js/feed-videos.js?v=45700f0933f9"></script><script src="/js/feed.js?v=e4de3cd7588b"></script><script src="/js/feedback-prompt.js?v=faa507ef5b46"></script>
+  <script src="/synonyms.js?v=11ab415043a2"></script><script src="/js/utils.js?v=2c88deb1c2fc"></script><script src="/js/data.js?v=c161cd3d7823"></script><script src="/js/post-interactions.js?v=c48b9818455c"></script><script src="/js/larpscore-info.js?v=0154b03d8148"></script><script src="/js/panes.js?v=03e138704771"></script><script src="/js/app.js?v=c12269c28a4b"></script><script src="/js/filters.js?v=cd45a17667fb"></script><script src="/js/feed-videos.js?v=7464d40610f7"></script><script src="/js/feed.js?v=eabfd240a7b0"></script><script src="/js/feedback-prompt.js?v=faa507ef5b46"></script>
   <script>window._dAnimDone = true;</script><script src="/js/dot-art.js?v=8beac077c4fe"></script>
   <script>
     (async () => {
