@@ -156,11 +156,11 @@ const App = {
       <a href="/feed?mine=1" id="nav-yours-tab" class="d-nav-item ${location.search.includes('mine=1') ? 'is-active' : ''}" style="position:relative;">${svg.folder}<span>Yours</span></a>
       <div class="d-nav-item-wrap" style="position:relative; display: flex; flex-direction: column; align-items: center; justify-content: center;">
         <button type="button" class="d-nav-item ${['/profile','/edit_profile','/feedback'].includes(location.pathname) ? 'is-active' : ''}" id="bottom-nav-profile-btn" style="border: none; background: transparent; cursor: pointer;">${svg.user}<span>Profile</span></button>
-        <div id="bottom-nav-profile-menu" style="display:none; position:absolute; bottom: 100%; right: 0; margin-bottom: 8px; background: var(--card, #FFFDF8); border: 1px solid var(--border, #D6D1C9); border-radius: 8px; box-shadow: 0 -4px 16px rgba(0,0,0,0.1); flex-direction: column; min-width: 140px; overflow: hidden; text-align: left;">
-          <a href="/profile" style="padding: 12px 16px; text-decoration: none; color: var(--font, #2D2A26); font-size: 0.9rem; display: block; border-bottom: 1px solid var(--border, #D6D1C9);">Profile</a>
-          <a href="/feedback" style="padding: 12px 16px; text-decoration: none; color: var(--font, #2D2A26); font-size: 0.9rem; display: block; border-bottom: 1px solid var(--border, #D6D1C9);">Feedback</a>
-          ${(this.currentUser && (this.currentUser.role === 'admin' || this.currentUser.staff_access)) ? '<a href="/staff" style="padding: 12px 16px; text-decoration: none; color: var(--accent, #E8734A); font-weight: 600; font-size: 0.9rem; display: block; border-bottom: 1px solid var(--border, #D6D1C9);">Staff Portal</a>' : ''}
-          <button type="button" onclick="App.logout()" style="padding: 12px 16px; border: none; background: transparent; color: #dc3545; font-size: 0.9rem; width: 100%; text-align: left; cursor: pointer;">Log out</button>
+        <div id="bottom-nav-profile-menu" style="display:none; position:absolute; bottom: 100%; right: 0; margin-bottom: 8px; border: 1px solid var(--ink-line); border-radius: 8px; box-shadow: 0 -4px 16px rgba(0,0,0,0.1); flex-direction: column; min-width: 140px; overflow: hidden; text-align: left;">
+          <a href="/profile" style="padding: 12px 16px; text-decoration: none; font-size: 0.9rem; display: block; border-bottom: 1px solid var(--ink-line);">Profile</a>
+          <a href="/feedback" style="padding: 12px 16px; text-decoration: none; font-size: 0.9rem; display: block; border-bottom: 1px solid var(--ink-line);">Feedback</a>
+          ${(this.currentUser && (this.currentUser.role === 'admin' || this.currentUser.staff_access)) ? '<a href="/staff" style="padding: 12px 16px; text-decoration: none; color: var(--accent, #E8734A); font-weight: 600; font-size: 0.9rem; display: block; border-bottom: 1px solid var(--ink-line);">Staff Portal</a>' : ''}
+          <button type="button" onclick="App.logout()" style="padding: 12px 16px; border: none; background: transparent; font-size: 0.9rem; width: 100%; text-align: left; cursor: pointer;">Log out</button>
         </div>
       </div>
     `;

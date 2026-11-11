@@ -1,86 +1,723 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>LARPABLE. Find volunteering, passion projects &amp; college opportunities</title>
-  <meta name="description" content="Larpable connects students with student-led projects, nonprofits, and companies. Get matched by skills and interests, build a real track record, and make your college applications stand out.">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Student Volunteer Opportunities, Internships &amp; Projects | Larpable</title>
+  <meta name="description" content="Find student volunteer opportunities, internships and project collaborators. Share your passion projects and build a portfolio for college applications.">
   <link rel="canonical" href="https://larpable.me/">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <meta name="theme-color" content="#fbf8f4">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="LARPABLE.">
-  <meta property="og:title" content="LARPABLE. Find work worth doing.">
-  <meta property="og:description" content="Find volunteering, passion projects &amp; college opportunities. Get matched with student-led projects, nonprofits, and companies by skills and interests.">
+  <meta property="og:title" content="LARPABLE. A place for students to share their work and find opportunities.">
+  <meta property="og:description" content="Discover student projects, find collaborators, and build a portfolio of what you're working on.">
   <meta property="og:url" content="https://larpable.me/">
   <meta name="twitter:card" content="summary_large_image">
-  <script>document.documentElement.classList.add('js');</script>
   <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="/css/styles.css?v=f89a067772fc">
-</head>
-<body class="d-locked">
-  <div class="d-topbar" id="d-topbar"><nav class="d-topnav" id="d-topnav"><a href="/login" class="d-btn d-btn-sm">Log in</a><a href="/signup" class="d-btn d-btn-sm d-btn-accent">Sign up</a></nav></div>
-  <a href="#d-top" class="d-landing-logo" id="d-logo"><span id="typed"></span><span class="d-landing-cursor" id="cursor"></span></a>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@graph":[
+    {"@type":"Organization","@id":"https://larpable.me/#org","name":"LARPABLE.","url":"https://larpable.me/","description":"A place for students to share their work and find opportunities: student projects, internships, research roles and collaborators."},
+    {"@type":"WebSite","@id":"https://larpable.me/#site","name":"LARPABLE.","url":"https://larpable.me/","publisher":{"@id":"https://larpable.me/#org"}},
+    {"@type":"FAQPage","mainEntity":[
+      {"@type":"Question","name":"Is Larpable free?","acceptedAnswer":{"@type":"Answer","text":"Yes. Making a profile, browsing, applying and posting your own projects are all free for students."}},
+      {"@type":"Question","name":"Who is Larpable for?","acceptedAnswer":{"@type":"Answer","text":"Students who want to share what they're working on, find opportunities, or find teammates for their own projects."}},
+      {"@type":"Question","name":"What kinds of opportunities are there?","acceptedAnswer":{"@type":"Answer","text":"Student projects looking for teammates, plus internships, research roles and projects posted by professors and companies."}},
+      {"@type":"Question","name":"Can I look around before signing up?","acceptedAnswer":{"@type":"Answer","text":"Yes. Browse opportunities as a guest and read the details. You'll need an account to apply or post."}},
+      {"@type":"Question","name":"Can I post my own project?","acceptedAnswer":{"@type":"Answer","text":"Yes. Share what you're building, explain where you need help, and students who are interested can apply to join."}},
+      {"@type":"Question","name":"What shows up on my profile?","acceptedAnswer":{"@type":"Answer","text":"The projects and updates you post, the work you've shared, and your LarpScore, which grows when other students engage with your work."}}
+    ]}
+  ]}
+  </script>
+  <link rel="stylesheet" href="/css/theme.css?v=12643a7897de">
+  <style>
 
-  <main class="d-hero" id="d-top">
-    <div class="d-hero-inner" id="d-hero"><h1 class="d-slogan">Find work<br>worth doing.</h1><p class="d-intro">Larpable connects students with student-led projects, nonprofits, and companies — so you graduate with a track record, not just a transcript.</p><div class="d-btn-wrap" id="d-btn-wrap"><a href="/signup" class="d-btn d-btn-accent">Sign up</a><a href="/login" class="d-btn">Log in</a></div><div class="d-btn-wrap d-btn-wrap--below" id="d-guest-wrap"><a href="/get-started" class="d-btn">Get started</a></div></div>
-    <div class="d-cue" id="d-cue">Scroll<span>↓</span></div>
-    <figure class="d-hero-art" id="d-hero-art" aria-hidden="true" data-dot-src="/assets/hero-dots.png" data-dot-protect=".d-hero-inner" data-dot-min-width="200"><canvas id="d-dots" width="1375" height="1144"></canvas></figure>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
+    @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+    body{background:var(--bg);color:var(--fg);font-family:'Space Grotesk',system-ui,sans-serif;line-height:1.55;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+    a{color:inherit;text-decoration:none}
+    img,video{display:block;max-width:100%}
+    :focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:6px}
+    .skip{position:absolute;left:-999px;top:8px;background:var(--fg);color:#fff;padding:8px 14px;border-radius:6px;z-index:99}.skip:focus{left:8px}
+    .wrap{max-width:var(--max);margin:0 auto;padding:0 var(--pad)}
+
+    .btn{display:inline-flex;align-items:center;justify-content:center;gap:.4rem;padding:.7rem 1.35rem;border:2px solid var(--border);border-radius:var(--r);font-size:.92rem;font-weight:600;background:transparent;transition:background .18s,border-color .18s,color .18s,transform .18s}
+    .btn:hover{border-color:var(--fg);background:var(--card)}
+    .btn:active{transform:scale(.97)}
+    .btn-accent{background:var(--accent);border-color:var(--accent);color:#fff}.btn-accent:hover{background:var(--accent-h);border-color:var(--accent-h);color:#fff}
+    .btn-sm{padding:.45rem .95rem;font-size:.84rem}
+    .link{font-weight:600;border-bottom:2px solid var(--accent);padding-bottom:1px;transition:color .2s}
+    .link:hover{color:var(--accent-h)}
+
+    /* 1. Navigation */
+    .nav{position:sticky;top:0;z-index:20;background:rgba(251,248,244,.86);backdrop-filter:saturate(1.3) blur(12px);-webkit-backdrop-filter:saturate(1.3) blur(12px);border-bottom:1px solid transparent;transition:border-color .3s}
+    .nav.scrolled{border-bottom-color:var(--border)}
+    .nav-in{max-width:var(--max);margin:0 auto;padding:14px var(--pad);display:flex;align-items:center;justify-content:space-between;gap:16px}
+    .logo{font-weight:700;font-size:1.3rem;letter-spacing:-.04em;color:var(--accent)}
+    .nav ul{list-style:none;display:flex;align-items:center;gap:clamp(12px,2vw,26px);font-size:.92rem;font-weight:500}
+    .nav ul a:not(.btn){color:var(--fg2);transition:color .2s}.nav ul a:not(.btn):hover{color:var(--fg)}
+
+    /* 2. Hero */
+    .hero{padding:clamp(40px,7vh,84px) 0 clamp(40px,6vh,64px)}
+    .hero-grid{display:grid;grid-template-columns:1.02fr 1fr;gap:clamp(32px,5vw,72px);align-items:center}
+    .wordmark{display:block;font-size:clamp(3.6rem,9.4vw,8.2rem);font-weight:700;line-height:.86;letter-spacing:-.065em;color:var(--accent);margin-left:-.04em}
+    h1{font-size:clamp(1.6rem,2.7vw,2.25rem);line-height:1.15;letter-spacing:-.035em;margin-top:clamp(18px,3vh,30px);max-width:22ch;font-weight:600}
+    .hero-ctas{display:flex;gap:10px;flex-wrap:wrap;margin-top:1.7rem}
+    .proof{display:flex;align-items:center;gap:10px;margin-top:1.4rem;font-size:.9rem;color:var(--fg2)}
+    .faces{display:flex}
+    .faces i{width:26px;height:26px;border-radius:50%;border:2px solid var(--bg);margin-left:-8px;display:block}
+    .faces i:first-child{margin-left:0}
+    .preview{position:relative;background:var(--tint);border-radius:22px;padding:18px;display:grid;gap:12px}
+    .preview-bar{display:flex;align-items:center;justify-content:space-between;font-size:.78rem;color:var(--fg3);padding:2px 4px}
+    .preview-bar b{color:var(--fg);font-weight:600}
+    .preview .opp{width:100%}
+
+    /* Shared opportunity card (mirrors the feed's card) */
+    .opp{background:var(--card);border:1px solid var(--border);border-radius:var(--rc);padding:16px 18px 14px;display:flex;flex-direction:column;gap:8px;box-shadow:0 1px 2px rgba(30,27,24,.04);transition:transform .3s var(--ease),box-shadow .3s,border-color .3s}
+    a.opp:hover,.opp-wrap:hover .opp{transform:translateY(-3px);box-shadow:0 14px 32px rgba(30,27,24,.08);border-color:#ddd5cb}
+    .opp-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+    .opp h3{font-size:1.04rem;line-height:1.28;letter-spacing:-.015em;font-weight:700}
+    .badges{display:flex;gap:5px;flex:none}
+    .badge{padding:2px 8px;border-radius:999px;font-size:.62rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;background:var(--tint);color:var(--fg2)}
+    .b-project{background:var(--accent-l);color:var(--accent)}.b-nonprofit,.b-company{background:var(--tint);color:var(--fg2)}.b-ex{background:transparent;color:var(--fg3);border:1px solid var(--border)}
+    .help{font-size:.9rem}.help span{color:var(--fg3)}
+    .by{font-size:.82rem;color:var(--fg2)}.by strong{color:var(--fg);font-weight:600}
+    .desc{font-size:.86rem;color:var(--fg2);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+    .skills{display:flex;flex-wrap:wrap;gap:5px}
+    .skills span{padding:3px 9px;border-radius:999px;background:var(--tint);font-size:.74rem;color:var(--fg2)}
+    .opp-foot{display:flex;justify-content:space-between;align-items:center;padding-top:9px;margin-top:auto;border-top:1px solid var(--border);font-size:.76rem;color:var(--fg3)}
+    .opp-foot .go{color:var(--accent);font-weight:600;font-size:.82rem}
+
+    /* Section heads */
+    .sec{padding:clamp(64px,9vw,104px) 0}
+    .sec-head{display:flex;justify-content:space-between;align-items:end;gap:20px;flex-wrap:wrap;margin-bottom:1.8rem}
+    .eyebrow{color:var(--accent);font-size:.72rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:.6rem}
+    h2{font-size:clamp(1.8rem,3.6vw,2.6rem);line-height:1.05;letter-spacing:-.045em}
+    .sec-head p{color:var(--fg2);max-width:46ch;margin-top:.5rem}
+
+    /* Alternating dark sections */
+    .dark{background:var(--ink);color:var(--ink-fg)}
+    .dark .eyebrow{color:var(--ink-fg2)}
+    .dark .sec-head p,.dark p.muted{color:var(--ink-fg2)}
+    .dark .link{color:var(--ink-fg);border-bottom-color:var(--ink-fg2)}.dark .link:hover{color:#fff}
+
+    /* 4. Open opportunities: 3D card marquee (same motion as the shuffle page) */
+    .state{color:var(--fg3);font-size:.9rem}
+    .dark .state{color:var(--ink-fg2);text-align:center;padding-top:30%}
+    .stage{--h:clamp(160px,min(38svh,23vw),340px);position:relative;height:calc(var(--h) * 1.9);perspective:1500px;perspective-origin:50% 46%;touch-action:pan-y;cursor:grab;user-select:none;-webkit-user-select:none;outline:none;overflow:hidden}
+    .stage.drag{cursor:grabbing}
+    .stage:focus-visible{outline:2px solid var(--ink-fg2);outline-offset:-6px;border-radius:24px}
+    .mq-row{position:absolute;inset:0;transform-style:preserve-3d}
+    .oc{position:absolute;left:50%;top:50%;width:calc(var(--h) * 1.586);height:var(--h);margin:calc(var(--h) / -2) 0 0 calc(var(--h) * -.793);border-radius:calc(var(--h) * .072);transform-style:preserve-3d;will-change:transform,opacity;cursor:pointer;opacity:0;font-size:calc(var(--h) * .068);color:var(--fg)}
+    .oc-face{position:absolute;inset:0;border-radius:inherit;overflow:hidden;backface-visibility:hidden;-webkit-backface-visibility:hidden;border:1px solid rgba(30,27,24,.08);background:#fff}
+    .oc-front{display:grid;grid-template-columns:37% 1fr;box-shadow:0 .9em 2.2em rgba(0,0,0,.38)}
+    .oc-art{position:relative;overflow:hidden}
+    .oc-art::after{content:"";position:absolute;inset:0;background-image:radial-gradient(circle,rgba(255,255,255,.28) .07em,transparent .1em);background-size:.5em .5em}
+    .oc-art svg{position:absolute;left:50%;top:50%;width:62%;height:auto;transform:translate(-50%,-50%)}
+    .oc-info{display:flex;flex-direction:column;gap:.42em;padding:1em 1.05em .9em;min-width:0}
+    .oc-badges{display:flex;gap:.3em}
+    .oc-badge{padding:.15em .65em;border-radius:2em;font-size:.54em;font-weight:700;letter-spacing:.08em;text-transform:uppercase;background:var(--tint);color:var(--fg2)}
+    .oc-badge.acc{background:var(--accent-l);color:var(--accent)}
+    .oc h3{font-size:1.04em;line-height:1.2;letter-spacing:-.025em;font-weight:700;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+    .oc-by{font-size:.68em;color:var(--fg2)}.oc-by b{color:var(--fg);font-weight:600}
+    .oc-help{font-size:.7em}.oc-help span{color:var(--fg3)}
+    .oc-chips{display:flex;flex-wrap:wrap;gap:.3em}
+    .oc-chips span{padding:.15em .6em;border-radius:2em;background:var(--tint);font-size:.58em;color:var(--fg2)}
+    .oc-foot{margin-top:auto;display:flex;justify-content:space-between;align-items:center;padding-top:.5em;border-top:1px solid var(--border);font-size:.6em;color:var(--fg3)}
+    .oc-foot b{color:var(--fg);font-weight:600}
+    .oc-glare{position:absolute;inset:0;border-radius:inherit;pointer-events:none;mix-blend-mode:soft-light;opacity:.5;background:radial-gradient(55% 75% at var(--gx,50%) 25%,rgba(255,255,255,.7),transparent 62%)}
+    .oc-edge{position:absolute;inset:0;border-radius:inherit;background:#d9d3cb}
+    .oc-edge.e1{transform:translateZ(-1.5px)}.oc-edge.e2{transform:translateZ(-3px)}.oc-edge.e3{transform:translateZ(-4.5px);background:#cfc8bf}
+    .oc-back{transform:rotateY(180deg) translateZ(6px);display:flex;flex-direction:column;gap:.45em;padding:1em 1.15em}
+    .oc-back p{font-size:.66em;color:var(--fg2);line-height:1.45;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+    .oc-back a{margin-top:auto;align-self:flex-start;font-size:.66em;font-weight:600;background:var(--fg);color:#fff;padding:.55em 1.1em;border-radius:.6em}
+    .mq-ctl{display:flex;justify-content:center;align-items:center;gap:12px;font-size:.78rem;color:var(--ink-fg2);padding:0 var(--pad)}
+    .arrow{width:38px;height:38px;border-radius:50%;border:1px solid var(--ink-line);background:transparent;color:var(--ink-fg);display:grid;place-items:center;cursor:pointer;transition:border-color .2s,transform .2s}
+    .arrow:hover{border-color:var(--ink-fg2)}.arrow:active{transform:scale(.92)}
+    .arrow svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+
+    /* 2. Student work (dark) */
+    .work{border-top:1px solid var(--ink-line)}
+    .work.dark .aside p{color:var(--ink-fg2)}
+    .work .post{color:var(--fg)}
+    .work-grid{display:grid;grid-template-columns:1.6fr 1fr;gap:clamp(28px,4vw,56px);align-items:start}
+    .posts{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+    .post{background:var(--card);border:1px solid var(--border);border-radius:var(--rc);overflow:hidden;display:flex;flex-direction:column;transition:transform .3s var(--ease),box-shadow .3s}
+    .post:hover{transform:translateY(-3px);box-shadow:0 14px 32px rgba(30,27,24,.08)}
+    .post-media{aspect-ratio:16/10;background:var(--tint);position:relative;overflow:hidden}
+    .post-media img,.post-media video,.post-media svg{width:100%;height:100%;object-fit:cover}
+    .post-body{padding:14px 16px 16px;display:flex;flex-direction:column;gap:7px;flex:1}
+    .author{display:flex;align-items:center;gap:9px;font-size:.84rem}
+    .av{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-size:.72rem;font-weight:700;color:#fff;flex:none}
+    .author small{display:block;color:var(--fg3);font-size:.74rem;line-height:1.2}
+    .post h3{font-size:1rem;letter-spacing:-.015em;line-height:1.3}
+    .post p{font-size:.86rem;color:var(--fg2);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+    .contrib{font-size:.8rem;background:var(--tint);border-radius:10px;padding:8px 10px;color:var(--fg2)}.contrib b{color:var(--fg);font-weight:600}
+    .aside{position:sticky;top:96px}
+    .aside h2{font-size:clamp(1.7rem,3vw,2.3rem)}
+    .aside p{color:var(--fg2);margin-top:.9rem}
+    .aside ul{list-style:none;margin:1.2rem 0 1.6rem;display:grid;gap:.6rem}
+    .aside li{display:flex;gap:10px;font-size:.95rem}
+    .aside li::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--accent);margin-top:.5em;flex:none}
+
+    /* 3. Your project is missing one person (light) */
+    .split2{display:grid;grid-template-columns:1fr 1.05fr;gap:clamp(32px,6vw,80px);align-items:center;padding:clamp(72px,9vw,110px) 0}
+    .split2 h2{font-size:clamp(2.2rem,4.8vw,3.6rem);letter-spacing:-.055em;line-height:.98}
+    .team .muted{color:var(--fg2)}
+    .team .proj{border:1px solid var(--border);box-shadow:0 18px 44px rgba(30,27,24,.08)}
+    .split2 .copy p{font-size:1.08rem;margin-top:1.1rem;max-width:40ch}
+    .link-arrow{display:inline-flex;align-items:center;gap:.4rem;margin-top:1.6rem;font-weight:600;border-bottom:2px solid var(--accent);padding-bottom:2px;transition:gap .25s var(--ease)}
+    .link-arrow:hover{gap:.7rem}
+    .dark .link-arrow{border-bottom-color:var(--ink-fg2);color:var(--ink-fg)}
+    .proj{background:var(--card);color:var(--fg);border-radius:22px;padding:24px;box-shadow:0 24px 50px rgba(0,0,0,.35)}
+    .proj-top{display:flex;gap:14px;align-items:center}
+    .proj-top .ic{width:52px;height:52px;border-radius:14px;flex:none;background:linear-gradient(150deg,#ff8a8a,#ff6b6b 55%,#e55a5a);display:grid;place-items:center}
+    .proj-top .ic svg{width:28px;height:28px}
+    .proj-top b{display:block;font-size:1.15rem;letter-spacing:-.02em}
+    .proj-top small{color:var(--fg3);font-size:.82rem}
+    .proj p.pitch{color:var(--fg2);margin:14px 0 18px;font-size:.95rem}
+    .members{display:grid;gap:8px}
+    .mem{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:12px;background:var(--bg)}
+    .mem .mav{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-size:.75rem;font-weight:700;color:#fff;flex:none}
+    .mem div{flex:1;font-size:.9rem}.mem small{display:block;color:var(--fg3);font-size:.76rem}
+    .mem .tag{font-size:.7rem;font-weight:700;color:var(--fg3)}
+    .mem.open{background:var(--accent-l);border:1.5px dashed rgba(255,107,107,.55)}
+    .mem.open .mav{background:transparent;border:1.5px dashed var(--accent);color:var(--accent)}
+    .mem.open .tag{color:var(--accent)}
+    .need{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px}
+    .need span{padding:4px 10px;border-radius:999px;background:var(--tint);font-size:.76rem;color:var(--fg2)}
+    .need span.a{background:var(--accent-l);color:var(--accent);font-weight:600}
+    .pulse{animation:pulse 2.4s ease-in-out infinite}
+    @keyframes pulse{50%{box-shadow:0 0 0 6px rgba(255,107,107,.14)}}
+
+    /* 5. Projects from professors & companies (light) */
+    .partners{background:var(--bg)}
+    .partners-in{padding:clamp(72px,9vw,110px) 0;display:grid;grid-template-columns:1.3fr 1fr;gap:clamp(28px,5vw,64px);align-items:center}
+    .partners h2{font-size:clamp(2rem,4.2vw,3rem)}
+    .partners p{color:var(--fg2);margin-top:1rem;max-width:48ch;font-size:1.05rem}
+    .partners .btn{margin-top:1.6rem}
+    .kinds{display:grid;gap:10px}
+    .kinds div{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+    .kinds b{display:block;font-size:1rem}
+    .kinds span{color:var(--fg2);font-size:.86rem}
+    .kinds em{font-style:normal;font-size:.72rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--fg3);white-space:nowrap}
+    /* Common questions (dark) */
+    .faq-in{max-width:780px;margin:0 auto;padding:clamp(72px,9vw,110px) var(--pad)}
+    .faq-in h2{margin-bottom:1.2rem}
+    .faq-in details{border-bottom:1px solid var(--ink-line)}
+    .faq-in summary{cursor:pointer;font-weight:600;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:1rem;padding:1.15rem 0}
+    .faq-in summary::-webkit-details-marker{display:none}
+    .faq-in summary::after{content:"+";color:var(--ink-fg2);font-size:1.35rem;line-height:1;transition:transform .3s var(--ease)}
+    .faq-in details[open] summary::after{transform:rotate(45deg)}
+    .faq-in details p{color:var(--ink-fg2);padding:0 0 1.2rem;max-width:62ch}
+    .faq-in details p a{color:var(--ink-fg);text-decoration:underline}
+    footer{background:var(--ink);color:var(--ink-fg2);border-top:1px solid var(--ink-line)}
+    .foot{padding:22px 0 30px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;font-size:.86rem}
+    .foot nav{display:flex;gap:20px}
+    .foot a{color:var(--ink-fg)}.foot a:hover{text-decoration:underline}
+    .foot .logo{font-size:1.05rem}
+
+    .fade{opacity:0;transform:translateY(14px);transition:opacity .8s var(--ease),transform .8s var(--ease)}.fade.in{opacity:1;transform:none}
+
+    @media (max-width:980px){.work-grid{grid-template-columns:1fr}.aside{position:static}}
+    @media (max-width:860px){
+      .hero-grid,.split2,.partners-in{grid-template-columns:1fr}
+      .preview .opp:nth-child(3){display:none}
+      .nav ul .hide-m{display:none}
+    }
+    @media (max-width:620px){.posts{grid-template-columns:1fr}.stage{--h:clamp(150px,42vw,230px)}.mq-ctl span{display:none}}
+    @media (prefers-reduced-motion:reduce){.fade{opacity:1;transform:none;transition:none}.opp,.post{transition:none}.pulse{animation:none}}
+    /* One travelling wordmark: intro → hero → sticky navigation. */
+    .brand-slot{display:block;flex:none;width:132px;height:32px;visibility:hidden}
+    .travelling-brand{position:fixed;top:0;left:0;z-index:40;white-space:nowrap;color:var(--accent);font-weight:700;line-height:.86;letter-spacing:-.065em;transform-origin:top left;will-change:transform;font-size:100px}
+    .brand-cursor{display:inline-block;width:3px;height:1em;margin-left:2px;background:var(--accent);vertical-align:text-bottom;animation:brand-blink .6s step-end infinite}
+    @keyframes brand-blink{50%{opacity:0}}
+    .brand-curtain{position:fixed;inset:0;z-index:30;background:var(--bg);pointer-events:none;transition:opacity .65s ease}
+    body.brand-loading{overflow:hidden}
+    body.brand-loading .wordmark{visibility:hidden}
+    .wordmark.brand-away{visibility:hidden}
+    @media(max-width:400px){.brand-slot{width:112px}.nav-in{gap:8px}.nav ul{gap:10px}}
+    @media(prefers-reduced-motion:reduce){.brand-curtain{transition:none}.brand-cursor{animation:none}}
+  </style>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+
+  <!-- 1. Navigation -->
+  <header class="nav" id="nav">
+    <div class="nav-in">
+      <span class="brand-slot" aria-hidden="true"></span>
+      <nav aria-label="Main">
+        <ul>
+          <li><a href="/login">Log in</a></li>
+          <li><a href="/signup" class="btn btn-accent btn-sm">Join Larpable</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main">
+    <!-- 2. Hero with a preview of the platform -->
+    <section class="hero" aria-labelledby="hero-h">
+      <div class="wrap hero-grid">
+        <div class="hero-copy">
+          <span class="wordmark" aria-hidden="true">LARPABLE.</span>
+          <h1 id="hero-h"><span class="sr" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">LARPABLE. </span>Find meaningful projects, volunteer opportunities and internships for students.</h1>
+          <div class="hero-ctas"><a href="/get-started" class="btn">Browse opportunities</a><a href="/signup" class="btn btn-accent">Join Larpable</a></div>
+          <p class="proof"><span class="faces" aria-hidden="true"><i style="background:#1e1b18"></i><i style="background:#8a8178"></i><i style="background:#c9beb1"></i><i style="background:#ff6b6b"></i></span>About 450 students have joined Larpable.</p>
+        </div>
+        <div class="preview" aria-label="Preview of the Larpable opportunity feed">
+          <div class="preview-bar"><b>Opportunities</b><span>Newest first</span></div>
+          <div class="state" id="previewState">Loading opportunities…</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. Student work and portfolios -->
+    <section class="sec work dark" aria-labelledby="work-h">
+      <div class="wrap work-grid">
+        <div>
+          <div class="sec-head"><div><p class="eyebrow">Student work</p><h2 id="work-h">See what students are working on.</h2></div></div>
+          <div class="posts" id="posts"><p class="state">Loading recent work…</p></div>
+        </div>
+        <aside class="aside fade" aria-labelledby="aside-h">
+          <p class="eyebrow">Your profile</p>
+          <h2 id="aside-h">Keep everything you build in one place.</h2>
+          <p>Build a student portfolio for college applications. Share your passion projects, document your contributions, and show how your work makes a difference.</p>
+          <ul>
+            <li>Post projects and progress updates</li>
+            <li>Show the role you played on each one</li>
+            <li>Get likes and comments from other students</li>
+          </ul>
+          <a href="/signup" class="btn btn-accent">Create your profile</a>
+        </aside>
+      </div>
+    </section>
+
+    <!-- 3. Find people to work with -->
+    <section class="team" aria-labelledby="team-h">
+      <div class="wrap split2">
+        <div class="copy fade">
+          <p class="eyebrow">Build with other students</p>
+          <h2 id="team-h">Your project is missing one person.</h2>
+          <p class="muted">Find student collaborators for your passion project, startup or nonprofit. Share what you're building, recruit volunteers, and network with students who share your interests.</p>
+          <a href="/get-started" class="link-arrow">Find collaborators <span aria-hidden="true">→</span></a>
+        </div>
+        <article class="proj fade" aria-label="Example student project looking for a teammate">
+          <div class="proj-top">
+            <span class="ic" aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M16 27C9 23 5 18 5 12.5A5.5 5.5 0 0 1 16 10a5.5 5.5 0 0 1 11 2.5C27 18 23 23 16 27z" fill="rgba(255,255,255,.92)"/></svg></span>
+            <div><b>Student Climate Campaign</b><small>Student project · Example</small></div>
+          </div>
+          <p class="pitch">Getting our school to cut energy use by 20% this year. We have the plan and the people, but no website yet.</p>
+          <div class="members">
+            <div class="mem"><span class="mav" style="background:#ff6b6b">MK</span><div>Maya<small>Founder · organizing</small></div><span class="tag">Lead</span></div>
+            <div class="mem"><span class="mav" style="background:#1e1b18">JS</span><div>Jordan<small>Design · posters &amp; social</small></div><span class="tag">Joined</span></div>
+            <div class="mem open pulse"><span class="mav" aria-hidden="true">+</span><div>Web developer<small>Build a sign-up site · 3 hrs/wk</small></div><span class="tag">Open</span></div>
+          </div>
+          <div class="need"><span class="a">HTML / CSS</span><span class="a">JavaScript</span><span>Remote</span><span>Beginner friendly</span></div>
+        </article>
+      </div>
+    </section>
+
+    <!-- 4. Open opportunities -->
+    <section class="sec dark" id="opportunities" aria-labelledby="opps-h">
+      <div class="wrap">
+        <div class="sec-head">
+          <div><p class="eyebrow">Open now</p><h2 id="opps-h">Student volunteer opportunities &amp; internships</h2><p>Projects, internships and research roles looking for help right now. Read the details, then sign up when you're ready to apply.</p></div>
+          <a href="/get-started" class="link">View all opportunities →</a>
+        </div>
+      </div>
+      <div class="stage" id="stage" tabindex="0" role="region" aria-roledescription="carousel" aria-label="Open opportunities. Drag or use the arrow keys to browse, press Enter to flip the center card for details.">
+        <div class="mq-row" id="mqRow"><p class="state">Loading opportunities…</p></div>
+      </div>
+      <div class="mq-ctl">
+        <button class="arrow" id="mqPrev" type="button" aria-label="Previous opportunity"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+        <span aria-hidden="true">Drag to browse · tap the middle card for details</span>
+        <button class="arrow" id="mqNext" type="button" aria-label="Next opportunity"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></button>
+      </div>
+    </section>
+
+    <!-- 5. Project mentors and investors -->
+    <section class="partners" id="partners" aria-labelledby="partners-h">
+      <div class="wrap partners-in">
+        <div class="fade">
+          <p class="eyebrow">Project mentors &amp; investors</p>
+          <h2 id="partners-h">Find mentors and investors for your student project.</h2>
+          <p>Share your passion project, research idea or student startup with professors and potential investors. Seek project mentorship, get feedback, and explore funding to take your work further.</p>
+          <a href="/signup" class="btn btn-accent">Share your project</a>
+        </div>
+        <div class="kinds fade" aria-label="Ways to develop your project">
+          <div><div><b>Project mentorship</b><span>Bring your project to a professor for guidance.</span></div><em>Mentors</em></div>
+          <div><div><b>Startup funding</b><span>Present your student startup to potential investors.</span></div><em>Investors</em></div>
+          <div><div><b>Project feedback</b><span>Share your progress and seek advice on your next steps.</span></div><em>Guidance</em></div>
+        </div>
+      </div>
+    </section>
+    <!-- Common questions -->
+    <section class="dark" aria-labelledby="faq-h">
+      <div class="faq-in">
+        <p class="eyebrow">FAQ</p>
+        <h2 id="faq-h" class="fade">Common questions</h2>
+        <div class="fade">
+          <details><summary>Is Larpable free?</summary><p>Yes. Making a profile, browsing, applying and posting your own projects are all free for students.</p></details>
+          <details><summary>Who is Larpable for?</summary><p>Students who want to share what they're working on, find opportunities, or find teammates for their own projects.</p></details>
+          <details><summary>What kinds of opportunities are there?</summary><p>Student projects looking for teammates, plus internships, research roles and projects posted by professors and companies. Each listing says what the project is, who posted it, and the role and skills they're looking for.</p></details>
+          <details><summary>Can I look around before signing up?</summary><p>Yes. <a href="/get-started">Browse opportunities</a> as a guest and read the details. You'll need an account to apply or post.</p></details>
+          <details><summary>Can I post my own project?</summary><p>Yes. Share what you're building, explain where you need help, and students who are interested can apply to join.</p></details>
+          <details><summary>What shows up on my profile?</summary><p>The projects and updates you post, the work you've shared, and your LarpScore, which grows when other students engage with your work.</p></details>
+        </div>
+      </div>
+    </section>
   </main>
 
-  <section class="d-sec d-sec--center d-sec--white"><div class="d-wrap"><div class="d-sec-head d-rise"><p class="d-eyebrow">How it works</p><h2 class="d-sec-title">Four steps, one afternoon.</h2></div><div class="d-steps"><div class="d-step d-rise"><div class="d-step-n">1</div><h3>Build a profile</h3><p>Skills, interests, and how much time you have. Roughly five minutes.</p></div><div class="d-step d-rise"><div class="d-step-n">2</div><h3>Post or browse</h3><p>List what you're building, or look through what needs building.</p></div><div class="d-step d-rise"><div class="d-step-n">3</div><h3>Get matched</h3><p>We rank fit on skills, interests, and how much time each side has.</p></div><div class="d-step d-rise"><div class="d-step-n">4</div><h3>Start the work</h3><p>Talk it through, agree on the scope, and get going.</p></div></div></div></section>
-
-  <section class="d-sec d-sec--left d-sec--has-art"><div class="d-wrap"><div class="d-sec-head d-rise"><p class="d-eyebrow">For students with initiatives</p><h2 class="d-sec-title">Post your passion project &amp; find student helpers</h2></div><div class="d-sec-sub"><p>Running a high school passion project, nonprofit, or startup? Post it on Larpable and get matched with fellow students ready to volunteer their skills.</p><div class="d-feature-list"><div class="d-feature-item"><span class="d-feature-icon">✓</span><strong>Find student volunteers fast</strong><p>Reach thousands of students actively seeking volunteering opportunities and passion projects.</p></div><hr class="d-feature-divider"><div class="d-feature-item"><span class="d-feature-icon">✓</span><strong>Specify needed skills</strong><p>Define what you need — programming, design, writing, research — get matched by expertise.</p></div><hr class="d-feature-divider"><div class="d-feature-item"><span class="d-feature-icon">✓</span><strong>Peer-to-peer matching</strong><p>Students with matching skills see your initiative first — no tutors, just peers helping peers.</p></div><hr class="d-feature-divider"><div class="d-feature-item"><span class="d-feature-icon">✓</span><strong>Build your college application</strong><p>Document real impact for college applications, resumes, and portfolios.</p></div></div></div></div><figure class="d-sec-art" id="d-init-art" aria-hidden="true" data-dot-src="/assets/initiative-dots.png" data-dot-protect=".d-sec-head, .d-sec-sub" data-dot-min-width="360"><canvas id="d-init-dots" width="1375" height="1144"></canvas></figure></section>
-
-  <section class="d-sec d-sec--right d-sec--white d-sec--has-art"><div class="d-wrap"><div class="d-sec-head d-rise"><p class="d-eyebrow">For students with skills</p><h2 class="d-sec-title">Find opportunities matching your expertise</h2></div><div class="d-sec-sub"><p>Looking for high school volunteering that builds your resume? Discover student-led initiatives and passion projects that need exactly what you bring.</p><div class="d-feature-list"><div class="d-feature-item"><span class="d-feature-icon">✓</span><strong>Match by skills &amp; interests</strong><p>Get connected with volunteering opportunities and high school internships aligned with your skills.</p></div><hr class="d-feature-divider"><div class="d-feature-item"><span class="d-feature-icon">✓</span><strong>Build your resume</strong><p>Contribute to real projects — build a high school resume that stands out to colleges and employers.</p></div><hr class="d-feature-divider"><div class="d-feature-item"><span class="d-feature-icon">✓</span><strong>Earn college application aid</strong><p>Expand your portfolio with verifiable impact for college applications.</p></div><hr class="d-feature-divider"><div class="d-feature-item"><span class="d-feature-icon">✓</span><strong>Build a track record</strong><p>Contribute to real student projects and grow a portfolio of impact.</p></div></div></div></div><figure class="d-sec-art" id="d-skill-art" aria-hidden="true" data-dot-src="/assets/initiative-dots.png" data-dot-protect=".d-sec-head, .d-sec-sub" data-dot-min-width="360"><canvas id="d-skill-dots" width="1375" height="1144"></canvas></figure></section>
-
-  <section class="d-sec d-sec--center d-sec--faq"><div class="d-wrap"><div class="d-sec-head d-rise"><p class="d-eyebrow">Questions</p><h2 class="d-sec-title">Frequently asked</h2></div><div class="d-faq d-rise"><details class="d-faq-item"><summary>Is Larpable free?</summary><p>Yes — creating a profile and posting opportunities is free for students.</p></details><details class="d-faq-item"><summary>Who is Larpable for?</summary><p>High school students looking for volunteering, passion projects, and college opportunities, and the students, nonprofits, and companies offering them.</p></details><details class="d-faq-item"><summary>How does matching work?</summary><p>Your profile's skills and interests are compared against each opportunity so the best fits surface first.</p></details><details class="d-faq-item"><summary>How do I start?</summary><p>Build a profile, then post what you're building or browse what's already there.</p></details></div></div></section>
-
-  <section class="d-sec d-sec--cta d-sec--center d-sec--white"><div class="d-wrap d-rise"><h2 class="d-sec-title">Find work worth doing.</h2><p class="d-sec-sub">Join students turning skills into real projects, volunteering, and college applications.</p><div class="d-btn-wrap"><a href="/get-started" class="d-btn d-btn-accent">Get started</a></div></div></section>
-  <footer class="d-page-footer d-page-footer--landing">LARPABLE. &mdash; made for students, by students.</footer>
+  <footer>
+    <div class="wrap foot">
+      <div><span><span class="site-footer-brand">LARPABLE.</span> Made for students, by students.</span><span class="site-footer-credits">Anirudh S.• Prasenjit P.• Vaman A.</span></div>
+      <nav aria-label="Footer"><a href="/#main">About</a><a href="/feedback">Contact</a><a href="/legal/privacy">Privacy</a><a href="/legal/terms">Terms</a></nav>
+    </div>
+  </footer>
 
   <script>
-    (async () => { try { const response = await fetch('/api/auth/me', { credentials: 'same-origin' }); if (response.ok) window.location.href = '/feed'; } catch (_) {} })();
-    if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
-    scrollTo(0, 0); addEventListener('load', () => scrollTo(0, 0));
-    const text = 'LARPABLE.', typed = document.getElementById('typed'), cursor = document.getElementById('cursor'), logo = document.getElementById('d-logo'), hero = document.getElementById('d-hero'), cue = document.getElementById('d-cue'), topbar = document.getElementById('d-topbar'), topnav = document.getElementById('d-topnav'); let index = 0;
-    // Every major OS hands its "cut the motion" switch to the browser as
-    // prefers-reduced-motion: Windows 11 Settings > Accessibility > Visual
-    // effects > Animation effects (Windows 10: Ease of Access > Show animations
-    // in Windows), macOS System Settings > Accessibility > Display > Reduce
-    // motion, iOS/iPadOS Accessibility > Motion > Reduce Motion, Android
-    // Developer options > Remove animations, and Linux desktops running with
-    // GTK animations turned off. When any of them is on, paint the finished
-    // landing page in one go instead of running the intro with near-zero
-    // durations, which reads as flicker.
-    const reduceQuery = matchMedia('(prefers-reduced-motion: reduce)'), bareReduceQuery = matchMedia('(prefers-reduced-motion)');
-    // Not every limitation is an OS switch: the value-less query form covers
-    // engines that never implemented the value syntax, and Data Saver / Lite
-    // mode plus 1 GB-or-less phones are exactly the devices the canvas-heavy
-    // intro glitches on.
-    const memory = navigator.deviceMemory;
-    let reduced = reduceQuery.matches || bareReduceQuery.matches || (navigator.connection && navigator.connection.saveData === true) || (typeof memory === 'number' && memory > 0 && memory <= 1), typeTimer = null;
-    function settle() {
-      clearTimeout(typeTimer);
-      typed.textContent = text;
-      cursor.style.display = 'none';
-      logo.classList.add('docked');
-      hero.classList.add('show');
-      document.body.classList.remove('d-locked');
-      window._dAnimDone = true;
-      if (window._dHeroArtReady) document.getElementById('d-hero-art').classList.add('reveal');
-      cue.classList.add('show');
+  (function () {
+    'use strict';
+    /* Match the live site's 400 ms lead-in, 100 ms typing and 450 ms pause. */
+    (function initTravellingBrand() {
+      // Disable browser scroll restoration so every refresh opens on the hero.
+      if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+      function resetToTop() { window.scrollTo({ top: 0, left: 0, behavior: 'instant' }); }
+      resetToTop();
+      addEventListener('load', resetToTop, { once: true });
+      var heroBrand = document.querySelector('.hero-copy > .wordmark');
+      var slot = document.querySelector('.brand-slot');
+      var nav = document.getElementById('nav');
+      var motion = matchMedia('(prefers-reduced-motion: reduce)');
+      var reduced = motion.matches || (navigator.connection && navigator.connection.saveData) || (navigator.deviceMemory > 0 && navigator.deviceMemory <= 1);
+      var brand = document.createElement('a');
+      brand.className = 'travelling-brand'; brand.href = '#main';
+      brand.setAttribute('aria-label', 'Larpable home');
+      var typed = document.createElement('span'), cursor = document.createElement('span');
+      cursor.className = 'brand-cursor'; cursor.setAttribute('aria-hidden', 'true');
+      brand.append(typed, cursor); document.body.appendChild(brand);
+      var curtain = document.createElement('div'); curtain.className = 'brand-curtain';
+      curtain.setAttribute('aria-hidden', 'true'); document.body.appendChild(curtain);
+      document.body.classList.add('brand-loading');
+      var ready = false, timer, flight, frame, fullText = 'LARPABLE.';
+      function pose(x, y, size) { return 'translate(' + x + 'px,' + y + 'px) scale(' + size / 100 + ')'; }
+      function heroPose() {
+        var rect = heroBrand.getBoundingClientRect();
+        return pose(rect.left, rect.top, parseFloat(getComputedStyle(heroBrand).fontSize));
+      }
+      function center() {
+        var size = Math.max(48, Math.min(innerWidth * .08, 112));
+        brand.style.letterSpacing = '-.04em'; brand.style.lineHeight = '1';
+        // Reserve the entire word's width, so typing never shifts its origin.
+        typed.textContent = fullText;
+        var width = brand.offsetWidth * size / 100;
+        typed.textContent = '';
+        brand.style.transform = pose((innerWidth - width) / 2, (innerHeight - size) / 2, size);
+      }
+      function render() {
+        frame = null;
+        if (!ready) return;
+        var h = heroBrand.getBoundingClientRect(), n = slot.getBoundingClientRect();
+        var size = parseFloat(getComputedStyle(heroBrand).fontSize);
+        var headerSize = innerWidth <= 400 ? 19 : 20.8;
+        // Begin as the word reaches the sticky bar; finish before it disappears.
+        var start = nav.getBoundingClientRect().bottom + 24;
+        var progress = Math.max(0, Math.min(1, (start - h.top) / (h.height + 24)));
+        if (reduced) progress = progress > 0 ? 1 : 0;
+        heroBrand.classList.toggle('brand-away', progress > 0);
+        brand.style.visibility = progress > 0 ? 'visible' : 'hidden';
+        brand.style.transform = pose(h.left + (n.left - h.left) * progress, h.top + (n.top + (n.height - headerSize * .86) / 2 - h.top) * progress, size + (headerSize - size) * progress);
+      }
+      function schedule() { if (!frame) frame = requestAnimationFrame(render); }
+      function settle() {
+        if (!ready) resetToTop();
+        clearTimeout(timer); if (flight) flight.cancel();
+        typed.textContent = fullText; cursor.remove();
+        brand.style.letterSpacing = '-.065em'; brand.style.lineHeight = '.86';
+        curtain.remove(); document.body.classList.remove('brand-loading');
+        ready = true; render();
+      }
+      function land() {
+        resetToTop();
+        cursor.remove();
+        curtain.style.opacity = '0';
+        var from = brand.style.transform;
+        brand.style.letterSpacing = '-.065em'; brand.style.lineHeight = '.86';
+        flight = brand.animate([{ transform: from, letterSpacing: '-.04em', lineHeight: '1' }, { transform: heroPose(), letterSpacing: '-.065em', lineHeight: '.86' }], { duration: 850, easing: 'cubic-bezier(.22,1,.36,1)', fill: 'forwards' });
+        flight.onfinish = settle;
+      }
+      function type(index) {
+        typed.textContent = fullText.slice(0, index);
+        timer = setTimeout(function () { if (index < fullText.length) type(index + 1); else { cursor.style.visibility = 'hidden'; timer = setTimeout(land, 450); } }, 100);
+      }
+      addEventListener('scroll', schedule, { passive: true });
+      addEventListener('resize', function () { if (!ready) settle(); else schedule(); });
+      motion.addEventListener('change', function (event) { reduced = event.matches; if (reduced) settle(); else schedule(); });
+      if (reduced) settle();
+      else {
+        center();
+        // Wait for the actual font before measuring the destination.
+        Promise.race([document.fonts.ready, new Promise(function (resolve) { setTimeout(resolve, 1200); })]).then(function () {
+          if (!ready) { center(); timer = setTimeout(function () { type(1); }, 400); }
+        });
+      }
+    })();
+
+    // Signed-in visitors keep the existing feed entry point.
+    fetch('/api/auth/me').then(function (response) {
+      if (response.ok) location.replace('/feed');
+    }).catch(function () {});
+
+    /* ---------- Helpers ---------- */
+    function el(tag, cls, text) { var n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
+    function clip(s, n) { s = String(s || '').replace(/\s+/g, ' ').trim(); return s.length > n ? s.slice(0, n - 1).trimEnd() + '…' : s; }
+    function ago(iso) { var t = Date.parse(iso); if (!t) return ''; var d = Math.max(0, (Date.now() - t) / 864e5); if (d < 1) return 'Posted today'; if (d < 2) return 'Posted yesterday'; if (d < 30) return 'Posted ' + Math.floor(d) + ' days ago'; return 'Posted ' + Math.floor(d / 30) + ' mo ago'; }
+    var TYPE = { project: 'Project', nonprofit: 'Nonprofit', company: 'Company' };
+    var AV = ['#1e1b18', '#ff6b6b', '#8a8178', '#5f5852'];
+    function initials(name) { return String(name || 'S').trim().split(/\s+/).slice(0, 2).map(function (w) { return w[0]; }).join('').toUpperCase(); }
+
+    const SAMPLE_OPPS = [
+      { sample: true, type: 'project', project_name: 'Climate data dashboard for local schools', looking_for: 'Data analyst', issuer_name: 'Student founder', description: 'Turn school energy data into a dashboard the district can use to cut waste.', skills: ['Python', 'Data visualization'], remote: true },
+      { sample: true, type: 'company', project_name: 'Summer software development intern', looking_for: 'Front-end developer', issuer_name: 'Early-stage startup', description: 'Build features for a learning app alongside the founding team.', skills: ['JavaScript', 'React'], remote: true },
+      { sample: true, type: 'project', project_name: 'Campus study: survey analysis', looking_for: 'Research assistant', issuer_name: 'A professor', description: 'Help clean and analyze survey data for a study on student wellbeing.', skills: ['Spreadsheets', 'Statistics'], remote: true },
+      { sample: true, type: 'nonprofit', project_name: 'Weekend food drive outreach', looking_for: 'Graphic designer', issuer_name: 'Community food bank', description: 'Design flyers and social posts for monthly weekend food drives.', skills: ['Design', 'Canva'], remote: true },
+      { sample: true, type: 'company', project_name: 'Customer feedback dashboard', looking_for: 'Data visualization', issuer_name: 'Local software company', description: 'Build a simple dashboard that summarizes customer feedback each week.', skills: ['SQL', 'Charts'], remote: false },
+      { sample: true, type: 'project', project_name: 'Student podcast, season two', looking_for: 'Audio editor', issuer_name: 'Student founder', description: 'Edit interview episodes and cut short clips for social media.', skills: ['Audio editing'], remote: true }
+    ];
+    const SAMPLE_POSTS = [
+      { sample: true, title: 'Shipped the volunteer sign-up site', project_name: 'Student Climate Campaign', issuer_name: 'Example student', content: 'Our sign-up page is live. Volunteers can now pick shifts and get reminders automatically.', role: 'Built the sign-up form and reminder emails', art: 'site' },
+      { sample: true, title: 'Posters for the spring food drive', project_name: 'Community Food Drive', issuer_name: 'Example student', content: 'Finished the poster series for April. We printed 200 and shared the digital versions with three schools.', role: 'Designed all four posters', art: 'poster' }
+    ];
+
+    var ART = {
+      site: '<svg viewBox="0 0 320 200" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><rect width="320" height="200" fill="#f3eee7"/><rect x="40" y="26" width="240" height="160" rx="10" fill="#fff" stroke="#e7e1d9"/><rect x="40" y="26" width="240" height="20" rx="10" fill="#1e1b18"/><rect x="58" y="62" width="120" height="12" rx="6" fill="#1e1b18"/><rect x="58" y="84" width="170" height="8" rx="4" fill="#d9d3cb"/><rect x="58" y="110" width="200" height="22" rx="6" fill="#fbf8f4" stroke="#e7e1d9"/><rect x="58" y="140" width="200" height="22" rx="6" fill="#fbf8f4" stroke="#e7e1d9"/><rect x="186" y="168" width="72" height="12" rx="6" fill="#ff6b6b"/></svg>',
+      poster: '<svg viewBox="0 0 320 200" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><rect width="320" height="200" fill="#f3eee7"/><g transform="rotate(-6 110 100)"><rect x="60" y="30" width="96" height="136" rx="6" fill="#ff6b6b"/><rect x="72" y="46" width="60" height="10" rx="5" fill="#fff"/><circle cx="108" cy="104" r="26" fill="#fff0ef"/></g><g transform="rotate(5 210 100)"><rect x="164" y="30" width="96" height="136" rx="6" fill="#1e1b18"/><rect x="176" y="46" width="66" height="10" rx="5" fill="#f8f3ed"/><rect x="176" y="64" width="44" height="8" rx="4" fill="#5f5852"/><circle cx="212" cy="116" r="22" fill="#c9beb1"/></g></svg>'
+    };
+
+    /* ---------- Opportunity card (mirrors the feed's card fields) ---------- */
+    function oppCard(o, opts) {
+      opts = opts || {};
+      var href = o.id ? '/opportunity?id=' + encodeURIComponent(o.id) : '/get-started';
+      var card = el(opts.static ? 'article' : 'a', 'opp');
+      if (!opts.static) card.href = href;
+      var top = el('div', 'opp-top');
+      top.appendChild(el('h3', null, clip(o.project_name || o.title || 'Untitled', 70)));
+      var badges = el('div', 'badges');
+      if (o.sample) badges.appendChild(el('span', 'badge b-ex', 'Example'));
+      badges.appendChild(el('span', 'badge b-' + (o.type || 'project'), TYPE[o.type] || 'Project'));
+      top.appendChild(badges); card.appendChild(top);
+      if (o.looking_for) { var h = el('p', 'help'); h.appendChild(el('span', null, 'Looking for: ')); h.appendChild(document.createTextNode(clip(o.looking_for, 60))); card.appendChild(h); }
+      var by = el('p', 'by'); by.appendChild(document.createTextNode('Posted by ')); by.appendChild(el('strong', null, o.issuer_name || 'A student'));
+      if (o.issuer_context) by.appendChild(document.createTextNode(' · ' + clip(o.issuer_context, 40)));
+      card.appendChild(by);
+      if (o.description && !opts.compact) card.appendChild(el('p', 'desc', clip(o.description, 160)));
+      var skills = (o.skills || []).slice(0, opts.compact ? 3 : 4);
+      if (skills.length || o.remote) { var sk = el('div', 'skills'); skills.forEach(function (s) { sk.appendChild(el('span', null, s)); }); if (o.remote) sk.appendChild(el('span', null, 'Remote')); card.appendChild(sk); }
+      var foot = el('div', 'opp-foot'); foot.appendChild(el('span', null, o.created_at ? ago(o.created_at) : (o.sample ? 'Sample listing' : '')));
+      var go = el('span', 'go', 'View opportunity →');
+      if (opts.static) { var a = el('a', 'go', 'View opportunity →'); a.href = href; go = a; }
+      foot.appendChild(go); card.appendChild(foot);
+      return card;
     }
-    function finishIntro() { cursor.style.display = 'none'; setTimeout(settle, 450); }
-    function type() { if (reduced) return; if (index < text.length) { typed.textContent += text[index++]; typeTimer = setTimeout(type, 100); } else { finishIntro(); } }
-    if (reduced) settle(); else typeTimer = setTimeout(type, 400);
-    new IntersectionObserver(([entry]) => topnav.classList.toggle('show', !entry.isIntersecting && scrollY > 10), { threshold: 0 }).observe(document.getElementById('d-btn-wrap'));
-    addEventListener('scroll', () => { topbar.classList.toggle('solid', scrollY > 40); if (!reduced) document.querySelector('.d-hero').classList.toggle('compact', scrollY > 10); if (scrollY > 10) cue.classList.add('hide'); }, { passive: true });
-    const observer = new IntersectionObserver(entries => entries.forEach(entry => { if (entry.isIntersecting) { entry.target.classList.add('in'); observer.unobserve(entry.target); } }), { rootMargin: '0px 0px -12% 0px' });
-    document.querySelectorAll('.d-rise').forEach((element, i) => { element.style.transitionDelay = (i % 4) * 60 + 'ms'; observer.observe(element); });
-    // The setting can be flipped while the page is open; matchMedia fires when
-    // it is. Safari before 14 only offers the deprecated addListener.
-    const watchMotion = (query) => { const onChange = (event) => { if (event.matches && !reduced) { reduced = true; settle(); } }; if (query.addEventListener) query.addEventListener('change', onChange); else if (query.addListener) query.addListener(onChange); };
-    watchMotion(reduceQuery); watchMotion(bareReduceQuery);
+
+    /* ---------- Post card (student work) ---------- */
+    function postCard(p, i) {
+      var href = p.id ? '/post?id=' + encodeURIComponent(p.id) : '/get-started';
+      var card = el('a', 'post fade'); card.href = href;
+      var media = el('div', 'post-media');
+      if (p.media && p.media.url) {
+        if (p.media.kind === 'video') { var v = el('video'); v.src = p.media.url; v.muted = true; v.playsInline = true; v.preload = 'metadata'; v.setAttribute('aria-label', p.title || 'Project video'); media.appendChild(v); }
+        else { var img = el('img'); img.src = p.media.url; img.alt = p.title || 'Project image'; img.loading = 'lazy'; media.appendChild(img); }
+      } else media.innerHTML = ART[p.art] || ART[i % 2 ? 'poster' : 'site'];
+      card.appendChild(media);
+      var body = el('div', 'post-body');
+      var au = el('div', 'author'); var av = el('span', 'av', initials(p.issuer_name)); av.style.background = AV[i % AV.length]; au.appendChild(av);
+      var who = el('div'); who.appendChild(el('b', null, p.issuer_name || 'Student')); who.appendChild(el('small', null, p.project_name || '')); au.appendChild(who);
+      if (p.sample) { var ex = el('span', 'badge b-ex', 'Example'); ex.style.marginLeft = 'auto'; au.appendChild(ex); }
+      body.appendChild(au);
+      body.appendChild(el('h3', null, clip(p.title, 80)));
+      if (p.content) body.appendChild(el('p', null, clip(p.content, 220)));
+      if (p.role) { var c = el('div', 'contrib'); c.appendChild(el('b', null, 'Contributed: ')); c.appendChild(document.createTextNode(p.role)); body.appendChild(c); }
+      card.appendChild(body);
+      return card;
+    }
+
+    /* ---------- 3D card marquee (same motion as the shuffle page) ---------- */
+    function Marquee(list) {
+      var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+      var stage = document.getElementById('stage'), rowEl = document.getElementById('mqRow');
+      rowEl.textContent = '';
+      var items = list.slice(0, 8);
+      while (items.length && items.length < 6) items = items.concat(list);
+      items = items.slice(0, Math.max(6, Math.min(8, items.length)));
+      var ICON = {
+        project: '<path d="M50 14a24 24 0 0 1 14 43v9H36v-9a24 24 0 0 1 14-43z" fill="rgba(255,255,255,.92)"/><rect x="38" y="72" width="24" height="7" rx="3.5" fill="rgba(255,255,255,.7)"/>',
+        nonprofit: '<path d="M50 84C26 68 16 54 16 41a17 17 0 0 1 34-6 17 17 0 0 1 34 6c0 13-10 27-34 43z" fill="rgba(255,255,255,.92)"/>',
+        company: '<rect x="20" y="34" width="60" height="46" rx="7" fill="rgba(255,255,255,.92)"/><rect x="36" y="22" width="28" height="16" rx="5" fill="none" stroke="rgba(255,255,255,.92)" stroke-width="6"/>'
+      };
+      var BG = { project: 'linear-gradient(150deg,#ff8a8a,#ff6b6b 55%,#e55a5a)', nonprofit: 'linear-gradient(150deg,#4a443f,#1e1b18)', company: 'linear-gradient(150deg,#c9beb1,#8a8178)' };
+      var cards = items.map(function (o, i) {
+        var type = TYPE[o.type] ? o.type : 'project', href = o.id ? '/opportunity?id=' + encodeURIComponent(o.id) : '/get-started';
+        var c = el('div', 'oc'); c.setAttribute('role', 'group'); c.setAttribute('aria-roledescription', 'card'); c.setAttribute('aria-label', (TYPE[type]) + ': ' + (o.project_name || 'Opportunity'));
+        ['e3', 'e2', 'e1'].forEach(function (k) { c.appendChild(el('div', 'oc-edge ' + k)); });
+        var front = el('div', 'oc-face oc-front');
+        var art = el('div', 'oc-art'); art.style.background = BG[type];
+        art.innerHTML = '<svg viewBox="0 0 100 100" aria-hidden="true">' + ICON[type] + '</svg>';
+        var info = el('div', 'oc-info'), badges = el('div', 'oc-badges');
+        badges.appendChild(el('span', 'oc-badge' + (type === 'project' ? ' acc' : ''), TYPE[type]));
+        if (o.sample) badges.appendChild(el('span', 'oc-badge', 'Example'));
+        info.appendChild(badges);
+        info.appendChild(el('h3', null, clip(o.project_name || o.title || 'Untitled', 64)));
+        var by = el('p', 'oc-by'); by.appendChild(document.createTextNode('Posted by ')); by.appendChild(el('b', null, o.issuer_name || 'A student')); info.appendChild(by);
+        if (o.looking_for) { var hp = el('p', 'oc-help'); hp.appendChild(el('span', null, 'Looking for: ')); hp.appendChild(document.createTextNode(clip(o.looking_for, 40))); info.appendChild(hp); }
+        var ch = el('div', 'oc-chips'); (o.skills || []).slice(0, 3).forEach(function (s) { ch.appendChild(el('span', null, s)); }); if (o.remote) ch.appendChild(el('span', null, 'Remote')); info.appendChild(ch);
+        var ft = el('div', 'oc-foot'); ft.appendChild(el('span', null, o.created_at ? ago(o.created_at) : 'Sample listing')); ft.appendChild(el('b', null, 'Details →')); info.appendChild(ft);
+        front.appendChild(art); front.appendChild(info); front.appendChild(el('div', 'oc-glare'));
+        var back = el('div', 'oc-face oc-back');
+        var bb = el('div', 'oc-badges'); bb.appendChild(el('span', 'oc-badge' + (type === 'project' ? ' acc' : ''), TYPE[type])); back.appendChild(bb);
+        back.appendChild(el('h3', null, clip(o.project_name || 'Untitled', 70)));
+        back.appendChild(el('p', null, clip(o.description || 'Open the listing to read the full details.', 220)));
+        if (o.looking_for) { var hb = el('p', 'oc-help'); hb.appendChild(el('span', null, 'Looking for: ')); hb.appendChild(document.createTextNode(clip(o.looking_for, 60))); back.appendChild(hb); }
+        var link = el('a', null, 'View opportunity →'); link.href = href; link.tabIndex = -1; back.appendChild(link);
+        c.appendChild(front); c.appendChild(back); rowEl.appendChild(c);
+        var seed = Math.sin((i + 1) * 12.9898) * 43758.5453; seed -= Math.floor(seed);
+        return { el: c, rv: seed * 2 - 1, pv: ((seed * 7.13) % 1) * 2 - 1, ph: seed * 6.283, link: link };
+      });
+      var N = cards.length; if (!N) return;
+
+      // Constants mirror ramp.design's card marquee (units = card heights / card indices)
+      var K = { SPACING: 1.96, SPEED: .24, FOCUS_SPAN: 1.35, ROLL_VAR: .06, PITCH_VAR: .08, PITCH_WOBBLE: .04, WOBBLE_SPEED: .42,
+        PX_TO_CARDS: 1 / 180, FRICTION: 3.4, MIN_VEL: .08, RESUME_MS: 700, CLICK_SLOP: 6, SEEK_MIN: 900, SEEK_MAX: 1300, SEEK_PER: 150, CENTER_EPS: .28,
+        STAND_IN: 720, STAND_OUT: 520, EXIT_X: 3.06, EXIT_Z: 2.12 };
+      var S = { offset: 0, vel: 0, lastInput: 0, seek: null, stand: null, standT: 0, standDir: 0, standStart: 0, t0: performance.now(), visible: false, started: false, raf: 0, prev: 0, dragging: false };
+      function cl(v, a, b) { return Math.min(b, Math.max(a, v)); }
+      function smooth(t) { t = cl(t, 0, 1); return t * t * (3 - 2 * t); }
+      function seekEase(t) { t = cl(t, 0, 1); if (t < .4) { var e = t / .4; return .5714 * e * e; } var r = 1 - (t - .4) / .6; return .5714 + .4286 * (1 - r * r * r * r); }
+      function inOutCubic(t) { t = cl(t, 0, 1); return t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; }
+      function relOf(i) { var r = (i - S.offset) % N; if (r < -N / 2) r += N; if (r >= N / 2) r -= N; return r; }
+      function centerIndex() { var best = 0, bd = 1e9; for (var i = 0; i < N; i++) { var a = Math.abs(relOf(i)); if (a < bd) { bd = a; best = i; } } return best; }
+      function seekBy(d) { if (!d) return; var now = performance.now(); S.seek = { from: S.offset, delta: d, start: now, dur: reduce ? 1 : cl(750 + Math.abs(d) * K.SEEK_PER, K.SEEK_MIN, K.SEEK_MAX) }; S.vel = 0; S.lastInput = now; }
+      function toggleStand(i) {
+        var now = performance.now();
+        if (S.stand === null) { S.stand = i; S.standDir = 1; S.standStart = now - S.standT * K.STAND_IN; cards[i].link.tabIndex = 0; }
+        else { S.standDir = -1; S.standStart = now - (1 - S.standT) * K.STAND_OUT; cards[S.stand].link.tabIndex = -1; }
+        S.lastInput = now;
+      }
+
+      function frame(now) {
+        var dt = Math.min(.05, (now - (S.prev || now)) / 1000); S.prev = now;
+        var u = cards[0].el.offsetHeight || 180, time = (now - S.t0) / 1000;
+        if (S.seek) { var p = (now - S.seek.start) / S.seek.dur; S.offset = S.seek.from + S.seek.delta * seekEase(p); if (p >= 1) { S.seek = null; S.lastInput = now; } }
+        else if (!S.dragging && S.stand === null) {
+          if (Math.abs(S.vel) > K.MIN_VEL) { S.offset += S.vel * dt; S.vel *= Math.exp(-K.FRICTION * dt); S.lastInput = now; } else S.vel = 0;
+          var resume = smooth((now - S.lastInput - K.RESUME_MS) / 450);
+          if (!reduce) S.offset += K.SPEED * dt * resume;
+        }
+        if (S.stand !== null) {
+          var dur = S.standDir > 0 ? K.STAND_IN : K.STAND_OUT;
+          S.standT = cl(S.standDir > 0 ? (now - S.standStart) / dur : 1 - (now - S.standStart) / dur, 0, 1);
+          if (reduce) S.standT = S.standDir > 0 ? 1 : 0;
+          if (S.standDir < 0 && S.standT <= 0) { S.stand = null; S.standT = 0; S.lastInput = now; }
+        }
+        var st = inOutCubic(S.standT);
+        for (var i = 0; i < N; i++) {
+          var c = cards[i], rel = relOf(i), a = Math.abs(rel), sg = rel < 0 ? -1 : 1;
+          // Arriving card (right) turns slightly; departing card (left) bends hard and swings toward the camera
+          var x = rel * K.SPACING * u, y, z, yaw, roll;
+          var f = smooth(1 - a / K.FOCUS_SPAN), m = Math.min(a, 1.9), q = smooth(Math.min(a, 1.15) / 1.15);
+          if (rel < 0) { yaw = -1.12 * q; roll = .2 * q; z = u * .62 * m; y = u * .14 * m; x *= 1 - .08 * q; }
+          else { yaw = .36 * q; roll = -.085 * q; z = -u * .42 * m; y = u * .03 * m; }
+          var scale = 1 + .04 * f;
+          roll += c.rv * K.ROLL_VAR * .5 * (1 - f);
+          var pitch = c.pv * K.PITCH_VAR * .35 + K.PITCH_WOBBLE * Math.sin(time * K.WOBBLE_SPEED * 6.283 + c.ph);
+          var op = a > 1.75 ? cl(1 - (a - 1.75) / .45, 0, 1) : 1, flip = 0;
+          if (S.stand !== null) {
+            if (i === S.stand) { flip = Math.PI * st; scale *= 1 + .22 * st; z += st * u * .9; yaw *= 1 - st; roll *= 1 - st; pitch *= 1 - st; y *= 1 - st; x *= 1 - st; }
+            else { x += sg * K.EXIT_X * u * st; z -= K.EXIT_Z * u * st; op *= 1 - st; }
+          }
+          if (!S.started) op = 0;
+          c.el.style.transform = 'translate3d(' + x.toFixed(1) + 'px,' + y.toFixed(1) + 'px,' + z.toFixed(1) + 'px) rotateY(' + (yaw + flip).toFixed(4) + 'rad) rotateZ(' + roll.toFixed(4) + 'rad) rotateX(' + pitch.toFixed(4) + 'rad) scale(' + scale.toFixed(4) + ')';
+          c.el.style.opacity = op.toFixed(3);
+          c.el.style.visibility = op < .01 ? 'hidden' : 'visible';
+          c.el.style.setProperty('--gx', (50 - (yaw + pitch) * 57.3 * 2.2).toFixed(1) + '%');
+          c.el.setAttribute('aria-hidden', a < .5 ? 'false' : 'true');
+        }
+        S.raf = S.visible && !document.hidden ? requestAnimationFrame(frame) : 0;
+      }
+      function kick() { if (!S.raf) { S.prev = 0; S.raf = requestAnimationFrame(frame); } }
+
+      // Drag to scrub with momentum; click a side card to center it; click the center card to flip it
+      var drag = null;
+      stage.addEventListener('pointerdown', function (e) { if (e.button !== 0) return; drag = { lastX: e.clientX, lastT: performance.now(), moved: 0, vx: 0 }; S.vel = 0; S.seek = null; S.lastInput = performance.now(); kick(); });
+      stage.addEventListener('pointermove', function (e) {
+        if (!drag) return;
+        var dx = e.clientX - drag.lastX, now = performance.now(), dtm = Math.max(1, now - drag.lastT);
+        drag.moved += Math.abs(dx);
+        if (drag.moved > K.CLICK_SLOP && !S.dragging && S.stand === null) { S.dragging = true; stage.classList.add('drag'); try { stage.setPointerCapture(e.pointerId); } catch (_) {} }
+        if (S.dragging) { S.offset -= dx * K.PX_TO_CARDS; drag.vx = .8 * (-dx * K.PX_TO_CARDS / (dtm / 1000)) + .2 * drag.vx; }
+        drag.lastX = e.clientX; drag.lastT = now; S.lastInput = now;
+      });
+      stage.addEventListener('pointerup', function (e) {
+        if (!drag) return;
+        var wasDrag = S.dragging; S.dragging = false; stage.classList.remove('drag');
+        if (wasDrag) S.vel = cl(drag.vx, -6, 6);
+        else if (!(e.target.closest && e.target.closest('.oc-back a'))) {
+          var hit = e.target.closest && e.target.closest('.oc'), idx = -1;
+          for (var i = 0; i < N; i++) if (cards[i].el === hit) idx = i;
+          if (S.stand !== null) toggleStand(S.stand);
+          else if (idx >= 0) { var r = relOf(idx); if (Math.abs(r) < K.CENTER_EPS) toggleStand(idx); else seekBy(Math.round(r)); }
+        }
+        drag = null; S.lastInput = performance.now(); kick();
+      });
+      stage.addEventListener('pointercancel', function () { drag = null; S.dragging = false; stage.classList.remove('drag'); });
+      stage.addEventListener('keydown', function (e) {
+        if (e.key === 'ArrowRight') { e.preventDefault(); if (S.stand === null) seekBy(1); }
+        else if (e.key === 'ArrowLeft') { e.preventDefault(); if (S.stand === null) seekBy(-1); }
+        else if ((e.key === 'Enter' || e.key === ' ') && !(e.target.closest && e.target.closest('a'))) { e.preventDefault(); toggleStand(S.stand !== null ? S.stand : centerIndex()); }
+        else if (e.key === 'Escape' && S.stand !== null) toggleStand(S.stand);
+        kick();
+      });
+      document.getElementById('mqNext').addEventListener('click', function () { if (S.stand !== null) toggleStand(S.stand); else seekBy(1); kick(); });
+      document.getElementById('mqPrev').addEventListener('click', function () { if (S.stand !== null) toggleStand(S.stand); else seekBy(-1); kick(); });
+
+      // Begin at the normal slow speed; pause when off-screen.
+      new IntersectionObserver(function (es) {
+        S.visible = es[0].isIntersecting;
+        if (S.visible && !S.started) { S.started = true; S.t0 = performance.now(); S.lastInput = S.t0 - K.RESUME_MS - 450; }
+        if (S.visible) kick();
+      }, { threshold: .25 }).observe(stage);
+      document.addEventListener('visibilitychange', function () { if (!document.hidden && S.visible) kick(); });
+    }
+
+    /* ---------- Render ---------- */
+    function renderOpps(list) {
+      var preview = document.querySelector('.preview'), pState = document.getElementById('previewState');
+      if (pState) pState.remove();
+      list.slice(0, 2).forEach(function (o) { preview.appendChild(oppCard(o, { compact: true })); });
+      Marquee(list);
+      observeFades();
+    }
+    function renderPosts(list) {
+      var grid = document.getElementById('posts'); grid.textContent = '';
+      list.slice(0, 2).forEach(function (p, i) { grid.appendChild(postCard(p, i)); });
+      observeFades();
+    }
+
+    /* ---------- Nav border + fade-ins ---------- */
+    var nav = document.getElementById('nav');
+    addEventListener('scroll', function () { nav.classList.toggle('scrolled', scrollY > 8); }, { passive: true });
+    var io = 'IntersectionObserver' in window ? new IntersectionObserver(function (es) { es.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } }); }, { rootMargin: '0px 0px -8% 0px' }) : null;
+    function observeFades() { document.querySelectorAll('.fade:not(.seen)').forEach(function (n, k) { n.classList.add('seen'); if (!io) { n.classList.add('in'); return; } n.style.transitionDelay = (k % 3) * 70 + 'ms'; io.observe(n); }); }
+    renderOpps(SAMPLE_OPPS);
+    renderPosts(SAMPLE_POSTS);
+
+
+    observeFades();
+  })();
   </script>
-  <script src="/js/dot-art.js?v=8beac077c4fe"></script>
-  <script src="/js/activity.js?v=6f8f952dd151"></script>
 </body>
 </html>

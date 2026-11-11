@@ -25,6 +25,9 @@
     const div = document.createElement('div');
     div.innerHTML = html;
 
+    const documentContent = div.querySelector('[data-legal-document]');
+    if (documentContent) div.replaceChildren(...documentContent.childNodes);
+
     // Walk all <p> and <em> elements and check for disclaimer text
     const toRemove = [];
     const allElements = div.querySelectorAll('p, em, hr');

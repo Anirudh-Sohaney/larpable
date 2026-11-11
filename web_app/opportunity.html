@@ -4,7 +4,7 @@
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>LARPABLE. — Opportunity</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="/css/styles.css?v=f89a067772fc">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet"><link rel="stylesheet" href="/css/styles.css?v=eaa8618e7567">
   <style>
     .d-detail-header{padding-bottom:20px}
     .d-detail-kicker{display:flex;align-items:center;gap:8px;margin-bottom:14px;color:var(--fg-tertiary);font-size:.72rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
@@ -20,12 +20,13 @@
     .d-applicant-experiences{margin-top:14px}.d-applicant-experiences h3{margin:0 0 8px;font-size:.82rem}.d-applicant-experience{margin-top:8px;padding:12px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--bg-secondary)}.d-applicant-experience-title{font-size:.86rem;font-weight:700}.d-applicant-experience-meta{font-size:.74rem;color:var(--fg-tertiary)}.d-applicant-experience p{margin:8px 0;white-space:pre-wrap;font-size:.82rem;color:var(--fg-secondary)}.d-applicant-experience-skills{display:flex;flex-wrap:wrap;gap:5px}.d-applicant-experience-skills .is-match{border-color:var(--accent);background:var(--accent-light);color:var(--accent)}
     @media(max-width:640px){.d-detail-facts{display:block}.d-detail-fact{padding:13px 0}.d-detail-fact+.d-detail-fact{padding-left:0;border-top:1px solid var(--border);border-left:0}}
   </style>
+  <link rel="stylesheet" href="/css/theme.css?v=12643a7897de">
 </head>
 <body>
   <main class="d-detail">
     <div id="detail"><div class="d-empty">Loading post...</div></div>
   </main>
-  <script src="/js/utils.js?v=2c88deb1c2fc"></script><script src="/js/data.js?v=c161cd3d7823"></script><script src="/js/post-interactions.js?v=c48b9818455c"></script><script src="/js/panes.js?v=03e138704771"></script><script src="/js/app.js?v=c12269c28a4b"></script>
+  <script src="/js/utils.js?v=2c88deb1c2fc"></script><script src="/js/data.js?v=c161cd3d7823"></script><script src="/js/post-interactions.js?v=c48b9818455c"></script><script src="/js/panes.js?v=03e138704771"></script><script src="/js/app.js?v=b8a0b6bd86ad"></script>
   <script>
     const esc = value => { const d = document.createElement('div'); d.textContent = value == null ? '' : String(value); return d.innerHTML; };
     const text = value => value == null ? '' : String(value);
@@ -582,5 +583,9 @@
     })();
   </script>
   <script src="/js/activity.js?v=6f8f952dd151"></script>
+  <footer class="site-footer">
+    <span><span class="site-footer-brand">LARPABLE.</span> Made for students, by students.</span>
+    <span class="site-footer-credits">Anirudh S.• Prasenjit P.• Vaman A.</span>
+  </footer>
 </body>
 </html>

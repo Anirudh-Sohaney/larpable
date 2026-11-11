@@ -137,7 +137,7 @@ for (const directory of ['web_app', 'staff']) {
         const pathname = src.split('?')[0];
         const target = pathname.startsWith('/') ? path.join(root, 'web_app', pathname) : path.resolve(path.dirname(file), pathname);
         assert.ok(fs.existsSync(target), `${file} references missing ${src}`);
-      } else if (!src && !/type=["'](?:application\/json|module)/i.test(match[1])) {
+      } else if (!src && !/type=["'](?:application\/(?:json|ld\+json)|module)/i.test(match[1])) {
         new vm.Script(match[2], { filename: file });
       }
     }

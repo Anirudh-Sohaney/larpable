@@ -30,7 +30,7 @@ const Feed = {
     this.matchScores = await DataStore.computeMatchScores(this.opportunities);
     this.scored = this.currentUser && ((this.currentUser.skills || []).length || (this.currentUser.interests || []).length);
     this.setupControls();
-    this.renderSummary();
+    if (new URLSearchParams(location.search).get('saved') !== 'true') this.renderSummary();
     // Deep-link: /feed?mine=1 (used after delete) opens the Your projects tab
     try {
       const params = new URLSearchParams(window.location.search);

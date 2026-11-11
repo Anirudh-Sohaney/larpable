@@ -13,15 +13,15 @@
 
 /* ── Theme Variables ─────────────────────────────────────── */
 :root {
-  --sp-bg: #f8f3ed;
-  --sp-font: #1e1b18;
-  --sp-accent: #ff6b6b;
-  --sp-accent-hover: #e55a5a;
-  --sp-accent-light: #fff0ef;
-  --sp-card: #fff;
-  --sp-border: #e4ded6;
+  --sp-bg: var(--bg);
+  --sp-font: var(--fg);
+  --sp-accent: var(--accent);
+  --sp-accent-hover: var(--accent-h);
+  --sp-accent-light: var(--accent-l);
+  --sp-card: var(--card);
+  --sp-border: var(--border);
   --sp-shadow: rgba(30,27,24,.06);
-  --sp-muted: #6b635d;
+  --sp-muted: var(--fg2);
   --sp-green: #10b981;
   --sp-indigo: #6366f1;
   --sp-red: #ef4444;
@@ -172,8 +172,8 @@ body {
 
 /* ── Sidebar ─────────────────────────────────────────────── */
 .sp-sidebar {
-  background: var(--sp-card);
-  border-right: 1px solid var(--sp-border);
+  background: var(--ink);
+  border-right: 1px solid var(--ink-line);
   padding: 16px 0;
   overflow-y: auto;
   overflow-x: hidden;
@@ -186,7 +186,7 @@ body {
   padding: 10px 20px;
   font-size: 0.88rem;
   font-weight: 500;
-  color: var(--sp-muted);
+  color: var(--ink-fg2);
   cursor: pointer;
   border: none;
   background: none;
@@ -198,13 +198,13 @@ body {
   white-space: nowrap;
 }
 .sp-nav-item:hover {
-  color: var(--sp-font);
-  background: rgba(232,115,74,0.04);
+  color: var(--ink-fg);
+  background: var(--ink-line);
 }
 .sp-nav-item.active {
   color: var(--sp-accent);
   border-left-color: var(--sp-accent);
-  background: rgba(232,115,74,0.06);
+  background: var(--ink-line);
 }
 .sp-nav-item svg {
   width: 18px;
@@ -1135,8 +1135,8 @@ body {
     display: flex;
     grid-column: 1;
     grid-row: 3;
-    background: var(--sp-card);
-    border-top: 1px solid var(--sp-border);
+    background: var(--ink);
+    border-top: 1px solid var(--ink-line);
     align-items: center;
     justify-content: space-around;
     padding: 0 4px;
@@ -1149,7 +1149,7 @@ body {
     gap: 2px;
     padding: 6px 8px;
     font-size: 0.6rem;
-    color: var(--sp-muted);
+    color: var(--ink-fg2);
     cursor: pointer;
     border: none;
     background: none;
