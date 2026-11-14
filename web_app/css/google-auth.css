@@ -1,0 +1,4 @@
+.d-auth-or { display:flex; align-items:center; gap:12px; margin:20px 0; color:var(--fg-secondary); font-size:.82rem; }
+.d-auth-or::before,.d-auth-or::after { content:''; flex:1; height:1px; background:var(--border, #ddd); }
+#google-button { display:flex; justify-content:center; }
+#google-error { color:var(--error); font-size:.82rem; margin-top:10px; }

@@ -12,6 +12,7 @@
 const express = require('express');
 const router = express.Router();
 const auth = require('../auth');
+router.use('/google', require('./google.routes'));
 const { emailExists, claimVerifiedEmail, releaseVerifiedEmail, consumeVerifiedEmail } = require('./verify.routes');
 const { validateExperiences } = require('../experiences');
 

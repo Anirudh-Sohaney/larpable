@@ -125,6 +125,16 @@ async function emailExists(email) {
   return index.has(wanted);
 }
 
+// Google has already authenticated this identity; check current mailbox ownership
+// without the signup-only rejection of existing accounts.
+async function requestGoogleEmailCode(email) {
+  const entry = verifications.get(email);
+  if (entry && Date.now() - entry.createdAt < RESEND_COOLDOWN_MS) {
+    throw Object.assign(new Error('Please wait a minute before requesting another code.'), { status: 429 });
+  }
+  return issueCode(email);
+}
+
 async function usersFileSignature() {
   try {
     const stat = await fs.stat(store.filePath('users.json'), { bigint: true });
@@ -265,14 +275,18 @@ verifyRouter.post('/code', (req, res) => {
   }
 
   verifications.delete(email);
+  markEmailVerified(email, res);
+  res.json({ ok: true });
+});
+
+function markEmailVerified(email, res) {
   const proof = randomBytes(32).toString('hex');
   verifiedEmails.set(email, { at: Date.now(), proofHash: sha256Lookup(proof) });
   res.cookie(VERIFICATION_COOKIE, proof, {
     httpOnly: true, sameSite: 'strict', secure: IS_PRODUCTION,
     path: '/', maxAge: VERIFIED_TTL_MS
   });
-  res.json({ ok: true });
-});
+}
 
 // ── POST /api/verify/resend ──────────────────────────────────
 verifyRouter.post('/resend', async (req, res) => {
@@ -350,4 +364,4 @@ function consumeVerifiedEmail(email, req) {
   return ok;
 }
 
-module.exports = { verify: verifyRouter, validate: validateRouter, emailExists, isEmailVerified, claimVerifiedEmail, releaseVerifiedEmail, consumeVerifiedEmail };
+module.exports = { verify: verifyRouter, validate: validateRouter, emailExists, isEmailVerified, claimVerifiedEmail, releaseVerifiedEmail, consumeVerifiedEmail, markEmailVerified, requestGoogleEmailCode };

@@ -290,6 +290,7 @@
   </style>
 <link rel="stylesheet" href="/css/profile-picture.css?v=6c78a5022ae0">
   <link rel="stylesheet" href="/css/theme.css?v=12643a7897de">
+  <link rel="stylesheet" href="/css/google-auth.css?v=40e28abd6d1f">
 </head>
 <body>
   <div class="d-auth">
@@ -315,6 +316,9 @@
             </div>
             <div id="email-error" class="d-verify-error-inline" style="display:none;"></div>
             <button type="button" class="d-verify-btn" id="send-code-btn">Send Verification Code</button>
+            <div class="d-auth-or">or</div>
+            <div id="google-button"><button type="button" class="d-btn" disabled>Continue with Google</button></div>
+            <p id="google-error" role="alert" hidden></p>
           </div>
         </div>
 
@@ -487,6 +491,14 @@
       } catch (e) {}
     })();
 
+    function continueGoogleSignup(data) {
+      verifiedEmail = data.email;
+      document.getElementById('su-email').value = data.email;
+      document.getElementById('su-first').value = data.firstName;
+      document.getElementById('su-last').value = data.lastName;
+      currentStep = 2;
+      updateSteps();
+    }
     let currentStep = 0;
     let verifiedEmail = null;
     let verificationTimer = null;
@@ -1118,6 +1130,13 @@
         if (e.target === overlay) overlay.classList.remove('show');
       });
     });
+    try {
+      const pending = sessionStorage.getItem('larpable_google_signup');
+      if (pending) {
+        sessionStorage.removeItem('larpable_google_signup');
+        continueGoogleSignup(JSON.parse(pending));
+      }
+    } catch {}
   </script>
   <script src="/scaling.js?v=392ddece5414"></script>
   <script src="/js/activity.js?v=6f8f952dd151"></script>
@@ -1125,5 +1144,6 @@
     <span><span class="site-footer-brand">LARPABLE.</span> Made for students, by students.</span>
     <span class="site-footer-credits">Anirudh S.• Prasenjit P.• Vaman A.</span>
   </footer>
+  <script src="/js/google-auth.js?v=2a921718e51b"></script>
 </body>
 </html>

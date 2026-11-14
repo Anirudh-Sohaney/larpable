@@ -9,6 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/styles.css?v=eaa8618e7567">
   <link rel="stylesheet" href="/css/theme.css?v=12643a7897de">
+  <link rel="stylesheet" href="/css/google-auth.css?v=40e28abd6d1f">
 </head>
 <body>
   <div class="d-auth">
@@ -30,6 +31,9 @@
         <div id="login-error" style="color:var(--error); font-size:0.82rem; margin-bottom:12px; display:none;"></div>
         <button type="submit" class="d-btn d-btn-accent" style="width:100%;">Log in</button>
       </form>
+            <div class="d-auth-or">or</div>
+            <div id="google-button"><button type="button" class="d-btn" disabled>Continue with Google</button></div>
+            <p id="google-error" role="alert" hidden></p>
       <div class="d-auth-footer">
         Don't have an account? <a href="/signup">Sign up</a>
       </div>
@@ -89,5 +93,6 @@
     <span><span class="site-footer-brand">LARPABLE.</span> Made for students, by students.</span>
     <span class="site-footer-credits">Anirudh S.• Prasenjit P.• Vaman A.</span>
   </footer>
+  <script src="/js/google-auth.js?v=2a921718e51b"></script>
 </body>
 </html>
