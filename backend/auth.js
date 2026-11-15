@@ -81,6 +81,7 @@ async function signup({ username, password, type, profile, legalAgreement, email
   
   // Build user record
   const userRecord = {
+    ...require('./streak').defaults(),
     username_hash: usernameHash,
     password_hash: passwordRecord.hash,
     password_salt: passwordRecord.salt,

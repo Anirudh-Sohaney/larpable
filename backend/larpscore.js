@@ -16,7 +16,7 @@ function events(data,at=new Date().toISOString()){
   };
   for(const [kind,file] of [['opportunity','opportunities.json'],['post','posts.json']])for(const [id,post] of Object.entries(data[file] || {})){
     const owner=post.created_by;if(!owner || post.flagged)continue;
-    add(eventKey('post',kind,id),'post',post.created_at,[award(owner,5)]);
+    add(eventKey('post',kind,id),'post',post.created_at,[award(owner,5+2*(Number.isInteger(post.streak) && post.streak>0 ? post.streak : 0))]);
     if(kind==='post')for(const [liker,createdAt] of Object.entries(data['post-reactions.json']?.[id] || {}))if(liker!==owner && createdAt){
       add(eventKey('like',id,liker),'like',createdAt,[award(owner,3)]);
     }

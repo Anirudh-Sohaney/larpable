@@ -1,5 +1,6 @@
 const store=require('./store');
 const FILE='publication-days.json';
+const streak=require('./streak');
 const DAY=24*60*60*1000;
 const pending=new Map();
 const key=(kind,id)=>JSON.stringify([kind,id]);
@@ -7,6 +8,8 @@ function dayOf(value){const time=Date.parse(value);return Number.isFinite(time) 
 // Shared across project locks and both post types. Never refund a successful publication on deletion.
 function publish(userId,kind,id,record,writePost){
   const task=(pending.get(userId) || Promise.resolve()).catch(()=>{}).then(async()=>{
+    await streak.recover(userId);
+    const user=await store.getRawUser(userId);
     const now=new Date().toISOString(),day=dayOf(now);
     const [ledger,opportunities,posts]=await Promise.all([store.read(FILE),store.read('opportunities.json'),store.read('posts.json')]);
     const used=Object.values(ledger).some(entry=>entry.user_id===userId && entry.day===day) ||
@@ -17,11 +20,23 @@ function publish(userId,kind,id,record,writePost){
     }
     const claim=key(kind,id);
     record.created_at=now;
-    await store.save(FILE,claim,{user_id:userId,kind,day,created_at:now});
-    try{return await writePost();}
+    record.streak=user?.last_post_at && Date.parse(now)-Date.parse(user.last_post_at)<streak.WINDOW ? (user.streak || 0)+1 : 0;
+    const entry={user_id:userId,kind,day,created_at:now,streak:record.streak,account_created_at:user?.created_at || '',confirmed:false};
+    await store.save(FILE,claim,entry);
+    try{
+      const result=await writePost();
+      await store.save(FILE,claim,{...entry,confirmed:true});
+      await streak.recover(userId);
+      return result;
+    }
     catch(error){
       // A failed write does not consume the day. If a post did persist, keep its claim.
-      try{if(!await store.getById(kind==='post' ? 'posts.json' : 'opportunities.json',id))await store.remove(FILE,claim);}
+      try{
+        if(await store.getById(kind==='post' ? 'posts.json' : 'opportunities.json',id)){
+          await store.save(FILE,claim,{...entry,confirmed:true});
+          await streak.recover(userId);
+        }else await store.remove(FILE,claim);
+      }
       catch(cleanupError){console.error('Publication claim retained after storage failure:',cleanupError.message);}
       throw error;
     }

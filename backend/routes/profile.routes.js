@@ -30,7 +30,7 @@ router.get('/:id',async(req,res)=>{
     }));
     const owned=await projects.mine(req.params.id);
     const larpscore=await require('../larpscore').get(req.params.id,user.created_at);
-    res.json({profile:{id:req.params.id,name,username:fields.username || '',larpscore,skills:strings(fields.skills),interests:strings(fields.interests),experiences},projects:owned});
+    res.json({profile:{id:req.params.id,name,username:fields.username || '',larpscore,...require('../streak').view(user),skills:strings(fields.skills),interests:strings(fields.interests),experiences},projects:owned});
   }catch(error){console.error('Public profile:',error);res.status(500).json({error:'Could not load profile'});}
 });
 router.get('/:id/projects/:projectId/posts',async(req,res)=>{

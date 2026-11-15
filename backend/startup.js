@@ -31,6 +31,7 @@ async function run(){
   }
   await fs.mkdir(store.filePath('media'),{recursive:true});
   await require('./deleted_users').resumePending();
+  await require('./streak').recover();
   const recovery=await require('./larpscore').recover();
   await require('./media').cleanup();
   return recovery;

@@ -455,6 +455,8 @@ app.use((req, res) => {
 function startServer(port) {
   startupReady = require('./backend/startup').run();
   startupReady.catch(err => console.error('[startup] failed:', err.message));
+  const streakSweep=setInterval(()=>startupReady.then(()=>require('./backend/streak').expire()).catch(error=>console.error('[streak] expiry failed:',error)),60000);
+  streakSweep.unref();
   const server = app.listen(port, HOST, async () => {
     await startupReady.catch(() => {});
     console.log(`\n  ┌─────────────────────────────────────┐`);
@@ -468,7 +470,9 @@ function startServer(port) {
     console.log(`  └─────────────────────────────────────┘\n`);
   });
 
+  server.on('close',()=>clearInterval(streakSweep));
   server.on('error', (err) => {
+    clearInterval(streakSweep);
     if (err.code === 'EADDRINUSE') {
       console.log(`Port ${port} is in use, trying ${port === PORT ? 9194 : port + 1}...`);
       startServer(port === PORT ? 9194 : port + 1);

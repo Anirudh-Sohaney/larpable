@@ -54,7 +54,7 @@ const Feed = {
       ...(post.has_unread_comments ? [{id:post.id,path:post.kind==='post' ? 'post' : 'opportunity',at:post.latest_unread_comment_at || post.latest_notification_at,text:'new comment',hash:'comments'}] : [])
     ]).sort((a,b)=>(b.at || '').localeCompare(a.at || ''));
     box.hidden=false;
-    box.innerHTML=`<a class="d-summary-profile" href="/profile"><img width="64" height="64" src="/api/profiles/${encodeURIComponent(user.id)}/picture" alt="Your profile picture"><strong>@${esc(user.username)}</strong></a><div class="d-summary-score-row"><span id="summary-score">LarpScore <span aria-hidden="true">...</span></span>${LarpScoreInfo.button}</div><section class="d-summary-notifications"><div><h2>Notifications</h2>${notices.length ? notices.map(notice=>`<a class="d-applicant-notice" data-notice-id="${esc(notice.id)}" data-notice-kind="${notice.hash}" href="/${notice.path}?id=${encodeURIComponent(notice.id)}#${notice.hash}">${notice.text}</a>`).join('') : '<p>No new notifications</p>'}</div></section>`;
+    box.innerHTML=`<a class="d-summary-profile" href="/profile"><img width="64" height="64" src="/api/profiles/${encodeURIComponent(user.id)}/picture" alt="Your profile picture"><strong>@${esc(user.username)}</strong></a><div class="d-summary-stats"><div class="d-summary-score-row"><span id="summary-score">LarpScore <span aria-hidden="true">...</span></span>${LarpScoreInfo.button}</div><div class="d-summary-streak" id="summary-streak" aria-live="polite"><div><span id="summary-streak-value">Streak loading…</span><span class="d-streak-flame" aria-hidden="true">🔥</span></div></div></div><section class="d-summary-notifications"><div><h2>Notifications</h2>${notices.length ? notices.map(notice=>`<a class="d-applicant-notice" data-notice-id="${esc(notice.id)}" data-notice-kind="${notice.hash}" href="/${notice.path}?id=${encodeURIComponent(notice.id)}#${notice.hash}">${notice.text}</a>`).join('') : '<p>No new notifications</p>'}</div></section>`;
     const divider=document.getElementById('feed-divider');
     if(divider && !this.summaryObserver){
       this.summaryObserver=new IntersectionObserver(([entry])=>box.classList.toggle('is-compact',!entry.isIntersecting && entry.boundingClientRect.top<0));
@@ -63,7 +63,25 @@ const Feed = {
     try {
       const {profile}=await DataStore.request('/api/profiles/'+encodeURIComponent(user.id));
       document.getElementById('summary-score').textContent=(profile.larpscore ?? 0)+' LarpScore';
-    }catch {document.getElementById('summary-score').textContent='LarpScore unavailable';}
+      this.updateStreak(profile);
+    }catch {document.getElementById('summary-score').textContent='LarpScore unavailable';document.getElementById('summary-streak-value').textContent='Streak unavailable';}
+    if(!this.streakVisibility){
+      this.streakVisibility=()=>{if(!document.hidden)this.refreshStreak();};
+      document.addEventListener('visibilitychange',this.streakVisibility);
+    }
+  },
+
+  updateStreak(profile) {
+    clearTimeout(this.streakTimer);
+    const remaining=Date.parse(profile.streak_expires_at)-Date.now();
+    const value=document.getElementById('summary-streak-value');
+    if(value)value.textContent=(remaining>0 ? profile.streak || 0 : 0)+' streak';
+    if(remaining>0)this.streakTimer=setTimeout(()=>this.updateStreak({...profile,streak:0,streak_expires_at:null}),Math.min(remaining,2147483647));
+  },
+
+  async refreshStreak() {
+    if(!document.getElementById('summary-streak-value'))return;
+    try{const {profile}=await DataStore.request('/api/profiles/'+encodeURIComponent(this.currentUser.id));this.updateStreak(profile);}catch{}
   },
 
   acknowledge({id,kind,posts}) {

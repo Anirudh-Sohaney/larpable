@@ -1,0 +1,51 @@
+const assert=require('node:assert/strict'),fs=require('node:fs/promises'),os=require('node:os'),path=require('node:path');
+(async()=>{
+ const dir=await fs.mkdtemp(path.join(os.tmpdir(),'streak-')),clock=require('./helpers/test-clock')('2026-11-01T12:00:00Z');
+ Object.assign(process.env,{DATA_DIR:dir,ENCRYPTION_KEY:'a'.repeat(64),NODE_ENV:'test'});
+ let server;
+ const store=require('../backend/store'),limit=require('../backend/publication_limit'),score=require('../backend/larpscore');
+ try{
+  const original={created_at:'2026-01-01T00:00:00Z',encrypted_fields:{},custom:{preserve:true}};
+  await store.saveUser('a',original);
+  async function post(id,kind='post',extra={}){const record={created_by:'a',encrypted_fields:{},...extra};await limit.publish('a',kind,id,record,()=>store.save(kind==='post'?'posts.json':'opportunities.json',id,record));return record;}
+  const copy=fs.copyFile;fs.copyFile=async(source,target)=>{await fs.writeFile(target,'partial');throw Error('backup interrupted');};
+  await assert.rejects(post('first'),/backup interrupted/);assert.deepEqual(await store.getRawUser('a'),original);fs.copyFile=copy;
+  await post('first');assert.equal((await store.getRawUser('a')).streak,0);
+  clock.advance();await post('second','opportunity');assert.equal((await store.getRawUser('a')).streak,1);assert.equal(await score.get('a',original.created_at),12);
+  const streak=require('../backend/streak');
+  clock.advance(168*3600000-1);assert.equal(streak.view(await store.getRawUser('a')).streak,1);
+  await post('third');assert.equal((await store.getRawUser('a')).streak,2);assert.equal(await score.get('a',original.created_at),21);
+  clock.advance(168*3600000);assert.equal(streak.view(await store.getRawUser('a')).streak,0);
+  await streak.expire();assert.equal((await store.getRawUser('a')).streak,0);await post('restart');assert.equal((await store.getRawUser('a')).streak,0);
+  clock.advance();const before=await store.getRawUser('a');await assert.rejects(limit.publish('a','post','failed',{},()=>{throw Error('disk failure');}),/disk failure/);assert.deepEqual(await store.getRawUser('a'),before);
+  await post('held','post',{flagged:true});assert.equal((await store.getRawUser('a')).streak,1);assert.equal(await score.get('a',original.created_at),26);
+  await store.atomicUpdate('posts.json',data=>{data.held.flagged=false;return data;});assert.equal(await score.get('a',original.created_at),33);
+  await store.remove('posts.json','held');assert.equal(await score.get('a',original.created_at),26);assert.equal((await store.getRawUser('a')).streak,1);
+  clock.advance();const atomic=store.atomicUpdate;let fail=true;
+  store.atomicUpdate=async(file,fn)=>{if(file==='users.json'&&fail&&await store.getById('posts.json','recover')){fail=false;throw Error('user update interrupted');}return atomic(file,fn);};
+  await assert.rejects(post('recover'),/interrupted/);store.atomicUpdate=atomic;
+  await streak.recover();assert.equal((await store.getRawUser('a')).streak,2);assert.equal(await score.get('a',original.created_at),35);
+  const stable=await fs.readFile(store.filePath('users.json'),'utf8');await streak.recover();assert.equal(await fs.readFile(store.filePath('users.json'),'utf8'),stable);
+  assert.deepEqual((await store.getRawUser('a')).custom,original.custom);
+  await store.saveUser('legacy',{...original});await store.save('posts.json','legacy',{created_by:'legacy',created_at:new Date().toISOString(),encrypted_fields:{}});
+  await streak.recover();assert.equal((await store.getRawUser('legacy')).last_post_at,new Date().toISOString());assert.equal((await store.getRawUser('legacy')).streak,0);
+  assert.deepEqual(JSON.parse(await fs.readFile(store.filePath('users.json.before-streak-v9.bak'),'utf8')),{a:original});
+  clock.advance();let scoreFail=true;store.atomicUpdate=async(file,fn)=>{if(file===score.FILE&&scoreFail){scoreFail=false;throw Error('score interrupted');}return atomic(file,fn);};
+  await assert.rejects(post('source-persisted'),/score interrupted/);store.atomicUpdate=atomic;await streak.recover();await score.recover();assert.equal((await store.getRawUser('a')).streak,3);
+  await store.saveUser('a',{...original,created_at:new Date(Date.now()+1).toISOString()});await streak.recover();assert.equal((await store.getRawUser('a')).streak,0);assert.equal((await store.getRawUser('a')).last_post_at,null);
+  await store.saveUser('b',{...original});const auth=require('../backend/auth'),projects=require('../backend/projects');
+  const project=await projects.create('b',{type:'project',name:'Streak project',elevator_pitch:'Build useful community tools',tags:['Programming']});
+  const token=await auth.createSession('b');server=require('../server').app.listen(0,'127.0.0.1');await new Promise(r=>server.once('listening',r));
+  const base='http://127.0.0.1:'+server.address().port;
+  const request=async(url,body)=>{const response=await fetch(base+url,{method:body?'POST':'GET',headers:{'Content-Type':'application/json',Cookie:'larpable_session='+token},...(body?{body:JSON.stringify(body)}:{})});return {status:response.status,body:await response.json()};};
+  const regular={project_id:project.id,title:'Streak update',content:'A useful community update'};
+  const simultaneous=await Promise.all([request('/api/posts',regular),request('/api/posts',regular)]);assert.deepEqual(simultaneous.map(r=>r.status).sort(),[200,429]);
+  assert.equal((await store.getRawUser('b')).streak,0);clock.advance();
+  const draft=await request('/api/drafts',{kind:'opportunity',project_id:project.id,looking_for:'Developers',description:'Build community tools',skills:['Programming','Research','Web Development']});assert.equal(draft.status,200);
+  assert.equal((await request('/api/drafts/'+draft.body.id+'/publish',{})).status,200);
+  const profile=(await request('/api/profiles/b')).body.profile;assert.equal(profile.streak,1);assert.equal(profile.larpscore,12);
+  clock.advance(streak.WINDOW);const expired=(await request('/api/profiles/b')).body.profile;assert.equal(expired.streak,0);assert.equal(expired.larpscore,12);
+  await streak.expire();assert.equal((await store.getRawUser('b')).streak,0);
+  console.log('Streak: publication types, boundaries, immutable bonuses, expiry, held posts, deletion, failures, recovery, rollout, backups and account generations passed.');
+ }finally{if(server)await new Promise(r=>server.close(r));clock.restore();await fs.rm(dir,{recursive:true,force:true});}
+})().catch(error=>{console.error(error);process.exitCode=1;});

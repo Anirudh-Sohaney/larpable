@@ -1,3 +1,12 @@
+Current streak extension (2026-11-14): newly published regular posts and opportunities
+(including published drafts) start at streak 0, then increment for each publication
+strictly less than 168 hours after the preceding one. At 168 hours the streak resets
+to 0. Approved publication awards are now `5 + 2 × publication streak`; old awards
+remain unchanged. Held submissions advance publication history but earn their fixed
+award only on approval. Existing retention/reversal rules apply to the whole award.
+See [posting streak design](docs/superpowers/specs/2026-11-14-streak-design.md) for
+additive initialization, backups and recovery.
+
 > Historical implementation notes. Completed one-time migrations were retired locally on 2026-10-31. See MIGRATION_RETIREMENT.md for current startup and recovery behavior; migration commands below are no longer available in this checkout.
 
 # LarpScore and daily publishing (v5)
