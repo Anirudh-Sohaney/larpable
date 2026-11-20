@@ -67,6 +67,8 @@ const rateLimitCleanup = setInterval(() => {
       require('./backend/reengagement').maybeRunNightlyReengagement(now).catch(() => {});
     } catch {}
   }
+  // Google indexing announces production URLs, so it never runs from local data.
+  if (IS_PRODUCTION) startupReady.then(() => require('./backend/indexing').sync(), () => {});
   // Activity buffer flush piggybacks on the same existing timer.
   try {
     require('./backend/activity').flushActivity().catch(() => {});
@@ -347,6 +349,11 @@ app.get('/get-started', (req, res) => {
 
 app.get('/post', (req,res)=>res.sendFile(path.join(__dirname,'web_app','opportunity.html')));
 
+// Crawlable opportunity pages at descriptive URLs; old ?id= links redirect to them.
+const seo = require('./backend/seo');
+app.get('/opportunity', seo.legacy);
+app.get('/:segment(internship|volunteering|job)/:slug', seo.page);
+
 // ── Static File Serving ──────────────────────────────────────
 // Serve web_app/ at root
 app.use(express.static(path.join(__dirname, 'web_app')));
@@ -455,6 +462,7 @@ app.use((req, res) => {
 function startServer(port) {
   startupReady = require('./backend/startup').run();
   startupReady.catch(err => console.error('[startup] failed:', err.message));
+  if (IS_PRODUCTION) startupReady.then(() => require('./backend/indexing').sync(), () => {});
   const streakSweep=setInterval(()=>startupReady.then(()=>require('./backend/streak').expire()).catch(error=>console.error('[streak] expiry failed:',error)),60000);
   streakSweep.unref();
   const server = app.listen(port, HOST, async () => {

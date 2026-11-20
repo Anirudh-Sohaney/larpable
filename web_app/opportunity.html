@@ -68,8 +68,8 @@
           goTo(link.href);
         }, true);
       } else App.setupUserMenu();
-      const id = params.get('id');
       const root = document.getElementById('detail');
+      const id = params.get('id') || root.dataset.id;
       if (!id) { root.innerHTML = '<div class="d-empty">Post not found.</div>'; return; }
       try {
         const response = await fetch(apiBase + '/' + encodeURIComponent(id) + (location.hash === '#applied' ? '?view=applications' : ''), { credentials: 'same-origin' });
@@ -86,7 +86,7 @@
         const links = (Array.isArray(fields.contact_links) ? fields.contact_links : (fields.contact ? [fields.contact] : [])).map(linkValue).filter(Boolean);
         const typeLabel = { project: 'Project', nonprofit: 'Nonprofit', company: 'Company' }[kind] || kind;
         const skills = isRegular ? data.skills || [] : Array.isArray(fields.skills) ? fields.skills : [];
-        document.title = 'LARPABLE. — ' + (isRegular ? fields.title : projectName);
+        if (!root.dataset.id) document.title = 'LARPABLE. — ' + (isRegular ? fields.title : projectName);
         
         // Check saved state using the currently initialized App data
         const currentUser = DataStore.getCurrentUser();
